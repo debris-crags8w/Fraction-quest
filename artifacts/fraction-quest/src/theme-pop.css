@@ -870,7 +870,7 @@
   right: 0;
   bottom: 0;
   z-index: 20;
-  padding: 16px 0 calc(16px + env(safe-area-inset-bottom, 0px));
+  padding: 16px 0 calc(16px + var(--fq-bottom-clear)); /* the home bar in a browser; 0 in the app, whose shell keeps clear of it */
   border-top: 2px solid var(--fq-edge);
   background: hsl(var(--background));
   transition: background-color 200ms ease;
@@ -1812,6 +1812,21 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
 .fq-place-form { display: flex; flex-wrap: wrap; gap: 10px; }
 .fq-place-form input { flex: 1; min-width: 140px; padding: 12px 14px; border: 2px solid var(--fq-edge); border-radius: 14px; font: inherit; font-size: 1.15rem; font-weight: 800; background: hsl(var(--background)); }
 .fq-place-skip { justify-self: start; }
+.fq-place-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; width: 100%; }
+/* A phone (390 × 664 in Safari): the question, its picture, the tiles, Next and "I haven't learned this yet" fit with no scrolling. */
+@media (max-width: 600px) {
+  .fq-place:has(.fq-place-card.question) { gap: 6px; padding-top: 6px; padding-bottom: 12px; }
+  .fq-place-card.question { gap: 8px; margin: 0 auto; padding: 12px 14px 14px; }
+  .fq-place-card.question h2 { font-size: 1.1rem; line-height: 1.3; }
+  .fq-place-card.question .fq-place-model { justify-self: center; width: 100%; }
+  .fq-place-card.question .fq-place-model > .fq-svg-area { display: block; max-height: 128px; width: auto; max-width: 100%; margin: 0 auto; }
+  /* Hundredths grids and pizzas the question carries (two or three side by side), as in a Check-in. */
+  .fq-place-card.question .fq-place-model .fq-area-model { flex-wrap: nowrap; gap: 8px; }
+  .fq-place-card.question .fq-place-model .fq-area-model .fq-svg-area { width: calc(min(26vw, 104px) * var(--area-scale, 1)); }
+  .fq-place-actions { flex-wrap: nowrap; gap: 8px; }
+  .fq-place-actions .fq-button { min-height: 46px; padding: 8px 12px; }
+  .fq-place-actions .fq-place-skip { flex: 1; min-width: 0; font-size: 0.92rem; white-space: nowrap; }
+}
 .fq-place-note { margin: 0; padding: 8px 12px; border-radius: 12px; color: hsl(var(--muted-foreground)); background: hsl(var(--card)); box-shadow: 0 0 0 2px var(--fq-edge); font-size: 0.9rem; font-weight: 700; }
 .fq-grownups-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 420px) { .fq-grownups-buttons { width: 100%; } .fq-grownups-buttons .fq-button { flex: 1; } }

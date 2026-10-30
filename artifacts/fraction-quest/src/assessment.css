@@ -413,6 +413,25 @@
 }
 
 @media (max-width: 600px) {
+  /* A phone (390 × 664 in Safari): a question with a picture to read shows its tiles and Next with no scrolling; one with a
+     model to build shows the whole model on the first screen. */
+  .fq-assessment-runner { gap: .6rem; padding-top: .5rem; }
+  .fq-assessment-runner .fq-assessment-question { padding: .8rem .85rem; gap: .55rem; }
+  .fq-assessment-runner .fq-assessment-question h2 { font-size: 1.08rem; line-height: 1.35; }
+  .fq-assessment-picture { padding: .4rem; }
+  .fq-assessment-picture > .fq-svg-area { display: block; max-height: 112px; width: auto; max-width: 100%; margin: 0 auto; }
+  .fq-assessment-runner .fq-garden { width: min(100%, 170px); }
+  /* How to use the tiles is taught in every lesson, and the note above them says to use them. */
+  .fq-assessment-runner .fq-tile-help { display: none; }
+  .fq-assessment-picture .fq-model-tag { display: none; } /* the picture names itself; the label only takes a line */
+  .fq-assessment-runner .fq-assessment-question .fq-assessment-model-gate { margin-top: 0; padding: .35rem .6rem; font-size: .82rem; }
+  /* The bar to copy: shorter parts, and a hundredths bar as a 10 × 10 grid of small squares (it is copied by counting). */
+  .fq-assessment-runner .fq-ll-copy-model { margin: 4px 0 6px; padding: 8px; gap: 6px; }
+  .fq-assessment-runner .fq-ll-copy-wholes { gap: 6px; }
+  .fq-assessment-runner .fq-ll-copy-part { min-height: 32px; }
+  .fq-assessment-runner .fq-ll-copy-parts:has(> :nth-child(50)) { gap: 2px; width: min(100%, 244px); margin: 0 auto; }
+  .fq-assessment-runner .fq-ll-copy-whole:has(> .fq-ll-copy-parts > :nth-child(50)) > .fq-whole-bracket { display: none; }
+  .fq-assessment-runner .fq-ll-copy-parts:has(> :nth-child(50)) .fq-ll-copy-part { min-height: 0; aspect-ratio: 1; border-width: 1.5px; border-radius: 3px; }
   .fq-assessment-question { gap: .7rem; }
   .fq-assessment-model { padding: .7rem; }
   .fq-assessment-model > p:first-child { margin-bottom: .6rem; font-size: .88rem; }

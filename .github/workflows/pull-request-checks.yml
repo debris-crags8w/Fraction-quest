@@ -201,6 +201,61 @@ jobs:
       - name: Accessibility, grown-ups report, subscription, offline, reminder, time-limit, Check-in picture and developer-tool checks
         run: pnpm --filter @workspace/fraction-quest test:e2e:extra
 
+  phone-fit-e2e:
+    # Every screen must fit a phone (390 × 664, an iPhone in Safari) with no scrolling. These walks had no job: every
+    # screen of every lesson (split over four shards, which run side by side), and every Unit challenge puzzle, every
+    # Find my level question and every kind of Check-in question (one more shard). Each shard takes about as long as
+    # the other browser jobs, so a pull request does not wait longer; it costs about 50 more runner minutes (see the PR notes).
+    name: Phone fit (${{ matrix.part }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { part: 'lessons 1/4', script: 'test:e2e:phone-fit', shard: '1/4' }
+          - { part: 'lessons 2/4', script: 'test:e2e:phone-fit', shard: '2/4' }
+          - { part: 'lessons 3/4', script: 'test:e2e:phone-fit', shard: '3/4' }
+          - { part: 'lessons 4/4', script: 'test:e2e:phone-fit', shard: '4/4' }
+          - { part: 'challenges, Find my level, Check-ins', script: 'test:e2e:phone-fit-other', shard: '1/1' }
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        # Same capped, retried install as the all-lessons job (see the note there).
+        timeout-minutes: 13
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
+          for try in 1 2; do
+            timeout 330 pnpm --filter @workspace/fraction-quest exec playwright install --with-deps chromium && exit 0
+            echo "Install attempt $try did not finish; trying again."
+            sudo pkill -x apt-get || true
+            for wait in $(seq 1 30); do sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1 || break; sleep 2; done
+            sudo dpkg --configure -a || true
+            sudo sed -i 's#http://azure.archive.ubuntu.com#http://archive.ubuntu.com#g' /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          done
+          exit 1
+
+      - name: Walk the screens at 390 × 664
+        env:
+          SMOKE_SHARD: ${{ matrix.shard }}
+        run: pnpm --filter @workspace/fraction-quest run ${{ matrix.script }}
+
   iphone-safari-e2e:
     name: iPhone Safari lesson smoke (WebKit)
     runs-on: ubuntu-latest

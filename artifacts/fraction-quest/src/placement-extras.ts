@@ -31,8 +31,10 @@ export const PLACEMENT_EXTRAS: Record<string, WorksheetProblem[]> = {
 /* Units 8 and 12 have many lessons and standards but three questions each, so a quiz used to ask only about 3.6 and 4.4 of
    their standards. These rows each ask two (or three) of the unit's standards at once, the lesson's own and one taught
    earlier in the unit, so the same three questions cover more of it. Every row really needs each skill it is tagged with. */
-const blend = (id: string, prompt: string, answer: string, hint: string, standards: string[], form?: WorksheetProblem['form']): WorksheetProblem =>
-  ({ id: `placement-${id}`, prompt, answer, hint, standards, ...(form ? { form } : {}) });
+const blend = (id: string, prompt: string, answer: string, hint: string, standards: string[], form?: WorksheetProblem['form'], picture?: WorksheetProblem['picture']): WorksheetProblem =>
+  ({ id: `placement-${id}`, prompt, answer, hint, standards, ...(form ? { form } : {}), ...(picture ? { picture } : {}) });
+/** The amounts a line-plot row lists, drawn as the line plot they come from (an X for each, in fourths or eighths). */
+const plot = (denominator: number, values: number[]): WorksheetProblem['picture'] => ({ kind: 'lineplot', denominator, wholes: 1, values });
 const MIXED_LENGTH = ['4.NF.3c', '4.NF.3d']; // a mixed number in a story about one length
 const DECIMAL_SIGN = ['4.NF.7', '4.NF.6']; // hundredths written as a decimal, then compared
 const SUM_SIGN = ['4.NF.5', '4.NF.7']; // tenths and hundredths added, then compared with a decimal
@@ -88,15 +90,15 @@ export const PLACEMENT_BLENDS: Record<string, WorksheetProblem[]> = {
   ],
   // Measurements listed as on a line plot (4.MD.4, read-line-plots), in a measuring story or a times story later in unit 9.
   'measurement-word-problems': [
-    blend('rain-1', 'Rain fell on 4 days: 1/8, 3/8, 3/8, 6/8 inch. How much more rain fell on the wettest day than the driest?', '5/8', 'Take the driest day away from the wettest.', ['4.MD.2', '4.MD.4']),
-    blend('rain-2', 'Rain fell on 5 days: 2/8, 2/8, 4/8, 5/8, 7/8 inch. How much more rain fell on the wettest day than the driest?', '5/8', 'Take the driest day away from the wettest.', ['4.MD.2', '4.MD.4']),
+    blend('rain-1', 'Rain fell on 4 days: 1/8, 3/8, 3/8, 6/8 inch. How much more rain fell on the wettest day than the driest?', '5/8', 'Take the driest day away from the wettest.', ['4.MD.2', '4.MD.4'], undefined, plot(8, [1, 3, 3, 6])),
+    blend('rain-2', 'Rain fell on 5 days: 2/8, 2/8, 4/8, 5/8, 7/8 inch. How much more rain fell on the wettest day than the driest?', '5/8', 'Take the driest day away from the wettest.', ['4.MD.2', '4.MD.4'], undefined, plot(8, [2, 2, 4, 5, 7])),
   ],
   'fraction-recipes': [
-    blend('same-cups-1', 'Jars hold: 3/4, 1/4, 3/4, 3/4 liter. How much do the 3/4-liter jars hold in all?', '9/4', 'Count the 3/4-liter jars. Then find that many times 3/4.', ['4.NF.4c', '4.MD.4']),
+    blend('same-cups-1', 'Jars hold: 3/4, 1/4, 3/4, 3/4 liter. How much do the 3/4-liter jars hold in all?', '9/4', 'Count the 3/4-liter jars. Then find that many times 3/4.', ['4.NF.4c', '4.MD.4'], undefined, plot(4, [3, 1, 3, 3])),
   ],
   'party-portions': [
-    blend('same-cups-2', 'Cups hold: 3/8, 5/8, 3/8, 1/8, 3/8 liter. How much do the 3/8-liter cups hold in all?', '9/8', 'Count the 3/8-liter cups. Then find that many times 3/8.', ['4.NF.4c', '4.MD.4']),
-    blend('same-cups-3', 'Cups hold: 2/8, 5/8, 5/8, 7/8 liter. How much do the 5/8-liter cups hold in all?', '10/8', 'Count the 5/8-liter cups. Then find that many times 5/8.', ['4.NF.4c', '4.MD.4']),
+    blend('same-cups-2', 'Cups hold: 3/8, 5/8, 3/8, 1/8, 3/8 liter. How much do the 3/8-liter cups hold in all?', '9/8', 'Count the 3/8-liter cups. Then find that many times 3/8.', ['4.NF.4c', '4.MD.4'], undefined, plot(8, [3, 5, 3, 1, 3])),
+    blend('same-cups-3', 'Cups hold: 2/8, 5/8, 5/8, 7/8 liter. How much do the 5/8-liter cups hold in all?', '10/8', 'Count the 5/8-liter cups. Then find that many times 5/8.', ['4.NF.4c', '4.MD.4'], undefined, plot(8, [2, 5, 5, 7])),
   ],
   'line-plot-totals': [
     // Adding halves, fourths and eighths: unlike denominators in a story (5.NF.1, 5.NF.2) from measurements (5.MD.2).
@@ -106,16 +108,16 @@ export const PLACEMENT_BLENDS: Record<string, WorksheetProblem[]> = {
   'fractional-unit-conversions': [
     // A fraction of 2 or 3 big units (5.NF.4a), changed to small units (5.MD.1), in a measurement story (4.MD.2).
     blend('convert-part-1', 'A 2-liter jug is 3/4 full. How many milliliters are inside?', '1500', '2 liters is 2000 milliliters. Find 3/4 of 2000.', ['5.MD.1', '4.MD.2', '5.NF.4a']),
-    blend('total-g-1', 'Bags hold: 1/4, 2/4, 3/4 kilogram. How many grams in all?', '1500', 'Add the kilograms first. 1 kilogram is 1000 grams.', ['5.MD.1', '4.MD.2', '5.MD.2']),
+    blend('total-g-1', 'Bags hold: 1/4, 2/4, 3/4 kilogram. How many grams in all?', '1500', 'Add the kilograms first. 1 kilogram is 1000 grams.', ['5.MD.1', '4.MD.2', '5.MD.2'], undefined, plot(4, [1, 2, 3])),
     blend('convert-part-2', 'A 3-kilogram bag is 1/4 full. How many grams are in it?', '750', '3 kilograms is 3000 grams. Find 1/4 of 3000.', ['5.MD.1', '4.MD.2', '5.NF.4a']),
   ],
   // Amounts listed as on a line plot (5.MD.2, line-plot-totals), shared equally: a whole number divided into a fraction (5.NF.3).
   'fractional-sharing': [
-    blend('level-1', 'Three jars hold 2/4, 3/4, 3/4 liter. Share the total equally. How many liters go in each?', '2/3', 'Add them first: 8/4 is 2 liters. Then 2 shared by 3 is 2/3.', ['5.NF.3', '5.MD.2']),
-    blend('level-2', 'Three cups hold 1/8, 3/8, 4/8 liter. Share the total equally. How many liters go in each?', '1/3', 'Add them first: 8/8 is 1 liter. Then 1 shared by 3 is 1/3.', ['5.NF.3', '5.MD.2']),
+    blend('level-1', 'Three jars hold 2/4, 3/4, 3/4 liter. Share the total equally. How many liters go in each?', '2/3', 'Add them first: 8/4 is 2 liters. Then 2 shared by 3 is 2/3.', ['5.NF.3', '5.MD.2'], undefined, plot(4, [2, 3, 3])),
+    blend('level-2', 'Three cups hold 1/8, 3/8, 4/8 liter. Share the total equally. How many liters go in each?', '1/3', 'Add them first: 8/8 is 1 liter. Then 1 shared by 3 is 1/3.', ['5.NF.3', '5.MD.2'], undefined, plot(8, [1, 3, 4])),
   ],
   'two-step-conversions': [
-    blend('total-ml-1', 'Cups hold: 1/2, 1/4, 1/4 liter. How many milliliters in all?', '1000', 'Add the liters first. 1 liter is 1000 milliliters.', ['5.MD.1', '4.MD.2', '5.MD.2']),
+    blend('total-ml-1', 'Cups hold: 2/4, 1/4, 1/4 liter. How many milliliters in all?', '1000', 'Add the liters first. 1 liter is 1000 milliliters.', ['5.MD.1', '4.MD.2', '5.MD.2'], undefined, plot(4, [2, 1, 1])),
     blend('two-step-1', 'A ribbon is 2 1/4 feet long. Pip cuts off 8 inches. How many inches are left?', '19', 'Change 2 1/4 feet to inches first: 1 foot is 12 inches.', ['5.MD.1', '4.MD.2']),
     blend('two-step-2', 'A race is 1 1/4 hours long. The first part takes 30 minutes. How many minutes are left?', '45', 'Change 1 1/4 hours to minutes first: 1 hour is 60 minutes.', ['5.MD.1', '4.MD.2']),
   ],

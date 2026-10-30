@@ -3604,7 +3604,9 @@ test('every screen of every lesson fits an iPhone Safari screen: Learn pages, pr
     await noSideways(where);
   };
   const only = process.env.SMOKE_LESSONS?.split(',').map((id) => id.trim()).filter(Boolean);
-  for (const mission of MISSIONS.filter((item) => !only?.length || only.includes(item.id))) {
+  // SMOKE_SHARD=2/4 walks every 4th lesson starting with the 2nd, so CI can split the walk over parallel jobs.
+  const [shard, shards] = (process.env.SMOKE_SHARD ?? '1/1').split('/').map(Number);
+  for (const mission of MISSIONS.filter((item, at) => (!only?.length || only.includes(item.id)) && at % shards! === shard! - 1)) {
     await test.step(`${mission.id}: ${mission.title}`, async () => {
       await openDeveloperLesson(page, mission);
       await completeIdeas(page, mission, hooks);
