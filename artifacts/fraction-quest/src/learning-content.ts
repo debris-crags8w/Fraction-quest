@@ -487,7 +487,96 @@ export const REASON_IDEAS: Record<string, string> = {
   'fraction-of-remainder': 'Find the rest first',
   'divide-fractions': 'Count how many parts fit',
 };
-const idea = (id: string, fallback: string) => REASON_IDEAS[id] ?? fallback;
+/** Two more ways to say each lesson's key idea, as short as REASON_IDEAS. Build it, On your own and Apply it (and each
+    review round) say it a different way, so a child can't just pick the line that was right last time. */
+export const MORE_REASON_IDEAS: Record<string, [string, string]> = {
+  'equal-parts': ['Fair parts are all one size', 'Cut same-size parts, then shade'],
+  'fraction-names': ['Bottom: all parts. Top: counted', 'Count all parts, then taken ones'],
+  'unit-fractions': ['One equal part of the whole', 'Numerator 1 means one part'],
+  'unit-size': ['More parts: smaller parts', 'Fewer parts: bigger parts'],
+  'sets-unit-fractions': ['Split them into equal groups', 'One group of the equal groups'],
+  'sets-nonunit': ['Split them into equal groups', 'The numerator says how many groups'],
+  'benchmark-half': ['Compare the parts with half', 'Half of the parts is 1/2'],
+  'benchmarks-zero-one': ['All the parts make one whole', 'Count the parts still missing'],
+  'fraction-magnitude': ['Compare with 0, 1/2 and 1', 'Count the parts between them'],
+  'number-line-basics': ['Equal spaces from 0 to 1', 'Count spaces, not tick marks'],
+  'number-line-points': ['Each jump is one equal space', 'Start at 0, then count jumps'],
+  'number-line-beyond-one': ['The jumps go on past 1', 'Count every jump from 0'],
+  'compare-same-denominator': ['Same denominator: compare the numerators', 'Same parts, so count them'],
+  'compare-same-numerator': ['Same count: bigger parts win', 'Smaller denominator: bigger parts'],
+  'order-fractions': ['Compare with half, then order', 'Same-size parts: count them'],
+  'equivalent-models': ['Splitting parts keeps the amount', 'Same amount, smaller parts'],
+  'build-equivalents': ['Splitting parts keeps the amount', 'Same amount, smaller parts'],
+  'missing-equivalent': ['Top and bottom change together', 'Split each part the same way'],
+  'compose-to-one': ['A whole is all its parts', 'Fill up to one whole'],
+  'decompose-fractions': ['The parts add up to it', 'Same-size parts make the total'],
+  'improper-fractions': ['More parts than one whole', 'Fill one whole, then keep going'],
+  'mixed-improper': ['Each full bar is one whole', 'Wholes plus the leftover parts'],
+  'add-like-denominators': ['Same parts: add the numerators', 'The part size stays the same'],
+  'subtract-like-denominators': ['Same parts: take away numerators', 'The part size stays the same'],
+  'add-related-fractions': ['Rename so the parts match', 'Add same-size parts only'],
+  'tenths-decimals': ['Tenths take one decimal place', 'Tenths can be written as decimals'],
+  'hundredths-decimals': ['Two places after the point: hundredths', 'Count the tenths or hundredths'],
+  'add-tenths-hundredths': ['One tenth is ten hundredths', 'Make both hundredths, then add'],
+  'unit-fraction-multiples': ['Count the copies of one part', 'The part size stays the same'],
+  'multiply-whole-by-fraction': ['Count the parts in every group', 'The part size stays the same'],
+  'simplify-fractions': ['Bigger parts, same amount', 'Divide both by the same number'],
+  'equivalent-missing-both': ['Same amount, new denominator', 'Multiply top and bottom alike'],
+  'whole-numbers-as-fractions': ['All the parts make one whole', 'Count the parts in each whole'],
+  'compare-unlike-fractions': ['Rename to match, then compare', 'Make the parts the same size'],
+  'order-unlike-fractions': ['Compare with half or rename', 'Match the parts, then order'],
+  'subtract-unlike-fractions': ['Rename, then take away', 'Take away same-size parts only'],
+  'add-unlike-fractions': ['Rename, then add the numerators', 'Add same-size parts only'],
+  'add-mixed-numbers': ['Add parts and wholes', 'Wholes together, parts together'],
+  'subtract-mixed-numbers': ['Trade a whole for parts', 'Break a whole into parts'],
+  'fraction-of-quantity': ['Equal groups, then count some', 'The denominator says how many groups'],
+  'mixed-unlike-operations': ['Rename the parts to match', 'Same-size parts, then solve'],
+  'estimate-fraction-operations': ['Use 1/2 to judge the size', 'Two halves make one whole'],
+  'multiply-fractions': ['Find a part of a part', 'Split the parts again'],
+  'fraction-of-collection': ['Equal groups, then count some', 'The denominator says how many groups'],
+  'divide-whole-by-unit-fraction': ['Count the small parts that fit', 'Each whole holds equal parts'],
+  'multiplication-scaling': ['Compare the factor with 1', 'Less than 1 makes it less'],
+  'multiply-mixed-numbers': ['Split at wholes, then add', 'Area is the squares inside'],
+  'unit-fraction-divided-whole': ['Sharing cuts the part smaller', 'Each share is a smaller part'],
+  'fraction-of-length': ['Split the length into equal parts', 'Equal spaces, then count some'],
+  'fractional-measure-addition': ['Rename so the parts match', 'Add same-size parts only'],
+  'ruler-measurement': ['Each inch has equal small spaces', 'Count the spaces from zero'],
+  'build-line-plots': ['Stack Xs when lengths match', 'Each X is one measurement'],
+  'read-line-plots': ['Find both ends, then subtract', 'Subtract the shortest from the longest'],
+  'line-plot-leveling': ['Add it all, then split equally', 'Each gets an equal share'],
+  'measurement-word-problems': ['Rename so the parts match', 'Add same-size parts only'],
+  'fractional-unit-conversions': ['Split the big unit equally', 'Find the small units first'],
+  'fractional-sharing': ['Share each whole equally', 'Split every whole fairly'],
+  'fraction-as-division': ['Top divided by bottom', 'The divided number goes on top'],
+  'fraction-probability': ['Count all, then count wanted', 'Wanted on top, all below'],
+  'fraction-of-area': ['Count equal parts, then shaded ones', 'Equal parts on the bottom'],
+  'fractional-side-area': ['Count the overlap squares', 'Side times side is the area'],
+  'equivalent-number-line': ['Same spot, new name', 'Smaller spaces, same spot'],
+  'fraction-recipes': ['Add the amount to itself', 'Two batches: twice as much'],
+  'fractions-to-percent': ['Rename it in hundredths', 'Hundredths give the percent'],
+  'percent-to-fraction': ['Write it over 100', 'The percent is the hundredths'],
+  'decimal-fraction-equivalence': ['Tenths and hundredths name decimals', 'Read the decimal as a fraction'],
+  'compare-decimals': ['Make both hundredths, then compare', 'Count hundredths, not digits'],
+  'compare-decimals-grid': ['Compare the shaded squares', 'Count hundredths, not digits'],
+  'fraction-times-fraction': ['Count where rows and columns meet', 'Multiply tops and multiply bottoms'],
+  'bigger-or-smaller': ['Less than 1 makes it less', 'Times 1 keeps it the same'],
+  'share-or-fit': ['Sharing makes smaller shares', 'Fitting counts how many pieces'],
+  'dimes-and-pennies': ['Each penny is 1 hundredth', 'Ten hundredths in each dime'],
+  'plot-in-eighths': ['Find the length on the line', 'Count eighths from zero'],
+  'party-portions': ['Add one portion for each guest', 'The part size stays the same'],
+  'two-step-conversions': ['Turn the big units into small', 'Count inches in each foot'],
+  'line-plot-totals': ['Every X adds its length', 'Add all the Xs together'],
+  'multi-step-fraction-stories': ['Solve the first step first', 'Use the first answer next'],
+  'find-the-whole': ['Find one part, then all parts', 'The whole is every part'],
+  'spot-the-mistake': ['Keep the denominator the same', 'Only the numerators change'],
+  'fraction-of-remainder': ['Use the rest for step two', 'First find what is left'],
+  'divide-fractions': ['Rename, then count the parts', 'Same-size parts make counting easy'],
+};
+/** The right reason for a build: the lesson's key idea, said one of three ways (by step or round). */
+const idea = (id: string, fallback: string, step = 0) => {
+  const ways = REASON_IDEAS[id] ? [REASON_IDEAS[id], ...(MORE_REASON_IDEAS[id] ?? [])] : [fallback];
+  return ways[((step % ways.length) + ways.length) % ways.length];
+};
 /** Put the right reason at a spot that changes from lesson to lesson (but is the same every visit). */
 function arrangeReasons(key: string, right: string, wrong: [string, string]): { reasons: string[]; correctReason: number } {
   const correctReason = [...key].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 3;
@@ -495,10 +584,10 @@ function arrangeReasons(key: string, right: string, wrong: [string, string]): { 
   reasons.splice(correctReason, 0, right);
   return { reasons, correctReason };
 }
-/** The check's reasons with its wrong ones swapped for `wrong`; the right reason keeps its spot. */
-function withWrong(check: BuildCheck, wrong: [string, string]): string[] {
+/** The check's reasons with its wrong ones swapped for `wrong` (and its right one for `right`); the right reason keeps its spot. */
+function withWrong(check: BuildCheck, wrong: [string, string], right = check.reasons[check.correctReason]): string[] {
   let next = 0;
-  return check.reasons.map((reason, i) => (i === check.correctReason ? reason : wrong[next++]));
+  return check.reasons.map((reason, i) => (i === check.correctReason ? right : wrong[next++]));
 }
 /** Step 3 ("Apply it") for lessons whose worksheet rows can't become a Build: the lesson's own idea with new numbers. */
 const APPLY_CHECKS: Record<string, { n: number; d: number; prompt: string; reason: string; kind?: LearningModel['kind']; total?: number }> = {
@@ -569,14 +658,14 @@ function buildChecksFor(id: string): BuildCheck[] {
   const [n, d, kind, prompt, explanation, total] = seed;
   const transfer = transferTarget(id, n, d, kind);
   const primary: BuildCheck = { id: 'build', prompt, target: model(n, d, kind, total), explanation, transfer: false, stepLabel: 'Step 1 · Build it',
-    ...arrangeReasons(`${id}:build`, idea(id, explanation), wrongReasons(id, 0)) };
+    ...arrangeReasons(`${id}:build`, idea(id, explanation, 0), wrongReasons(id, 0)) };
   const independent: BuildCheck = { id: 'transfer', prompt: transfer.prompt, target: transfer.target, explanation: transfer.reason, transfer: true, stepLabel: 'Step 2 · On your own',
-    ...arrangeReasons(`${id}:transfer`, idea(id, transfer.reason), wrongReasons(id, 1)) };
+    ...arrangeReasons(`${id}:transfer`, idea(id, transfer.reason, 1), wrongReasons(id, 1)) };
   const used = new Set([primary, independent].map(check => JSON.stringify(check.target)));
   const authored = APPLY_CHECKS[id];
   let apply: BuildCheck | null = authored ? {
     id: 'apply', prompt: authored.prompt, target: model(authored.n, authored.d, authored.kind ?? 'bar', authored.total), explanation: authored.reason, transfer: true,
-    ...arrangeReasons(`${id}:apply`, idea(id, authored.reason), wrongReasons(id, 2)),
+    ...arrangeReasons(`${id}:apply`, idea(id, authored.reason, 2), wrongReasons(id, 2)),
   } : null;
   for (let serial = 0; serial < 12 * 12 && !apply; serial++) {
     const candidate = worksheetBuildCheck(id, serial, 'apply');
@@ -591,7 +680,7 @@ function buildChecksFor(id: string): BuildCheck[] {
     primary,
     independent,
     // Apply it always shows the lesson's third pair of wrong reasons, wherever its question came from.
-    { ...apply, id: 'apply', transfer: true, stepLabel: 'Step 3 · Apply it', reasons: withWrong(apply, wrongReasons(id, 2)) },
+    { ...apply, id: 'apply', transfer: true, stepLabel: 'Step 3 · Apply it', reasons: withWrong(apply, wrongReasons(id, 2), idea(id, apply.reasons[apply.correctReason], 2)) },
   ];
 }
 
@@ -620,7 +709,7 @@ function worksheetBuildCheck(id: string, serial: number, checkId: string): Build
   const explanation = problem.hint;
   return {
     id: checkId, prompt, target: model(value.n, value.d, kind, total), explanation, transfer: true,
-    ...arrangeReasons(`${id}:${checkId}:${serial}`, idea(id, problem.hint), wrongReasons(id, serial)),
+    ...arrangeReasons(`${id}:${checkId}:${serial}`, idea(id, problem.hint, serial), wrongReasons(id, serial)),
   };
 }
 
@@ -886,7 +975,7 @@ function lessonBuildCheck(id: string, serial: number, checkId: string): BuildChe
   const words = kind === 'line' && BAR_WORDED_BUILDS.has(id) ? `Cut 0 to 1 into ${d} equal spaces. Make ${n} ${n === 1 ? 'jump' : 'jumps'}.` : prompt;
   return {
     id: checkId, prompt: words, target: model(n, d, kind, total), explanation, transfer: true,
-    ...arrangeReasons(`${id}:${checkId}:lesson:${serial}`, idea(id, explanation), wrongReasons(id, serial)),
+    ...arrangeReasons(`${id}:${checkId}:lesson:${serial}`, idea(id, explanation, serial), wrongReasons(id, serial)),
   };
 }
 
@@ -906,7 +995,7 @@ function seededBuildCheck(id: string, serial: number, checkId: string): BuildChe
       ? `Build ${n}/${d} of ${d * 4} counters. Make ${d} equal groups.`
       : `Build ${n}/${d}. Show the same amount with a bar and a number line.`,
     target, explanation, transfer: true,
-    ...arrangeReasons(`${id}:${checkId}:seed:${serial}`, idea(id, explanation), wrongReasons(id, serial)),
+    ...arrangeReasons(`${id}:${checkId}:seed:${serial}`, idea(id, explanation, serial), wrongReasons(id, serial)),
   };
 }
 
@@ -1430,7 +1519,18 @@ const PAN_SHARES: [number, number][] = [[2, 2], [3, 3], [4, 4], [5, 3], [6, 2], 
   [3, 2], [4, 2], [2, 3], [2, 4], [3, 5], [4, 3], [5, 4], [6, 4], [2, 6], [3, 6], [4, 6], [10, 2], [12, 2]];
 const SIMPLE: [number, number][] = [[1, 2], [1, 3], [2, 3], [1, 4], [3, 4], [2, 5], [1, 6], [5, 6], [3, 8], [3, 10], [5, 12], [7, 10]];
 
-/** Worksheets for the later (extension) lessons: exact math, grade-friendly numbers, a hint for each skill. */
+/** "1 part" or "3 parts". */
+const some = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
+/** "1 sixth" or "4 sixths". */
+const pieces = (k: number, d: number) => `${k} ${k === 1 ? unitPiece(d) : unitName(d)}`;
+/** "1/2 = 3/6 and 1/3 = 2/6." for the fractions whose denominator is not `common` (empty when none needs renaming). */
+const renamesTo = (common: number, ...amounts: [number, number][]) => {
+  const renames = amounts.filter(([, bottom]) => bottom !== common).map(([top, bottom]) => `${f(top, bottom)} = ${f(top * (common / bottom), common)}`);
+  return renames.length ? `${renames.join(' and ')}. ` : '';
+};
+
+/** Worksheets for the later (extension) lessons: exact math, grade-friendly numbers, a hint for each skill. Rows a lesson
+    asks as tap questions also say why after a right answer (`why`), worked from the row's own numbers. */
 function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: string; n: number; d: number }, variant = 0, id = ''): WorksheetProblem[] {
   const shift = variant % 12;
   // Equivalent pairs whose denominators both fit the grade, stepping through all of them (each redo moves on).
@@ -1452,7 +1552,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         // Each redo takes the other half of the list.
         const [top, bottom, times] = SIMPLIFY_POOL[(i + 13 * variant) % SIMPLIFY_POOL.length];
         prompt = `Write ${f(top * times, bottom * times)} in simplest form.`; answer = f(top, bottom); denominator = bottom; visual = model(top * times, bottom * times);
-        hint = 'Divide the numerator and denominator by the same number. Keep going until no number but 1 divides both.'; break;
+        hint = 'Divide the numerator and denominator by the same number. Keep going until no number but 1 divides both.';
+        why = `${top * times} ÷ ${times} = ${top}. ${bottom * times} ÷ ${times} = ${bottom}. Now only 1 divides both.`; break;
       }
       case 'equivalent': {
         const [top, bottom, times] = pairs[(i * 5 + variant * 7) % pairs.length];
@@ -1472,6 +1573,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           prompt = `Fill the missing numerator: ${f(top * times, bottom * times)} = ?/${bottom}.`; answer = String(top);
           hint = `What was ${bottom * times} divided by to make ${bottom}? Divide the numerator by the same number.`;
         }
+        why = `${kind === 'bottom' ? `${top} × ${times} = ${top * times}, so ${bottom} × ${times} = ${bottom * times}`
+          : kind === 'divide' ? `${bottom * times} ÷ ${times} = ${bottom}, so ${top * times} ÷ ${times} = ${top}`
+            : `${bottom} × ${times} = ${bottom * times}, so ${top} × ${times} = ${top * times}`}. The amount stays the same.`;
         break;
       }
       case 'compare': {
@@ -1481,7 +1585,14 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         answer = a * e > c * b ? '>' : a * e < c * b ? '<' : '='; form = 'symbol';
         hint = a === c
           ? `Both fractions count ${a} parts. The larger denominator splits the whole into more equal parts, so each part is smaller, and so is that fraction.`
-          : 'Rename both fractions with the same denominator so the parts match. Then compare the numerators.'; break;
+          : 'Rename both fractions with the same denominator so the parts match. Then compare the numerators.';
+        if (a === c) why = `${unitName(b)[0].toUpperCase()}${unitName(b).slice(1)} are ${b > e ? 'smaller' : 'bigger'} than ${unitName(e)}.`;
+        else if (lcm(b, e) <= 12) {
+          // (Twentieths, fifteenths and fortieths are not named yet in this lesson: those rows keep just the hint.)
+          const m = lcm(b, e); const x = a * (m / b); const y = c * (m / e);
+          why = `${renamesTo(m, [a, b], [c, e])}${pieces(x, m)} ${x === 1 ? 'is' : 'are'} ${x > y ? 'more than' : x < y ? 'less than' : 'the same as'} ${pieces(y, m)}.`;
+        }
+        break;
       }
       case 'order': {
         const triples: [number, number][][] = [
@@ -1494,14 +1605,17 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const shown = triples[tr].every((x, j) => x === sorted[j]) ? [triples[tr][1], triples[tr][2], triples[tr][0]] : triples[tr];
         prompt = `Put ${shown.map(([t, b]) => f(t, b)).join(', ')} in order, ${up ? 'smallest' : 'biggest'} first.`;
         answer = sorted.map(([t, b]) => f(t, b)).join(', '); form = 'ordered';
-        hint = 'Compare each one to 1/2 first. If needed, rename them with the same denominator so their parts match, then compare.'; break;
+        hint = 'Compare each one to 1/2 first. If needed, rename them with the same denominator so their parts match, then compare.';
+        const m = sorted.reduce((l, [, b]) => lcm(l, b), 1); const named = sorted.map(([t, b]) => f(t * (m / b), m));
+        why = `In ${unitName(m)} they are ${named.slice(0, -1).join(', ')} and ${named[named.length - 1]}.`; break;
       }
       case 'subtract-unlike': {
         const [a, b, c, e] = pick([[3, 4, 1, 2], [5, 6, 1, 2], [7, 8, 1, 2], [5, 8, 1, 4], [5, 6, 1, 3], [9, 10, 1, 2], [7, 12, 1, 3], [3, 4, 1, 8], [2, 3, 1, 6], [7, 10, 1, 5], [11, 12, 1, 4], [5, 6, 2, 3],
           [2, 3, 1, 4], [4, 5, 1, 2], [5, 8, 1, 2], [3, 4, 1, 6], [5, 6, 1, 4], [7, 8, 1, 4], [9, 10, 2, 5], [2, 3, 1, 2], [3, 5, 1, 10], [5, 12, 1, 6], [7, 10, 1, 2], [11, 12, 2, 3]] as const);
         const m = lcm(b, e);
         prompt = `${f(a, b)} − ${f(c, e)} = ?`; answer = f(a * (m / b) - c * (m / e), m);
-        hint = `Change both to ${unitName(m)} first. Then take away the numerators.`; break;
+        hint = `Change both to ${unitName(m)} first. Then take away the numerators.`;
+        why = `${renamesTo(m, [a, b], [c, e])}${f(a * (m / b), m)} − ${f(c * (m / e), m)} = ${f(a * (m / b) - c * (m / e), m)}.`; break;
       }
       case 'mixed-add': {
         const bottom = [4, 6, 8, 3, 5, 10, 6, 8, 4, 5, 3, 10][tr]; const whole = 1 + i % 2;
@@ -1510,7 +1624,10 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const more = i % 3 === 2 ? 1 : 0;
         prompt = `${whole} ${f(a, bottom)} + ${more ? `${more} ` : ''}${f(b, bottom)} = ?`;
         answer = mixedName((whole + more) * bottom + a + b, bottom); form = (a + b) % bottom ? 'mixed' : undefined;
-        hint = `${more ? `Add the wholes: ${whole} + ${more}. ` : ''}Add the parts: ${a} + ${b}. If you get ${bottom} or more, make a new whole.`; break;
+        hint = `${more ? `Add the wholes: ${whole} + ${more}. ` : ''}Add the parts: ${a} + ${b}. If you get ${bottom} or more, make a new whole.`;
+        why = a + b >= bottom
+          ? `${f(a, bottom)} + ${f(b, bottom)} = ${f(a + b, bottom)}. ${f(bottom, bottom)} is 1 more whole, so there are ${whole + more + 1} wholes.`
+          : `${f(a, bottom)} + ${f(b, bottom)} = ${f(a + b, bottom)}. That is less than 1 whole, so no new whole.`; break;
       }
       case 'mixed-subtract': {
         const bottom = [4, 6, 8, 3, 5, 10, 6, 8, 4, 5, 3, 10][tr]; const whole = 2 + i % 2;
@@ -1518,7 +1635,10 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const top = whole * bottom + a - (bottom + b);
         prompt = `${whole} ${f(a, bottom)} − 1 ${f(b, bottom)} = ?`;
         answer = mixedName(top, bottom); form = top > bottom && top % bottom ? 'mixed' : undefined;
-        hint = a < b ? `${a} ${a === 1 ? 'piece is' : 'pieces are'} not enough to take away ${b}. Trade one whole for ${bottom}/${bottom} first.` : 'Take away the wholes. Then take away the parts.'; break;
+        hint = a < b ? `${a} ${a === 1 ? 'piece is' : 'pieces are'} not enough to take away ${b}. Trade one whole for ${bottom}/${bottom} first.` : 'Take away the wholes. Then take away the parts.';
+        why = a < b
+          ? `After the trade the parts are ${f(a + bottom, bottom)}. ${f(a + bottom, bottom)} − ${f(b, bottom)} = ${f(a + bottom - b, bottom)}. ${whole - 2 ? `${some(whole - 2, 'whole is', 'wholes are')} left.` : 'No wholes are left.'}`
+          : `${whole} − 1 = ${whole - 1}. ${a === b ? 'The parts take away to nothing.' : `${f(a, bottom)} − ${f(b, bottom)} = ${f(a - b, bottom)}.`}`; break;
       }
       case 'quantity':
       case 'sets': {
@@ -1533,7 +1653,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         answer = String(each * groups); visual = model(0, bottom, 'set', total);
         hint = i % 2 === 0 || sets
           ? `Two ways: split ${total} into ${bottom} equal groups, then take ${groups} ${groups === 1 ? 'group' : 'groups'}. Or ${groups} × ${total} first, then ÷ ${bottom}.`
-          : `Make ${bottom} equal groups. Count ${groups} of them.`; break;
+          : `Make ${bottom} equal groups. Count ${groups} of them.`;
+        why = `${total} in ${bottom} equal groups is ${each} in each group. ${some(groups, 'group is', 'groups are')} ${each * groups}.`; break;
       }
       case 'share': {
         const [loaves, people] = pick([[1, 2], [2, 3], [3, 4], [1, 3], [3, 5], [2, 4], [2, 5], [3, 8], [3, 2], [1, 6], [1, 4], [3, 6],
@@ -1541,17 +1662,20 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         prompt = `${loaves} ${loaves === 1 ? 'loaf is' : 'loaves are'} shared fairly by ${people} friends. How much does each friend get?`;
         // Picture: each loaf cut into one piece per friend, nothing shaded (it must not suggest 1/people).
         answer = f(loaves, people); visual = { kind: 'bar', n: 0, d: people, wholes: loaves };
-        hint = `Cut each loaf into ${people} equal parts. Each friend gets 1 part of every loaf.`; break;
+        hint = `Cut each loaf into ${people} equal parts. Each friend gets 1 part of every loaf.`;
+        why = `Each friend gets 1/${people} of every loaf. ${loaves === 1 ? '1 loaf gives' : `${loaves} loaves give`} ${some(loaves, 'part', 'parts')} of 1/${people}.`; break;
       }
       case 'multiply-whole': {
         const times = 2 + i % 4;
         prompt = `${times} × ${f(n, d)} = ?`; answer = f(times * n, d);
-        hint = `${times} groups of ${f(n, d)}. Multiply the numerator by ${times}. The denominator stays.`; break;
+        hint = `${times} groups of ${f(n, d)}. Multiply the numerator by ${times}. The denominator stays.`;
+        why = `${times} groups of ${some(n, 'part', 'parts')} make ${times * n} parts. The parts stay ${unitName(d)}.`; break;
       }
       case 'multiply': {
         const part = d * 3 > 24 ? 2 : 2 + i % 2; // 24 parts at most, so the bar stays readable
         prompt = `What is 1/${part} of ${f(n, d)}?`; answer = f(n, d * part); visual = model(n, d);
-        hint = `Cut every part into ${part}. Multiply the numerators and multiply the denominators.`; break;
+        hint = `Cut every part into ${part}. Multiply the numerators and multiply the denominators.`;
+        why = `Cut each ${unitPiece(d)} into ${part}. Each small part is 1/${d * part}. ${n === 1 ? 'Take 1 small part.' : `Take 1 small part from each of the ${n} ${unitName(d)}.`}`; break;
       }
       case 'divide': {
         const cups = 1 + i % 4; const bottom = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 8, 10][tr];
@@ -1563,14 +1687,16 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
       case 'measure': {
         const length = d * (2 + i % 3);
         prompt = `A ribbon is ${length} meters long. How long is ${f(n, d)} of it?`; answer = String(length / d * n);
-        visual = model(0, d, 'set', length); hint = `Cut ${length} meters into ${d} equal parts. Count ${n} ${n === 1 ? 'part' : 'parts'}.`; break;
+        visual = model(0, d, 'set', length); hint = `Cut ${length} meters into ${d} equal parts. Count ${n} ${n === 1 ? 'part' : 'parts'}.`;
+        why = `${length} ÷ ${d} = ${length / d}, so each part is ${length / d} meters. ${some(n, 'part is', 'parts are')} ${(length / d) * n} meters.`; break;
       }
       case 'measure-add': {
         const [a, b, c, e] = pick([[1, 2, 1, 4], [1, 3, 1, 6], [1, 4, 1, 8], [1, 2, 1, 8], [2, 3, 1, 6], [1, 5, 1, 10], [1, 2, 1, 6], [3, 4, 1, 8], [1, 3, 1, 12], [2, 5, 1, 10], [1, 2, 3, 8], [1, 4, 1, 12],
           [1, 2, 1, 10], [3, 4, 1, 12], [1, 6, 1, 12], [3, 5, 1, 10], [1, 4, 3, 8], [2, 3, 1, 12], [1, 2, 1, 12], [1, 6, 5, 12], [1, 3, 5, 12], [2, 5, 3, 10], [1, 5, 3, 10], [1, 4, 5, 8]] as const);
         const m = lcm(b, e);
         prompt = `A board is ${f(a, b)} meter. Another is ${f(c, e)} meter. How long are they together?`; answer = f(a * (m / b) + c * (m / e), m);
-        hint = `Change ${f(a, b)} into ${unitName(m)} first.`; break;
+        hint = `Change ${f(a, b)} into ${unitName(m)} first.`;
+        why = `${renamesTo(m, [a, b], [c, e])}${f(a * (m / b), m)} + ${f(c * (m / e), m)} = ${f(a * (m / b) + c * (m / e), m)}.`; break;
       }
       case 'quotient': {
         // Division written as a fraction (5 ÷ 4 = 5/4), and where that fraction sits between whole numbers.
@@ -1595,7 +1721,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           [1, 3], [2, 3], [1, 5], [3, 5], [1, 8], [7, 8], [1, 10], [9, 10], [1, 12], [3, 6], [2, 8], [5, 6]] as const);
         prompt = `A bag has ${total} marbles. ${green} ${green === 1 ? 'is' : 'are'} green. What is the chance of picking green?`;
         answer = f(green, total); visual = model(green, total, 'set', total);
-        hint = 'The numerator is the number of green marbles. The denominator is the total number of marbles.'; break;
+        hint = 'The numerator is the number of green marbles. The denominator is the total number of marbles.';
+        why = `Each marble has the same chance. ${green} of the ${total} ${green === 1 ? 'is' : 'are'} green.`; break;
       }
       case 'area': {
         const cuts = [
@@ -1631,6 +1758,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           prompt = `This ${shape.whole} is on a ${setting}. What fraction of the ${shape.whole} is colored?`;
           answer = f(shaded, shape.parts); area = { cut: shape.cut, shaded: Array.from({ length: shaded }, (_, k) => k) };
           hint = 'Count all the equal parts first. Then count the colored parts.';
+          why = `${shape.parts} equal parts make the ${shape.whole}. ${shaded} of them ${shaded === 1 ? 'is' : 'are'} colored.`;
         }
         break;
       }
@@ -1641,22 +1769,26 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         prompt = `${f(n, d)} is marked on a line. Which fraction with a denominator of ${d * times} is at the same spot?`;
         answer = f(n * times, d * times); denominator = d * times; visual = model(n, d, 'line');
         hint = times === 2 ? 'Cut every space in half. Now there are twice as many spaces and twice as many jumps.'
-          : `Cut every space into ${times} equal spaces. Now there are ${times} times as many spaces and ${times} times as many jumps.`; break;
+          : `Cut every space into ${times} equal spaces. Now there are ${times} times as many spaces and ${times} times as many jumps.`;
+        why = `Each 1/${d} space becomes ${times} spaces of 1/${d * times}. So ${some(n, 'jump', 'jumps')} of 1/${d} ${n === 1 ? 'is' : 'are'} ${n * times} jumps of 1/${d * times}.`; break;
       }
       case 'recipe': {
         const batches = 2 + i % 2;
         prompt = `A recipe uses ${f(n, d)} cup of flour. You make ${batches} batches. How much flour do you need?`;
-        answer = f(n * batches, d); hint = `${batches} batches: ${Array(batches).fill(f(n, d)).join(' + ')}. Or multiply the numerator by ${batches}.`; break;
+        answer = f(n * batches, d); hint = `${batches} batches: ${Array(batches).fill(f(n, d)).join(' + ')}. Or multiply the numerator by ${batches}.`;
+        why = `${batches} batches of ${some(n, 'part', 'parts')} make ${n * batches} parts. The parts stay ${unitName(d)}.`; break;
       }
       case 'percent': {
         const [t, b] = pick(EXACT);
         prompt = `Write ${f(t, b)} as a percent.`; answer = `${(t * 100) / b}%`;
-        hint = b === 100 ? 'It is already out of 100. The numerator is the percent.' : `Percent means out of 100. Change ${f(t, b)} to hundredths.`; break;
+        hint = b === 100 ? 'It is already out of 100. The numerator is the percent.' : `Percent means out of 100. Change ${f(t, b)} to hundredths.`;
+        if (b !== 100) why = `${f(t, b)} = ${f((t * 100) / b, 100)}, and ${(t * 100) / b} out of 100 is ${(t * 100) / b}%.`; break;
       }
       case 'percent-inverse': {
         const percent = pick(PERCENTS);
         prompt = `Write ${percent}% as a fraction with a denominator of 100.`; answer = f(percent, 100); denominator = 100;
-        hint = `${percent}% means ${percent} out of 100.`; break;
+        hint = `${percent}% means ${percent} out of 100.`;
+        why = `${percent} goes on top and 100 goes on the bottom.`; break;
       }
       case 'decimal-equivalent': {
         // Twentieths are not a grade 4 denominator: those rows ask about the same amount in hundredths.
@@ -1685,6 +1817,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         } else if (item.kind === 'count') {
           prompt = `How many wholes are ${item.numerator}/${item.denominator}?`; answer = String(item.numerator / item.denominator); visual = model(item.numerator, item.denominator);
           hint = `${item.denominator}/${item.denominator} makes one whole. Count groups of ${item.denominator}/${item.denominator}.`;
+          why = `${item.numerator}/${item.denominator} is ${some(item.numerator / item.denominator, 'group', 'groups')} of ${item.denominator}/${item.denominator}, and each group is 1 whole.`;
         } else {
           prompt = `Write ${item.numerator}/${item.denominator} as a whole number.`; answer = '1'; visual = model(item.numerator, item.denominator);
           hint = 'The numerator and denominator match, so every equal part is included.';
@@ -1705,12 +1838,14 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const top = bar(a);
         visual = model(top.numerator, top.denominator); modelRequired = true; task = { kind: 'copy', n: top.numerator, of: 'top bar' };
         picture = { kind: 'bars', bars: [top, bar(b)] };
-        hint = `Write both in hundredths: ${left} is ${a} hundredths. How many hundredths is ${right}? Compare the counts, not how long the numbers look.`; break;
+        hint = `Write both in hundredths: ${left} is ${a} hundredths. How many hundredths is ${right}? Compare the counts, not how long the numbers look.`;
+        why = `${right} is ${b} hundredths. ${a} hundredths are ${a > b ? 'more' : 'less'} than ${b} hundredths.`; break;
       }
       case 'unit-multiples': {
         const bottom = [2, 3, 4, 5, 6, 8, 4, 5, 6, 8, 5, 6][tr]; const groups = 3 + (i % 5);
         prompt = `Write ${groups} × 1/${bottom} as one fraction.`; answer = f(groups, bottom); visual = model(groups, bottom); modelRequired = true; task = { kind: 'shade', n: groups };
-        hint = `Count ${groups} copies of 1/${bottom}. The denominator stays ${bottom}; add the numerators.`; break;
+        hint = `Count ${groups} copies of 1/${bottom}. The denominator stays ${bottom}; add the numerators.`;
+        why = `${groups} copies of 1/${bottom} make ${groups} parts. The parts stay ${unitName(bottom)}.`; break;
       }
       case 'ruler': {
         const end = 1 + ((tr * 3 + i) % 7);
@@ -1718,7 +1853,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         rulerTask = { denominator: 4, wholes: 2, end };
         answer = mixedName(end, 4); form = answer.includes(' ') ? 'mixed' : undefined;
         prompt = `The blue ${object} starts at zero${end % 4 ? ' and ends at a tick with no number' : ''}. Use the ruler. How long is it in inches?`;
-        hint = `Count how many short spaces make 1 inch. Then count the spaces to the end of the ${object}.`; break;
+        hint = `Count how many short spaces make 1 inch. Then count the spaces to the end of the ${object}.`;
+        why = end < 4 ? `It covers ${some(end, 'small space', 'small spaces')}, and each is 1/4 inch.`
+          : end === 4 ? '4 small spaces make 1 inch.' : `4 small spaces make 1 inch, and ${end - 4} more ${end - 4 === 1 ? 'makes' : 'make'} ${f(end - 4, 4)} inch.`; break;
       }
       case 'line-plot': {
         const dataSets = [
@@ -1730,7 +1867,10 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const observations = values.map(value => f(value, 4)).join(', ');
         prompt = `Plot these ribbon lengths: ${observations} inch. How many ribbons are ${f(target, 4)} inch long?`;
         answer = String(values.filter(value => value === target).length);
-        hint = 'Place one X for each measurement. Count the Xs above the length asked for.'; break;
+        hint = 'Place one X for each measurement. Count the Xs above the length asked for.';
+        const many = values.filter(value => value === target).length;
+        why = many ? `${some(many, 'ribbon is', 'ribbons are')} ${f(target, 4)} inch long, so ${many === 1 ? '1 X goes' : `${many} Xs stack`} there.`
+          : `No ribbon is ${f(target, 4)} inch long, so no X goes there.`; break;
       }
       case 'line-plot-read': {
         const dataSets = [
@@ -1752,12 +1892,15 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         if (kind === 1) {
           prompt = `${shown} How many ${plural} are ${f(stack, 8)} inch long?`; answer = String(count);
           hint = `Find ${f(stack, 8)} on the line. Count the Xs in its stack.`;
+          why = `Each X is one ${object}, and ${some(count, 'X is', 'Xs are')} above ${f(stack, 8)}.`;
         } else if (kind === 2) {
           prompt = `${shown} How long are all the ${f(stack, 8)} inch ${plural} together?`; answer = f(stack * count, 8); denominator = 8;
           hint = `Count the Xs above ${f(stack, 8)}. Add ${f(stack, 8)} that many times.`;
+          why = `${Array(count).fill(f(stack, 8)).join(' + ')} = ${f(stack * count, 8)}.`;
         } else {
           prompt = `${shown} What is the difference between the longest and shortest?`; answer = f(difference, 8); denominator = 8;
           hint = 'Find the farthest-right and farthest-left Xs. Subtract their lengths.';
+          why = `The longest is ${f(Math.max(...values), 8)} inch and the shortest is ${f(Math.min(...values), 8)} inch. ${f(Math.max(...values), 8)} − ${f(Math.min(...values), 8)} = ${f(difference, 8)}.`;
         }
         break;
       }
@@ -1773,36 +1916,37 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         linePlotTask = { denominator: 4, wholes: 2, values };
         prompt = `Three ${context} hold ${values.map(value => f(value, 4)).join(', ')} liter. Plot them, then share the total equally. How many liters go in each?`;
         answer = (divisor * 4) / factor === 1 ? String(total / factor) : f(total / factor, (divisor * 4) / factor);
-        hint = `Add the amounts in the ${context}, then split that total into 3 equal shares.`; break;
+        hint = `Add the amounts in the ${context}, then split that total into 3 equal shares.`;
+        why = `${values.map(value => f(value, 4)).join(' + ')} = ${f(total, 4)}. Each share is ${f(total / 3, 4)} liter${answer === f(total / 3, 4) ? '' : `, the same as ${answer} liter`}.`; break;
       }
       case 'measure-context': {
-        const stories: { prompt: string; answer: string; hint: string; numerator: number; denominator: number; form?: WorksheetProblem['form'] }[] = [
-          { prompt: 'A ribbon is 1/4 meter and another is 1/2 meter. How many meters long together?', answer: '3/4', hint: 'Rename 1/2 as 2/4, then add.', numerator: 3, denominator: 4 },
-          { prompt: 'How many minutes are in 1/4 hour?', answer: '15', hint: 'An hour is 60 minutes. Split 60 into 4 equal groups.', numerator: 1, denominator: 4 },
-          { prompt: 'A jug has 1/2 liter. You add 1/4 liter. How many liters now?', answer: '3/4', hint: 'Rename 1/2 as 2/4, then add.', numerator: 3, denominator: 4 },
-          { prompt: 'A 1-kilogram bag is 3/4 full. How many grams are in it?', answer: '750', hint: '1 kilogram is 1000 grams. Find 3/4 of 1000.', numerator: 3, denominator: 4 },
-          { prompt: 'How many cents are in 1/4 dollar?', answer: '25', hint: 'A dollar is 100 cents. Split 100 into 4 equal groups.', numerator: 1, denominator: 4 },
-          { prompt: 'How many minutes are in 3/4 hour?', answer: '45', hint: 'An hour is 60 minutes. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
-          { prompt: 'A bottle has 1/2 liter. How many milliliters is that?', answer: '500', hint: 'A liter is 1000 milliliters. Find half of 1000.', numerator: 1, denominator: 2 },
-          { prompt: 'A bag weighs 1/4 kilogram. How many grams is that?', answer: '250', hint: 'A kilogram is 1000 grams. Find one fourth of 1000.', numerator: 1, denominator: 4 },
-          { prompt: 'A board is 3/4 meter. Another is 1/4 meter. How many meters in all?', answer: '1', hint: 'Both are fourths. Add the numerators. How many fourths make a whole?', numerator: 4, denominator: 4 },
-          { prompt: 'How many cents are in 3/4 dollar?', answer: '75', hint: 'A dollar is 100 cents. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
-          { prompt: 'A 2-liter jug is 1/4 full. How many milliliters are inside?', answer: '500', hint: '2 liters is 2000 milliliters. Find one fourth of 2000.', numerator: 1, denominator: 4 },
-          { prompt: 'How many hours are in 1/2 day?', answer: '12', hint: 'A day is 24 hours. Split 24 into 2 equal groups.', numerator: 1, denominator: 2 },
-          { prompt: 'How many minutes are in 1/2 hour?', answer: '30', hint: 'An hour is 60 minutes. Split 60 into 2 equal groups.', numerator: 1, denominator: 2 },
-          { prompt: 'How many cents are in 1/2 dollar?', answer: '50', hint: 'A dollar is 100 cents. Split 100 into 2 equal groups.', numerator: 1, denominator: 2 },
-          { prompt: 'A 1-kilogram bag is 1/2 full. How many grams are in it?', answer: '500', hint: '1 kilogram is 1000 grams. Find half of 1000.', numerator: 1, denominator: 2 },
-          { prompt: 'A ribbon is 1/3 meter and another is 1/3 meter. How many meters long together?', answer: '2/3', hint: 'Thirds plus thirds make thirds. Add the numerators.', numerator: 2, denominator: 3 },
-          { prompt: 'How many hours are in 1/4 day?', answer: '6', hint: 'A day is 24 hours. Split 24 into 4 equal groups.', numerator: 1, denominator: 4 },
-          { prompt: 'A bottle has 3/4 liter. How many milliliters is that?', answer: '750', hint: 'A liter is 1000 milliliters. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
-          { prompt: 'A jug has 1/4 liter. You add 1/2 liter. How many liters now?', answer: '3/4', hint: 'Rename 1/2 as 2/4, then add.', numerator: 3, denominator: 4 },
-          { prompt: 'How many minutes are in 1/3 hour?', answer: '20', hint: 'An hour is 60 minutes. Split 60 into 3 equal groups.', numerator: 1, denominator: 3 },
-          { prompt: 'A board is 2/3 meter. Another is 1/3 meter. How many meters in all?', answer: '1', hint: 'Three thirds make one whole meter.', numerator: 3, denominator: 3 },
-          { prompt: 'How many hours are in 3/4 day?', answer: '18', hint: 'A day is 24 hours. Find 3 of 4 equal groups.', numerator: 3, denominator: 4 },
-          { prompt: 'How many hours are in 1/3 day?', answer: '8', hint: 'A day is 24 hours. Split 24 into 3 equal groups.', numerator: 1, denominator: 3 },
-          { prompt: 'How many minutes are in 2/3 hour?', answer: '40', hint: 'An hour is 60 minutes. Find 2 of 3 equal groups.', numerator: 2, denominator: 3 },
+        const stories: { prompt: string; answer: string; hint: string; why: string; numerator: number; denominator: number; form?: WorksheetProblem['form'] }[] = [
+          { prompt: 'A ribbon is 1/4 meter and another is 1/2 meter. How many meters long together?', answer: '3/4', hint: 'Rename 1/2 as 2/4, then add.', why: '1/2 = 2/4. 1/4 + 2/4 = 3/4.', numerator: 3, denominator: 4 },
+          { prompt: 'How many minutes are in 1/4 hour?', answer: '15', hint: 'An hour is 60 minutes. Split 60 into 4 equal groups.', why: '4 groups of 15 make 60. So 1/4 hour is 15 minutes.', numerator: 1, denominator: 4 },
+          { prompt: 'A jug has 1/2 liter. You add 1/4 liter. How many liters now?', answer: '3/4', hint: 'Rename 1/2 as 2/4, then add.', why: '1/2 = 2/4. 2/4 + 1/4 = 3/4.', numerator: 3, denominator: 4 },
+          { prompt: 'A 1-kilogram bag is 3/4 full. How many grams are in it?', answer: '750', hint: '1 kilogram is 1000 grams. Find 3/4 of 1000.', why: '4 groups of 250 make 1000. So 3/4 is 3 groups of 250: 750 grams.', numerator: 3, denominator: 4 },
+          { prompt: 'How many cents are in 1/4 dollar?', answer: '25', hint: 'A dollar is 100 cents. Split 100 into 4 equal groups.', why: '4 groups of 25 make 100. So 1/4 dollar is 25 cents.', numerator: 1, denominator: 4 },
+          { prompt: 'How many minutes are in 3/4 hour?', answer: '45', hint: 'An hour is 60 minutes. Find 3 of 4 equal groups.', why: '4 groups of 15 make 60. So 3/4 hour is 3 groups of 15: 45 minutes.', numerator: 3, denominator: 4 },
+          { prompt: 'A bottle has 1/2 liter. How many milliliters is that?', answer: '500', hint: 'A liter is 1000 milliliters. Find half of 1000.', why: '2 groups of 500 make 1000. So 1/2 liter is 500 milliliters.', numerator: 1, denominator: 2 },
+          { prompt: 'A bag weighs 1/4 kilogram. How many grams is that?', answer: '250', hint: 'A kilogram is 1000 grams. Find one fourth of 1000.', why: '4 groups of 250 make 1000. So 1/4 kilogram is 250 grams.', numerator: 1, denominator: 4 },
+          { prompt: 'A board is 3/4 meter. Another is 1/4 meter. How many meters in all?', answer: '1', hint: 'Both are fourths. Add the numerators. How many fourths make a whole?', why: '3/4 + 1/4 = 4/4, and 4 fourths make 1 whole meter.', numerator: 4, denominator: 4 },
+          { prompt: 'How many cents are in 3/4 dollar?', answer: '75', hint: 'A dollar is 100 cents. Find 3 of 4 equal groups.', why: '4 groups of 25 make 100. So 3/4 dollar is 3 groups of 25: 75 cents.', numerator: 3, denominator: 4 },
+          { prompt: 'A 2-liter jug is 1/4 full. How many milliliters are inside?', answer: '500', hint: '2 liters is 2000 milliliters. Find one fourth of 2000.', why: '4 groups of 500 make 2000. So 1/4 of 2 liters is 500 milliliters.', numerator: 1, denominator: 4 },
+          { prompt: 'How many hours are in 1/2 day?', answer: '12', hint: 'A day is 24 hours. Split 24 into 2 equal groups.', why: '2 groups of 12 make 24. So 1/2 day is 12 hours.', numerator: 1, denominator: 2 },
+          { prompt: 'How many minutes are in 1/2 hour?', answer: '30', hint: 'An hour is 60 minutes. Split 60 into 2 equal groups.', why: '2 groups of 30 make 60. So 1/2 hour is 30 minutes.', numerator: 1, denominator: 2 },
+          { prompt: 'How many cents are in 1/2 dollar?', answer: '50', hint: 'A dollar is 100 cents. Split 100 into 2 equal groups.', why: '2 groups of 50 make 100. So 1/2 dollar is 50 cents.', numerator: 1, denominator: 2 },
+          { prompt: 'A 1-kilogram bag is 1/2 full. How many grams are in it?', answer: '500', hint: '1 kilogram is 1000 grams. Find half of 1000.', why: '2 groups of 500 make 1000. So 1/2 kilogram is 500 grams.', numerator: 1, denominator: 2 },
+          { prompt: 'A ribbon is 1/3 meter and another is 1/3 meter. How many meters long together?', answer: '2/3', hint: 'Thirds plus thirds make thirds. Add the numerators.', why: '1 third and 1 more third make 2 thirds.', numerator: 2, denominator: 3 },
+          { prompt: 'How many hours are in 1/4 day?', answer: '6', hint: 'A day is 24 hours. Split 24 into 4 equal groups.', why: '4 groups of 6 make 24. So 1/4 day is 6 hours.', numerator: 1, denominator: 4 },
+          { prompt: 'A bottle has 3/4 liter. How many milliliters is that?', answer: '750', hint: 'A liter is 1000 milliliters. Find 3 of 4 equal groups.', why: '4 groups of 250 make 1000. So 3/4 liter is 3 groups of 250: 750 milliliters.', numerator: 3, denominator: 4 },
+          { prompt: 'A jug has 1/4 liter. You add 1/2 liter. How many liters now?', answer: '3/4', hint: 'Rename 1/2 as 2/4, then add.', why: '1/2 = 2/4. 1/4 + 2/4 = 3/4.', numerator: 3, denominator: 4 },
+          { prompt: 'How many minutes are in 1/3 hour?', answer: '20', hint: 'An hour is 60 minutes. Split 60 into 3 equal groups.', why: '3 groups of 20 make 60. So 1/3 hour is 20 minutes.', numerator: 1, denominator: 3 },
+          { prompt: 'A board is 2/3 meter. Another is 1/3 meter. How many meters in all?', answer: '1', hint: 'Three thirds make one whole meter.', why: '2/3 + 1/3 = 3/3, and 3 thirds make 1 whole meter.', numerator: 3, denominator: 3 },
+          { prompt: 'How many hours are in 3/4 day?', answer: '18', hint: 'A day is 24 hours. Find 3 of 4 equal groups.', why: '4 groups of 6 make 24. So 3/4 day is 3 groups of 6: 18 hours.', numerator: 3, denominator: 4 },
+          { prompt: 'How many hours are in 1/3 day?', answer: '8', hint: 'A day is 24 hours. Split 24 into 3 equal groups.', why: '3 groups of 8 make 24. So 1/3 day is 8 hours.', numerator: 1, denominator: 3 },
+          { prompt: 'How many minutes are in 2/3 hour?', answer: '40', hint: 'An hour is 60 minutes. Find 2 of 3 equal groups.', why: '3 groups of 20 make 60. So 2/3 hour is 2 groups of 20: 40 minutes.', numerator: 2, denominator: 3 },
         ];
-        const story = pick(stories); prompt = story.prompt; answer = story.answer; form = story.form; hint = story.hint;
+        const story = pick(stories); prompt = story.prompt; answer = story.answer; form = story.form; hint = story.hint; why = story.why;
         visual = model(story.numerator, story.denominator); modelRequired = true;
         // Adding stories: the child shades the total (a drawn total would be the answer).
         // The instruction doesn't say how many parts: that count is the answer.
@@ -1829,7 +1973,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         visual = model(a * (common / b), common); modelRequired = true;
         hint = scaffold
           ? `Make both fractions ${unitName(common)} first. Then ${op === '+' ? 'add' : 'subtract'} the numerators.`
-          : `List multiples of ${b} and ${e}. Which number is in both lists? Rename both fractions with it, then ${op === '+' ? 'add' : 'subtract'}.`; break;
+          : `List multiples of ${b} and ${e}. Which number is in both lists? Rename both fractions with it, then ${op === '+' ? 'add' : 'subtract'}.`;
+        // The renames are in a scaffolded prompt already, so the why only adds.
+        why = `${scaffold ? '' : renamesTo(common, [a, b], [c, e])}${f(a * (common / b), common)} ${op} ${f(c * (common / e), common)} = ${f(top, common)}${top >= common && top % common ? `, or ${answer}` : top === common ? ', or 1 whole' : ''}.`; break;
       }
       case 'mixed-unlike': {
         const examples: [number, number, number, number, number, number, '+' | '−'][] = [
@@ -1850,7 +1996,23 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         prompt = `${scaffold && renames.length ? `Rename: ${renames.join(' and ')}. Then ` : ''}${wholeA} ${f(topA, bottomA)} ${op} ${wholeB ? `${wholeB} ` : ''}${f(topB, bottomB)} = ?`;
         answer = mixedName(result, common); form = answer.includes(' ') ? 'mixed' : undefined;
         visual = model(a * (common / b), common); modelRequired = true;
-        hint = `${scaffold ? '' : `List multiples of ${bottomA} and ${bottomB} to find a denominator they share. `}${op === '+' ? 'Rename both fractional parts' : 'Rename both numbers'} with the same denominator, then ${op === '+' ? 'add' : 'subtract'}.${op === '−' && topA * (common / bottomA) < topB * (common / bottomB) ? ` The first part is too small to take away from: trade 1 whole for ${f(common, common)} first.` : ''}`; break;
+        hint = `${scaffold ? '' : `List multiples of ${bottomA} and ${bottomB} to find a denominator they share. `}${op === '+' ? 'Rename both fractional parts' : 'Rename both numbers'} with the same denominator, then ${op === '+' ? 'add' : 'subtract'}.${op === '−' && topA * (common / bottomA) < topB * (common / bottomB) ? ` The first part is too small to take away from: trade 1 whole for ${f(common, common)} first.` : ''}`;
+        {
+          const x = topA * (common / bottomA); const y = topB * (common / bottomB);
+          const renamed = scaffold ? '' : renamesTo(common, [topA, bottomA], [topB, bottomB]);
+          if (op === '+') {
+            const sum = x + y;
+            why = sum < common
+              ? `${renamed}${f(x, common)} + ${f(y, common)} = ${f(sum, common)}.${wholeB ? ` ${wholeA} + ${wholeB} = ${wholeA + wholeB} wholes.` : ''}`
+              : `${renamed}${f(x, common)} + ${f(y, common)} = ${f(sum, common)}, which is 1 whole${sum > common ? ` and ${f(sum - common, common)}` : ''}. ${wholeA}${wholeB ? ` + ${wholeB}` : ''} + 1 = ${wholeA + wholeB + 1} wholes.`;
+          } else {
+            const left = (n: number) => some(n, 'whole', 'wholes');
+            why = x >= y
+              ? `${renamed}${f(x, common)} − ${f(y, common)} = ${f(x - y, common)}, and ${wholeA} − ${wholeB} = ${left(wholeA - wholeB)}.`
+              : `${renamed}Trade 1 whole: ${f(x, common)} becomes ${f(x + common, common)}. ${f(x + common, common)} − ${f(y, common)} = ${f(x + common - y, common)}, and ${wholeA - 1} − ${wholeB} = ${left(wholeA - 1 - wholeB)}.`;
+          }
+        }
+        break;
       }
       case 'estimate': {
         const examples: [number, number, number, number, '+' | '−'][] = [
@@ -1881,7 +2043,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         prompt = `Without finding the exact ${operation}, compare ${f(a, b)} ${op} ${f(c, e)} with 1: __ 1.`;
         answer = total < common ? '<' : '>'; form = 'symbol'; visual = model(a, b); modelRequired = true;
         hint = op === '−' ? `${f(a, b)} is less than 1. Taking some away leaves even less.`
-          : `${f(a, b)} ${side(a, b)} and ${f(c, e)} ${side(c, e)}. Two halves make 1. So is the sum more or less than 1?`; break;
+          : `${f(a, b)} ${side(a, b)} and ${f(c, e)} ${side(c, e)}. Two halves make 1. So is the sum more or less than 1?`;
+        why = `Check: ${f(a, b)} ${op} ${f(c, e)} = ${mixedName(total, common)}, which is ${total < common ? 'less' : 'more'} than 1.`; break;
       }
       case 'fractional-area': {
         const examples: [number, number][] = [[1, 1], [1, 2], [2, 1], [2, 3], [3, 2], [1, 3], [2, 2], [3, 1], [1, 2], [2, 1], [3, 3], [2, 3]];
@@ -1889,7 +2052,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const surface = ['garden bed', 'quilt patch', 'poster', 'table top', 'rug', 'wall panel', 'mosaic', 'sandbox', 'floor tile', 'window panel', 'stage', 'notice board'][i];
         prompt = `A rectangular ${surface} is ${a === 3 ? '1' : `${a}/3`} unit by ${c}/4 unit. Color the overlapping area on the 3-by-4 grid. What is its area in square units?`;
         answer = f(product, 12); area = { cut: 'grid-3x4' }; areaTask = { n: product, d: 12 };
-        hint = 'Shade the columns for one side and the rows for the other. Count the squares shaded both ways, then count all the squares.'; break;
+        hint = 'Shade the columns for one side and the rows for the other. Count the squares shaded both ways, then count all the squares.';
+        why = `${a} × ${c} = ${some(product, 'small square is', 'small squares are')} shaded both ways. The grid has 12 small squares.`; break;
       }
       case 'scaling': {
         const examples: [number, number, number][] = [[3, 4, 12], [3, 2, 12], [5, 4, 8], [3, 2, 10], [4, 4, 20], [3, 4, 16], [5, 4, 12], [5, 4, 24], [3, 2, 8], [1, 4, 12], [3, 4, 20], [5, 4, 16],
@@ -1898,7 +2062,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         scaleTask = { whole, numerator: top, denominator: bottom };
         prompt = `Move the slider to ${top}/${bottom}. Without multiplying, compare ${top}/${bottom} × ${whole} with ${whole}: __ ${whole}.`;
         answer = top < bottom ? '<' : top === bottom ? '=' : '>'; form = 'symbol';
-        hint = 'A factor below 1 shrinks the amount. A factor of 1 keeps it the same. A factor above 1 grows it.'; break;
+        hint = 'A factor below 1 shrinks the amount. A factor of 1 keeps it the same. A factor above 1 grows it.';
+        why = `${f(top, bottom)} is ${top < bottom ? 'less than' : top === bottom ? 'equal to' : 'more than'} 1, so ${f(top, bottom)} × ${whole} is ${top < bottom ? 'less than' : top === bottom ? 'the same as' : 'more than'} ${whole}.`; break;
       }
       case 'mixed-multiply': {
         const examples: [number, number, number, number, number, number][] = [
@@ -1914,7 +2079,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         answer = mixedName(top, bottom); form = answer.includes(' ') ? 'mixed' : undefined;
         visual = model(wa * da + na, da); modelRequired = true;
         picture = gardenModel({ whole: wa, numerator: na, denominator: da }, { whole: wb, numerator: nb, denominator: db });
-        hint = 'Split the rectangle at the whole units. Find the area of each part, then add them.'; break;
+        hint = 'Split the rectangle at the whole units. Find the area of each part, then add them.';
+        why = `The 4 parts are ${wa * wb}, ${f(wa * nb, db)}, ${f(na * wb, da)} and ${f(na * nb, da * db)} square meters. Added, they make ${answer}.`; break;
       }
       case 'unit-divided-whole': {
         // One kind of question: each redo takes the other half of the list, so back-to-back sheets share no row.
@@ -1953,6 +2119,12 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           { prompt: 'How many seconds are in 1/2 minute?', answer: '30', numerator: 1, denominator: 2, hint: '1 minute is 60 seconds. Find half of 60.' },
         ];
         const item = pick(conversions); prompt = item.prompt; answer = item.answer; hint = item.hint;
+        {
+          // "How many inches are in 1/4 foot?": 4 groups of 3 make 12, so 1/4 foot is 3 inches.
+          const [, small, amount, big] = /How many (\w+) are in (\d+\/\d+) (\w+)\?/.exec(item.prompt)!;
+          const each = Number(item.answer) / item.numerator; const whole = each * item.denominator;
+          why = `${item.denominator} groups of ${each} make ${whole}. So ${amount} ${big} is ${item.numerator > 1 ? `${item.numerator} groups of ${each}: ` : ''}${item.answer} ${small}.`;
+        }
         visual = model(item.numerator, item.denominator); modelRequired = true; break;
       }
       case 'whole-from-part': {
@@ -1967,7 +2139,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           `Tom read ${part} pages. That is ${f(top, bottom)} of his book. How many pages are in the book?`,
         ][(i + Math.floor(i / 3)) % 3]; // practice uses rows 1, 4, 7 and 10, so they get different stories
         answer = String(bottom * per); visual = model(top, bottom);
-        hint = top === 1 ? `1 part is ${part}. The whole has ${bottom} parts.` : `A stretch question! ${top} parts are ${part}. Find 1 part first. The whole has ${bottom} parts.`; break;
+        hint = top === 1 ? `1 part is ${part}. The whole has ${bottom} parts.` : `A stretch question! ${top} parts are ${part}. Find 1 part first. The whole has ${bottom} parts.`;
+        why = `${top === 1 ? '' : `${top} parts are ${part}, so 1 part is ${per}. `}${bottom} groups of ${per} make ${bottom * per}.`; break;
       }
       case 'mistake': {
         // Error analysis: every third row asks "Is it right?"; the rest ask for the right answer. Grade 4 (4.NF.3a, 4.NF.4):
@@ -2000,14 +2173,34 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           ['Nia says 3/5 = 4/6 because she added 1 to the numerator and denominator. Which fraction in tenths is really equal to 3/5?', '6/10', 'Multiply the numerator and denominator by the same number.', 10],
           ['Sid says 4 × 1/3 = 4/12.', '4/3', 'Multiply only the numerator. The parts stay thirds.'],
         ];
+        // Why each fix is right, in the same order as `fixes` (shown after a right answer).
+        const fixWhy = [
+          '1 fourth + 2 fourths = 3 fourths. The denominator stays 4.',
+          '5 sixths − 2 sixths = 3 sixths. The denominator stays 6.',
+          '2 groups of 2 fifths make 4 fifths. The denominator stays 5.',
+          '7 eighths − 3 eighths = 4 eighths. The denominator stays 8.',
+          '2 tenths + 5 tenths = 7 tenths. The denominator stays 10.',
+          '4/4 is 1 whole, and 3 fourths are left over.',
+          '2 × 2 = 4 and 3 × 2 = 6, so 2/3 = 4/6. Adding 1 to both changes the amount.',
+          '2 groups of 3 eighths make 6 eighths. The denominator stays 8.',
+          '1 sixth + 4 sixths = 5 sixths. The denominator stays 6.',
+          '4 fifths − 1 fifth = 3 fifths, not 3 wholes.',
+          '3 groups of 1 fourth make 3 fourths. The denominator stays 4.',
+          '7 tenths − 4 tenths = 3 tenths. The denominator stays 10.',
+          '3 fourths + 2 fourths = 5 fourths. The denominator stays 4.',
+          '8/4 is 2 wholes, and 1 fourth is left over.',
+          '3 × 2 = 6 and 5 × 2 = 10, so 3/5 = 6/10. Adding 1 to both changes the amount.',
+          '4 groups of 1 third make 4 thirds. The denominator stays 3.',
+        ];
         if (i % 3 === 0) {
-          const [claim, said, why] = checks[(i / 3 + variant) % checks.length];
-          prompt = `${claim} Is that right? Answer yes or no.`; answer = said; form = 'word'; hint = why;
+          const [claim, said, rule] = checks[(i / 3 + variant) % checks.length];
+          prompt = `${claim} Is that right? Answer yes or no.`; answer = said; form = 'word'; hint = rule;
         } else {
-          const [claim, right, why, bottom, shape] = fixes[(i - 1 - Math.floor(i / 3) + variant) % fixes.length];
+          const at = (i - 1 - Math.floor(i / 3) + variant) % fixes.length;
+          const [claim, right, rule, bottom, shape] = fixes[at];
           // A claim that ends in its own question is asked as it is.
-          prompt = claim.endsWith('?') ? claim : `${claim} What is the right answer?${bottom ? ` Use ${unitName(bottom)}.` : ''}`; answer = right; hint = why;
-          form = shape; denominator = bottom;
+          prompt = claim.endsWith('?') ? claim : `${claim} What is the right answer?${bottom ? ` Use ${unitName(bottom)}.` : ''}`; answer = right; hint = rule;
+          form = shape; denominator = bottom; why = fixWhy[at];
         }
         break;
       }
@@ -2020,10 +2213,12 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         if (i % 2 === 0) {
           prompt = `Ana has ${total} stickers. She gives ${f(a, b)} of them to Ben. Then she gives ${f(c, e)} of the rest to Cal. How many stickers does Ana have now?`;
           answer = String(left); hint = `Find ${f(a, b)} of ${total} and take it away. Then find ${f(c, e)} of what is left, and take that away too.`;
+          why = `${f(a, b)} of ${total} is ${(total / b) * a}, so ${rest} are left. ${f(c, e)} of ${rest} is ${(rest / e) * c}, so ${left} are left.`;
         } else {
           const top = (b - a) * (e - c); const bottom = b * e; const g = gcd(top, bottom);
           prompt = `Max eats ${f(a, b)} of a pizza. Then he eats ${f(c, e)} of what is left. What fraction of the pizza is left now?`;
           answer = f(top / g, bottom / g); hint = `First ${f(b - a, b)} is left. Then ${f(e - c, e)} of that part is still left.`;
+          why = `${f(e - c, e)} of ${f(b - a, b)} is ${f(top, bottom)}${g > 1 ? `, the same as ${answer}` : ''}.`;
         }
         break;
       }
@@ -2033,7 +2228,12 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           [3, 4, 1, 12], [2, 5, 1, 10], [1, 2, 1, 6], [4, 5, 1, 10], [3, 4, 3, 8], [6, 10, 2, 10]] as const)[tr];
         prompt = i % 2 ? `${f(a, b)} ÷ ${f(c, e)} = ?` : `How many ${f(c, e)} cup scoops fill ${f(a, b)} cup?`;
         answer = String((a * e) / (b * c)); visual = model(a, b);
-        hint = `Write ${f(a, b)} in ${unitName(e)}. Count how many ${f(c, e)} parts fit.`; break;
+        hint = `Write ${f(a, b)} in ${unitName(e)}. Count how many ${f(c, e)} parts fit.`;
+        {
+          const small = a * (e / b); // a/b in the scoop's parts
+          why = `${b === e ? '' : `${f(a, b)} = ${f(small, e)}. `}${c === 1 ? `${small} parts of ${f(1, e)} fit.` : `${pieces(small, e)} make ${small / c} groups of ${pieces(c, e)}.`}`;
+        }
+        break;
       }
       case 'decimal-grid': {
         // Order three decimals, pick the bigger of two, count hundredths, and ask whether two parts can be compared at all.
@@ -2223,15 +2423,18 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           const start = bottom - 1;
           prompt = `A jug has ${f(start, bottom)} liter. Sam drinks ${f(a, bottom)} liter, then adds ${f(b, bottom)} liter. How much is in the jug now?`;
           answer = f(start - a + b, bottom); hint = `First take away what Sam drinks: ${start} − ${a}. Then add ${b}.`;
+          why = `${f(start, bottom)} − ${f(a, bottom)} = ${f(start - a, bottom)}. Then ${f(start - a, bottom)} + ${f(b, bottom)} = ${f(start - a + b, bottom)}.`;
         } else if (shape === 2) {
           const ben = Math.max(1, a + b - 1 - (i % 2));
           prompt = `Ana ran ${f(a, bottom)} mile and then ${f(b, bottom)} mile. Ben ran ${f(ben, bottom)} mile. How much farther did Ana run?`;
           answer = f(a + b - ben, bottom); hint = `First add Ana’s two runs. Then compare with Ben: take his away.`;
+          why = `${f(a, bottom)} + ${f(b, bottom)} = ${f(a + b, bottom)}. Then ${f(a + b, bottom)} − ${f(ben, bottom)} = ${f(a + b - ben, bottom)}.`;
         } else {
           prompt = i % 2
             ? `Mia reads ${f(a, bottom)} of a book on Monday and ${f(b, bottom)} on Tuesday. How much is left to read?`
             : `${f(a, bottom)} of a garden is planted. Then ${f(b, bottom)} more is planted. How much is still empty?`;
           answer = f(bottom - a - b, bottom); hint = `First add the two parts. Then take that away from ${bottom}/${bottom}.`;
+          why = `${f(a, bottom)} + ${f(b, bottom)} = ${f(a + b, bottom)}. Then ${f(bottom, bottom)} − ${f(a + b, bottom)} = ${f(bottom - a - b, bottom)}.`;
         }
         break;
       }
@@ -2257,14 +2460,14 @@ function reviewCheckFor(id: string, round: number): BuildCheck {
     const builds = getBuildChecks(id);
     const check = builds[round % builds.length];
     return { ...check, id: 'retention', transfer: true,
-      ...arrangeReasons(`${id}:review:${round % builds.length}`, idea(id, check.explanation), wrongReasons(id, round)) };
+      ...arrangeReasons(`${id}:review:${round % builds.length}`, idea(id, check.explanation, round), wrongReasons(id, round)) };
   }
   if (id === 'order-fractions') {
     // Grade 3 parts: sixths, eighths, then eighths again with other numerators.
     const [d, low, high] = ([[6, 2, 4], [8, 2, 4], [8, 3, 6]] as const)[round % 3];
     const reason = 'Same size parts. The most parts is the biggest.';
     return { id: 'retention', transfer: true, prompt: `Which is longest: ${low}/${d}, ${high}/${d} or ${low + 1}/${d}? Make it.`,
-      target: model(high, d), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), wrongReasons(id, round)), explanation: reason };
+      target: model(high, d), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason, round), wrongReasons(id, round)), explanation: reason };
   }
   if (id.includes('equivalent')) {
     // Both denominators fit the grade (grade 3: 2/3 = 4/6, 3/4 = 6/8, 1/2 = 3/6).
@@ -2274,13 +2477,13 @@ function reviewCheckFor(id: string, round: number): BuildCheck {
       ? `Split every part into ${factor}. Now ${n * factor} of ${d * factor} parts are colored.`
       : `Split every part into ${factor}. Multiply the numerator and denominator by ${factor}.`;
     return { id: 'retention', transfer: true, prompt: `A ribbon is ${n}/${d} colored. Show it with a denominator of ${d * factor}.`,
-      target: model(n * factor, d * factor), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), wrongReasons(id, round)), explanation: reason };
+      target: model(n * factor, d * factor), ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason, round), wrongReasons(id, round)), explanation: reason };
   }
   if (id.startsWith('sets-')) {
     const d = [4, 5, 6][round % 3]; const n = id === 'sets-unit-fractions' ? 1 : 2; const total = d * 4;
     const reason = `Put ${total} in ${d} equal groups. Pick ${n}.`;
     return { id: 'retention', transfer: true, prompt: `Put ${total} shells in ${d} equal groups. Pick ${n} of the groups.`, target: model(n, d, 'set', total),
-      ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason), wrongReasons(id, round)), explanation: reason };
+      ...arrangeReasons(`${id}:review:${round % 3}`, idea(id, reason, round), wrongReasons(id, round)), explanation: reason };
   }
   // Review is built from scratch with no picture, so skip questions that need one, already show
   // the answer (unless picking it is the skill: "Which is bigger…"), or ask for a symbol, decimal or order.
@@ -2304,6 +2507,6 @@ function reviewCheckFor(id: string, round: number): BuildCheck {
   const prompt = /^Make .+\.$/.test(ask) ? ask.replace(/\.$/, ' two ways.') : `${ask} Build the answer two ways.`;
   return { id: 'retention', transfer: true, prompt,
     target: model(value.n, value.d, id.startsWith('number-line') ? 'line' : 'bar'),
-    ...arrangeReasons(`${id}:review:${round % variants.length}`, idea(id, reason), wrongReasons(id, round)),
+    ...arrangeReasons(`${id}:review:${round % variants.length}`, idea(id, reason, round), wrongReasons(id, round)),
     explanation: reason };
 }

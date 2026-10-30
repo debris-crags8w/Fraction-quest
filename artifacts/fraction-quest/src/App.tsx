@@ -73,7 +73,7 @@ import { ModelTag, SetSvg, WholeBracket } from './models';
 import { SeasonPointsIcon, Confetti, DailyRing, denomColor, FunContext, Hoot, LessonPath, Mascot, SeasonBanner, SeasonReward, SeasonSay, StoryPrompt, unitColor, useFun, useSeason, useSeasonPreview, type PathNode } from './fun-ui';
 import { activeSeason } from './seasons';
 import { IdeaLearn, LessonIntroCard } from './lesson-intro';
-import { ideaPracticeQuestions, ideaSteps, isRound, lessonIdeas, practicePlan, savedPlaceStillFits } from './lesson-ideas';
+import { hintNudge, ideaPracticeQuestions, ideaSteps, isRound, lessonIdeas, practicePlan, savedPlaceStillFits } from './lesson-ideas';
 import { CHECKPOINT_COUNT, lessonCheckpoint } from './checkpoint';
 import { LESSON_INTROS } from './lesson-intros';
 import { StoryCharacter } from './characters';
@@ -907,6 +907,7 @@ function PlayView({
   onFinishReview,
   kicker,
   quiet,
+  fadeHint = false,
 }: {
   mission: Mission;
   questionIndex: number;
@@ -930,6 +931,8 @@ function PlayView({
   /** An idea's practice: only the question. The bar counts the idea's practices (from `start`, `count` of them), there
       is no friend's line and no Helper button (the hint links to the fraction words instead). */
   quiet?: { start: number; count: number };
+  /** An idea's later practice after one answered right without the hint: the hint opens as its first sentence (hintNudge) until a wrong answer. */
+  fadeHint?: boolean;
 }) {
   const [selection, setSelection] = useState<Answer | null>(null);
   const [feedback, setFeedback] = useState<'correct' | 'retry' | null>(null);
@@ -950,6 +953,8 @@ function PlayView({
   const seasonOn = !!useSeason().season;
   const question: PracticeQuestion | null = mission.questions[questionIndex] ?? null;
   const isLastQuestion = question ? questionIndex === mission.questions.length - 1 : false;
+  // A faded hint opens as its first sentence until a wrong answer on this question (opening the hint counts as an attempt, a wrong answer rules a choice out).
+  const shownHint = question ? (fadeHint && ruledOut.length === 0 ? hintNudge(question.hint) : question.hint) : '';
   const lessonStarIds = new Set(starEligibleQuestionIds ?? mission.questions.filter((item) => !item.isOptionalReview).map((item) => item.id));
 
   const checkAnswer = () => {
@@ -1156,7 +1161,7 @@ function PlayView({
               <div ref={modelAreaRef} className="fq-model-area" data-testid="question-model-area">
                 <ModelView model={useSimplerModel ? question.simplerModel : question.model} reveal={feedback === 'correct'} asked={!useSimplerModel} walk={feedback === 'retry' ? attempts : null} questionId={question.id} />
               </div>
-              {hintOpen && attempts < 2 && <div ref={hintRef} key={`hint-${hintFlash}`} className="fq-hint fq-hint-flash" data-testid="text-question-hint">{hintFriend ? <StoryCharacter id={hintFriend} size={36} /> : <Lightbulb size={18} />} <span className="fq-hint-copy"><strong>{hintLead(hintFriend)}</strong> <LearningListenButton text={question.hint} label="Listen to the hint" /><span><LearningText text={question.hint} /></span>
+              {hintOpen && attempts < 2 && <div ref={hintRef} key={`hint-${hintFlash}`} className="fq-hint fq-hint-flash" data-testid="text-question-hint">{hintFriend ? <StoryCharacter id={hintFriend} size={36} /> : <Lightbulb size={18} />} <span className="fq-hint-copy"><strong>{hintLead(hintFriend)}</strong> <LearningListenButton text={shownHint} label="Listen to the hint" /><span><LearningText text={shownHint} /></span>
                 {quiet && <button type="button" className="fq-hint-words" onClick={helper.openWords} data-testid="button-hint-words">See the fraction words again</button>}</span></div>}
               {attempts >= 2 && (
                 <div ref={remediationRef} key={`remediation-${hintFlash}`} className={`fq-remediation ${hintFlash ? 'fq-hint-flash' : ''}`} role="note" data-testid="status-remediation">
@@ -1416,6 +1421,8 @@ function Game() {
   const storyMode = fun.displayPreferences?.storyMode !== false;
   const storyTheme = propTheme(useSeason().season?.id);
   const [combo, setCombo] = useState(0);
+  /** Ideas ("lesson:idea") with a practice answered right without the hint this session: their later hints fade (hintNudge). */
+  const [hintFreeIdeas, setHintFreeIdeas] = useState<string[]>([]);
   const [breakReason, setBreakReason] = useState<'interval' | 'mistakes' | 'lesson-part' | null>(null);
   const activeStudyMilliseconds = useRef(0);
   const consecutiveWrongAnswers = useRef(0);
@@ -1936,6 +1943,7 @@ function Game() {
         const steps = view.type === 'play' ? ideaSteps(view.missionId) : [];
         const ideaCount = steps.length;
         const ideaStep = view.type === 'play' ? steps[view.questionIndex] : undefined;
+        const ideaKey = ideaStep ? `${activeMission.id}:${ideaStep.idea}` : '';
         // The checkpoint: 3 questions with new numbers, right after the last idea practice.
         const onCheckpoint = !!ideas && view.type === 'play' && !!activeMission.questions[view.questionIndex]?.isCheckpoint;
         const lessonLabel = String(MISSIONS.findIndex((mission) => mission.id === activeMission.id) + 1).padStart(2, '0');
@@ -1994,7 +2002,11 @@ function Game() {
           kicker={ideaStep && ideas ? <><span className="fq-kicker-topic">Lesson {lessonLabel} · </span>Idea {ideaStep.idea + 1} of {ideas.length} · Practise {ideaStep.practice + 1} of {ideas[ideaStep.idea]!.practice.length}</>
             : onCheckpoint ? <><span className="fq-kicker-topic">Lesson {lessonLabel} · </span>Checkpoint · Question {view.questionIndex - ideaCount + 1} of {CHECKPOINT_COUNT}</>
             : ideas && view.type === 'play' ? <><span className="fq-kicker-topic">Lesson {lessonLabel} · Put it together · </span>Question {view.questionIndex - ideaCount - CHECKPOINT_COUNT + 1} of {activeMission.questions.length - ideaCount - CHECKPOINT_COUNT}</> : undefined}
-          onCorrect={onPracticeCorrect}
+          onCorrect={(firstTry) => {
+            onPracticeCorrect(firstTry);
+            if (firstTry && ideaKey) setHintFreeIdeas((current) => (current.includes(ideaKey) ? current : [...current, ideaKey]));
+          }}
+          fadeHint={!!ideaKey && hintFreeIdeas.includes(ideaKey)}
           onWrong={onPracticeWrong}
           onNext={(firstTryAnswers) => {
             if (view.type === 'review') nextReviewView({ type: 'review', questionIndex: view.questionIndex + 1, reviewQuestions: view.reviewQuestions });
