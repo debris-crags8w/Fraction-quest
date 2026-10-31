@@ -111,3 +111,11 @@ test('the paywall says where to cancel on each kind of phone', () => {
   for (const platform of ['ios', 'android', '']) assert.doesNotMatch(where(platform), /your phone/);
   assert.equal(offerWords({ state: 'none' }, { lapsed: true, platform: 'android' }).terms, 'Renews until cancelled. Cancel anytime in Google Play.');
 });
+
+test('the ask-a-grown-up note names the level quiz only when there was one', async () => {
+  const { askSavedNote } = await import('./lib/subscription') as { askSavedNote?: (lapsed: boolean, levelQuizDone: boolean) => string };
+  assert.equal(typeof askSavedNote, 'function');
+  assert.equal(askSavedNote!(false, true), 'Your level quiz and everything you did so far are saved.');
+  assert.equal(askSavedNote!(false, false), 'Everything you did so far is saved.');
+  assert.equal(askSavedNote!(true, true), 'You can still read the Storybook and see your stone pieces.');
+});

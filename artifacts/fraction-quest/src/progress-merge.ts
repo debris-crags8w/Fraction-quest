@@ -1,11 +1,12 @@
 /* One learner on two devices (say a phone and a tablet): the server refuses a save made from an older copy (409), and
    this device then merges the saved copy into its own before saving again (account.tsx). The merge keeps every lesson
    finished on either device, the best scores, and the latest of each dated thing, so nothing learned on one device is
-   lost. Settings a grown-up chooses (time limit, breaks, display) come from the saved copy: the other device saved them
-   more recently than this device last loaded. The result is cleaned by loadProgress / replaceFun as usual. */
-import type { Progress, SkillReview } from './game';
-import type { LearningRecord } from './learning';
-import type { FunState } from './lib/fun';
+   lost. A unit a grown-up reset stays reset (unitResets), each setting a grown-up chooses (time limit, breaks, display)
+   comes from the copy where it was changed last (settingsAt), and minutes, answers and XP from each device add up.
+   The result is cleaned by loadProgress / replaceFun as usual. */
+import { MISSIONS, type Progress, type SkillReview } from './game';
+import { resetUnitLearningProgress, type LearningRecord } from './learning';
+import type { DayActivity, DayCount, FunState, SettingsAt } from './lib/fun';
 
 type NumberMap = Record<string, number>;
 
@@ -41,10 +42,42 @@ function betterLesson(saved: LearningRecord, here: LearningRecord): LearningReco
     const confirmedAt = Math.max(saved.confirmedAt ?? 0, here.confirmedAt ?? 0);
     return confirmedAt ? { ...first, confirmedAt } : first;
   }
+  if (saved.completedAt || here.completedAt) return saved.completedAt ? saved : here;
   const a = lessonProgress(saved);
   const b = lessonProgress(here);
-  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) return a[i] > b[i] ? saved : here;
-  return here;
+  let winner = here;
+  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) { winner = a[i] > b[i] ? saved : here; break; }
+  // Neither finished: keep the worksheet rows answered on either device (a row answered on one only, or checked on one only).
+  const other = winner === saved ? here : saved;
+  const worksheet = { ...winner.worksheet };
+  let added = false;
+  for (const [row, entry] of Object.entries(other.worksheet ?? {})) {
+    const mine = worksheet[row];
+    if (!mine || (mine.checkedValue === undefined && (entry.checkedValue !== undefined || (!mine.draft && entry.draft)))) {
+      worksheet[row] = entry;
+      added = true;
+    }
+  }
+  return added ? { ...winner, worksheet } : winner;
+}
+
+const UNIT_LESSONS = new Map<number, string[]>();
+for (const mission of MISSIONS) UNIT_LESSONS.set(mission.unit, [...(UNIT_LESSONS.get(mission.unit) ?? []), mission.id]);
+
+/** The lessons of each unit reset on the other copy that this copy has not seen reset yet, and when. Lessons this copy
+    finished after the reset are not included: that is newer work. */
+function unseenResets(copy: Progress, resets: Record<string, number>): { unit: number; at: number; lessons: Set<string> }[] {
+  return Object.entries(resets)
+    .filter(([unit, at]) => (copy.unitResets?.[unit] ?? 0) < at)
+    .map(([unit, at]) => ({
+      unit: Number(unit), at,
+      lessons: new Set((UNIT_LESSONS.get(Number(unit)) ?? []).filter((id) => !((copy.learning?.[id]?.completedAt ?? 0) > at))),
+    }));
+}
+
+/** A copy with every unit reset it has not seen applied (as if it had been on this device when the grown-up reset it). */
+function withResets(copy: Progress, resets: Record<string, number>): Progress {
+  return unseenResets(copy, resets).reduce((next, reset) => resetUnitLearningProgress(next, reset.lessons, reset.unit), copy);
 }
 
 /** A review further along (more steps passed) is kept. */
@@ -61,7 +94,10 @@ function mergeList<T>(saved: T[] | undefined, here: T[] | undefined, key: (item:
   return [...byKey.values()].sort((x, y) => at(x) - at(y)).slice(-limit);
 }
 
-export function mergeProgress(saved: Progress, here: Progress): Progress {
+export function mergeProgress(savedCopy: Progress, hereCopy: Progress): Progress {
+  const unitResets = mergeNumbers(savedCopy.unitResets, hereCopy.unitResets);
+  const saved = unitResets ? withResets(savedCopy, unitResets) : savedCopy;
+  const here = unitResets ? withResets(hereCopy, unitResets) : hereCopy;
   const completed = [...here.completedMissionIds, ...saved.completedMissionIds.filter((id) => !here.completedMissionIds.includes(id))];
   const reviews = mergeBy(
     Object.fromEntries(saved.reviewQueue.map((review) => [review.missionId, review])),
@@ -96,6 +132,7 @@ export function mergeProgress(saved: Progress, here: Progress): Progress {
     assessments,
     assessmentDraft: draftDone ? undefined : draft,
     dailyPractice: daily,
+    unitResets,
   };
   for (const [key, value] of Object.entries(optional) as [keyof Progress, unknown][]) {
     if (value === undefined) delete merged[key];
@@ -107,11 +144,56 @@ export function mergeProgress(saved: Progress, here: Progress): Progress {
 const union = (saved: string[] | undefined, here: string[] | undefined) =>
   saved || here ? [...new Set([...(saved ?? []), ...(here ?? [])])] : undefined;
 
+const sumParts = (devices: Record<string, DayCount> | undefined, key: keyof DayCount) =>
+  Object.values(devices ?? {}).reduce((sum, part) => sum + part[key], 0);
+
+/** One day on two copies: each device's own part once (a device's count only grows, so the larger is the newer), added
+    up, plus the part counted before devices were (the larger, as before). */
+function mergeDay(saved: DayActivity, here: DayActivity): DayActivity {
+  const devices = mergeBy(saved.devices, here.devices, (a, b) => ({ minutes: Math.max(a.minutes, b.minutes), answered: Math.max(a.answered, b.answered) }));
+  const older = (key: keyof DayCount) => Math.max(0, saved[key] - sumParts(saved.devices, key), here[key] - sumParts(here.devices, key));
+  const day: DayActivity = { minutes: older('minutes') + sumParts(devices, 'minutes'), answered: older('answered') + sumParts(devices, 'answered') };
+  return devices ? { ...day, devices } : day;
+}
+
+/** XP: each device's own XP once, added up, plus the XP from before devices were counted (the larger). */
+function mergeXp(saved: FunState, here: FunState): { xp: number; xpByDevice?: Record<string, number> } {
+  const byDevice = mergeNumbers(saved.xpByDevice, here.xpByDevice);
+  if (!byDevice) return { xp: Math.max(saved.xp, here.xp) };
+  const own = (copy: FunState) => Object.values(copy.xpByDevice ?? {}).reduce((sum, xp) => sum + xp, 0);
+  const older = Math.max(0, saved.xp - own(saved), here.xp - own(here));
+  return { xp: older + Object.values(byDevice).reduce((sum, xp) => sum + xp, 0), xpByDevice: byDevice };
+}
+
+/** A grown-up's setting from the copy where it changed last (no time on either: the saved copy, as before). */
+function newerSetting<K extends 'timeLimit' | 'breakPreferences' | 'displayPreferences'>(saved: FunState, here: FunState, key: K, at: keyof SettingsAt): FunState[K] {
+  const pick = (here.settingsAt?.[at] ?? 0) > (saved.settingsAt?.[at] ?? 0) ? here : saved;
+  return pick[key] ?? (pick === here ? saved : here)[key];
+}
+
+/** Game results of lessons in a unit a grown-up reset that this copy has not seen reset. */
+function withoutResetGames(fun: FunState, progress: Progress, resets: Record<string, number> | undefined): FunState {
+  if (!resets) return fun;
+  const lessons = new Set(unseenResets(progress, resets).flatMap((reset) => [...reset.lessons]));
+  if (!lessons.size) return fun;
+  const drop = (values: Record<string, number> | undefined) => values && Object.fromEntries(Object.entries(values).filter(([id]) => !lessons.has(id)));
+  return { ...fun, raceBest: drop(fun.raceBest), robotBeaten: drop(fun.robotBeaten), codeLevels: drop(fun.codeLevels), sprintBest: drop(fun.sprintBest) };
+}
+
+/** Both halves of two copies of one learner: progress, and the fun state (where a unit reset clears game results too). */
+export function mergeBundle(saved: { progress: Progress; fun: FunState }, here: { progress: Progress; fun: FunState }): { progress: Progress; fun: FunState } {
+  const resets = mergeNumbers(saved.progress.unitResets, here.progress.unitResets);
+  return {
+    progress: mergeProgress(saved.progress, here.progress),
+    fun: mergeFun(withoutResetGames(saved.fun, saved.progress, resets), withoutResetGames(here.fun, here.progress, resets)),
+  };
+}
+
 export function mergeFun(saved: FunState, here: FunState): FunState {
   // The streak, its spare oil and the last active day travel together, from the copy that played most recently.
   const streakFrom = (saved.lastActiveDay ?? '') > (here.lastActiveDay ?? '') ? saved : here;
   const today = saved.day > here.day ? saved : saved.day === here.day && saved.answeredToday > here.answeredToday ? saved : here;
-  const activity = mergeBy(saved.activity, here.activity, (a, b) => ({ minutes: Math.max(a.minutes, b.minutes), answered: Math.max(a.answered, b.answered) }));
+  const activity = mergeBy(saved.activity, here.activity, mergeDay);
   const rewards = mergeBy(saved.worksheetRewards, here.worksheetRewards, (a, b) => union(a, b) ?? []);
   const seasons = mergeBy(saved.seasonLessons, here.seasonLessons, (a, b) => union(a, b) ?? []);
   const intros = mergeBy(saved.introsSeen, here.introsSeen, (a, b) => (a === true || b === true ? true : b ?? a));
@@ -125,9 +207,10 @@ export function mergeFun(saved: FunState, here: FunState): FunState {
   const merged: FunState = {
     ...saved,
     ...here,
-    xp: Math.max(saved.xp, here.xp),
+    ...mergeXp(saved, here),
     day: today.day,
-    answeredToday: today.answeredToday,
+    // Today's right answers from both devices count toward the daily goal.
+    answeredToday: Math.max(today.answeredToday, activity?.[today.day]?.answered ?? 0),
     dayStreak: saved.lastActiveDay === here.lastActiveDay ? Math.max(saved.dayStreak, here.dayStreak) : streakFrom.dayStreak,
     lastActiveDay: streakFrom.lastActiveDay,
   };
@@ -146,10 +229,11 @@ export function mergeFun(saved: FunState, here: FunState): FunState {
     introsSeen: intros,
     fractionWordsSeen: saved.fractionWordsSeen || here.fractionWordsSeen ? true : undefined,
     story,
-    // A grown-up's settings: the saved copy is the newer one.
-    timeLimit: saved.timeLimit ?? here.timeLimit,
-    breakPreferences: saved.breakPreferences ?? here.breakPreferences,
-    displayPreferences: saved.displayPreferences ?? here.displayPreferences,
+    // A grown-up's settings: each from the copy where it was changed last.
+    timeLimit: newerSetting(saved, here, 'timeLimit', 'timeLimit'),
+    breakPreferences: newerSetting(saved, here, 'breakPreferences', 'breaks'),
+    displayPreferences: newerSetting(saved, here, 'displayPreferences', 'display'),
+    settingsAt: saved.settingsAt || here.settingsAt ? mergeNumbers(saved.settingsAt as NumberMap | undefined, here.settingsAt as NumberMap | undefined) as SettingsAt : undefined,
   };
   for (const [key, value] of Object.entries(optional) as [keyof FunState, unknown][]) {
     if (value === undefined) delete merged[key];

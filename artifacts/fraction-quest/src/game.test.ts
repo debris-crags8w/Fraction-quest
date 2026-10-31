@@ -3111,7 +3111,9 @@ describe('grown-ups report', () => {
     let fun = recordMinute(recordMinute(loadFun()));
     fun = recordCorrect(fun);
     const day = Object.keys(fun.activity ?? {})[0];
-    assert.deepEqual(fun.activity?.[day], { minutes: 2, answered: 1 });
+    const { devices, ...totals } = fun.activity?.[day] ?? { minutes: 0, answered: 0 };
+    assert.deepEqual(totals, { minutes: 2, answered: 1 });
+    assert.deepEqual(Object.values(devices ?? {}), [{ minutes: 2, answered: 1 }], 'this device\'s part, so two devices add up');
   });
 });
 
@@ -4201,7 +4203,7 @@ describe('wrong-answer help', () => {
   it('says why a slip is wrong, for the slip behind the picked choice', () => {
     const why = (prompt: string, right: string, pick: string) => wrongChoiceReason(prompt, [right, pick], 0, 1);
     // Adding and taking away.
-    assert.equal(why('What is 1/3 + 1/6?', '3/6', '2/6'), WHY.keptOne);
+    assert.equal(why('What is 1/3 + 1/6?', '3/6', '2/6'), WHY.renameOther); // only 1/3 needs renaming (accuracy rescore 4, N5)
     assert.equal(why('What is 1/6 + 4/6?', '5/6', '4/6'), WHY.oneAmount);
     assert.equal(why('What is 5/6 − 2/6?', '3/6', '7/6'), WHY.otherOpTake);
     assert.equal(why('What is 5/6 − 2/6?', '3/6', '5/6'), WHY.startAmount);
@@ -4327,6 +4329,26 @@ describe('hints shown before answering', () => {
       }
     }
     assert.deepEqual(leaks, []);
+  });
+  it('never name a short answer as the thing counted or made ("The 8 counts hundredths", "make 1 inch")', () => {
+    // Short answers (0.08's 8, a ruler's 1) slip past the length check above. Idea, lesson, checkpoint and generated questions.
+    const leaks = new Set<string>();
+    for (const mission of MISSIONS) {
+      const ids = mission.questions.map((q) => q.id);
+      const questions = [...ideaPracticeQuestions(mission), ...mission.questions, ...lessonCheckpoint(mission),
+        ...(hasGenerator(mission.id) ? [1, 2, 3].flatMap((seed) => generateQuestions(mission.id, ids, seed * 101, 12)) : [])];
+      for (const question of questions) {
+        if (!question.prompt) continue;
+        const right = String(question.choices[question.correctChoice]).replace(/\s+[a-z]+$/, '');
+        if (!/^\d+(\.\d+)?$|^\d+\/\d+$/.test(right)) continue;
+        const esc = right.replace(/[.]/g, '\\.');
+        const said = new RegExp(`(?<![\\d/.])${esc} (counts|is the|tells|means)|is ${esc}(?![\\d/.])|makes? ${esc}(?![\\d/.])|= ${esc}(?![\\d/.])`);
+        if (!said.test(question.prompt) && said.test(question.hint)) {
+          leaks.add(`${mission.id}: ${question.prompt} => ${right} | ${question.hint}`);
+        }
+      }
+    }
+    assert.deepEqual([...leaks], []);
   });
 });
 

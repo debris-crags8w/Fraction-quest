@@ -142,3 +142,9 @@ function snapshot(): Subscription | null {
 export function useSubscription(): Subscription | null {
   return useSyncExternalStore(onAppShellChange, snapshot, () => null);
 }
+
+/** The note under Hoot on the ask-a-grown-up screen. The level quiz is named only when the child took one. */
+export function askSavedNote(lapsed: boolean, levelQuizDone: boolean): string {
+  if (lapsed) return 'You can still read the Storybook and see your stone pieces.';
+  return levelQuizDone ? 'Your level quiz and everything you did so far are saved.' : 'Everything you did so far is saved.';
+}

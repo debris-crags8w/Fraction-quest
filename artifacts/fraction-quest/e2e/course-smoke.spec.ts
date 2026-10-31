@@ -11,7 +11,7 @@ import { AREA_CUTS, areaTaskDone } from '../src/area-shapes';
 import { generateQuestions, getExtraPractice, hasGenerator } from '../src/practice-bank';
 import { ideaQuestion, ideaSteps, lessonIdeas } from '../src/lesson-ideas';
 import { seasonOn } from '../src/seasons';
-import { STONE_QUESTIONS } from '../src/story';
+import { CHAPTERS, STONE_QUESTIONS, withName } from '../src/story';
 import { completeCheckpoint, completeIdeas, finishPutTogether, hasStoryAfterIdeas, solveSortRound } from './lesson-walk';
 import { makeSprint } from '../src/CodeSprint';
 import type { Mission } from '../src/game';
@@ -3027,6 +3027,26 @@ test('A month theme (March): the banner and points name show, a lesson uses its 
   await expect(page.getByTestId('status-xp')).toContainText('XP');
 });
 
+test('Story quest: a locked chapter shows only its number, never its title or friend card (no spoilers on the map or in the Storybook)', async ({ page }) => {
+  await openAsGuest(page);
+  // A fresh child has reached chapter 1 only: every later title, card title and card line stays hidden.
+  const secrets = CHAPTERS.slice(1).flatMap((chapter) => [chapter.title, chapter.card.title, withName(chapter.card.blurb, null)]);
+  const hidden = async (where: string) => {
+    const text = await page.locator('body').innerText();
+    for (const secret of secrets) expect(text, `${where}: "${secret}" is shown before its chapter is reached`).not.toContain(secret);
+  };
+  await expect(page.getByTestId('chapter-banner-11')).toContainText('Chapter 11');
+  await expect(page.getByTestId('chapter-banner-11')).toContainText('Finish chapter 10 to open this chapter');
+  await expect(page.getByTestId('chapter-banner-11')).not.toContainText('with Bolt');
+  await hidden('home lesson list');
+  await page.getByTestId('button-open-storybook').click();
+  await expect(page.getByTestId('storybook-chapter-11')).toContainText('11');
+  await hidden('Storybook chapters');
+  await page.getByTestId('tab-storybook-cards').click();
+  await expect(page.getByTestId('story-card-11')).toContainText('Finish chapter 11 to unlock this card.');
+  await hidden('Storybook cards');
+});
+
 test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffhangers, stone pieces and clues, cards, and a grown-up off switch', async ({ page }) => {
   test.setTimeout(150_000);
   // With seasonal themes off (every month has a theme), so the story friend (not the seasonal line) speaks on questions.
@@ -3070,7 +3090,8 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.getByTestId('button-story-go').click();
   await expect(prologueRow).toContainText('Watch it now');
   await expect(page.getByTestId(`button-storybook-part-${MISSIONS[0].id}`)).toContainText('New');
-  await expect(page.getByTestId('storybook-chapter-2')).toContainText('Pip’s pond party');
+  await expect(page.getByTestId('storybook-chapter-2')).toContainText('Chapter 2');
+  await expect(page.getByTestId('storybook-chapter-2')).not.toContainText('Pip’s pond party');
   await expect(page.getByTestId('storybook-finale')).toContainText('Find all 15 pieces');
   await page.getByTestId('tab-storybook-clues').click();
   await expect(page.getByTestId('clue-notebook')).toContainText('No clues yet');
@@ -3213,7 +3234,7 @@ test('Story quest: the Whole Stone prologue, a chapter choice, scenes and cliffh
   await page.getByTestId('tab-storybook-cards').click();
   await expect(page.getByText('2 of 15')).toBeVisible();
   await expect(page.getByTestId('story-card-1')).toContainText('Chomp the sneaky sharer');
-  await expect(page.getByTestId('story-card-3')).toContainText('Finish “Tilly’s halfway hill” to unlock this card.');
+  await expect(page.getByTestId('story-card-3')).toContainText('Finish chapter 3 to unlock this card.');
   await expect(page.getByTestId('button-read-chapter-3')).toHaveCount(0);
 
   // A finished chapter can be read again from its card, with the choice already made, and it goes back to the cards.

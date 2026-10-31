@@ -5,7 +5,7 @@
    app's answer, so a question it misreads is left as it is. Counting questions ("how many spaces for thirds?")
    keep their near misses: being off by one is the real mistake there. */
 import { answerValue } from './learning-content';
-import { fractionMistakes, fractionMistakesWithWhy } from './fraction-slips';
+import { fitInWholeSlip, fractionMistakes, fractionMistakesWithWhy } from './fraction-slips';
 import type { Why } from './slip-reasons';
 
 const N = Number;
@@ -19,6 +19,12 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   let m: RegExpExecArray | null;
   // "Is that near 0, 1/2 or 1 meter?" is about benchmarks (fraction-slips.ts), not a fraction of a length.
   if (/Is that near 0, 1\/2 or 1 \w+\?$/.test(p)) return null;
+  // "3 children share 1/4 of a pan. How many shares that size would fill the whole pan?": the parts and the children
+  // added, the big parts only, the shares in one part only.
+  if ((m = /^(\d+) children share 1\/(\d+) of a pan\. How many shares that size would fill the whole pan\?$/.exec(p))) {
+    const [n, b] = [N(m[1]), N(m[2])];
+    return [n * b, [['addedForShare', n + b], ['partsNotShares', b], ['sharesInOnePart', n]]];
+  }
   // Fair shares (lesson 2): "4 friends share 12 equal pieces fairly. How many pieces does each friend get?": the
   // friends counted, the whole pile, or what the other friends get.
   if ((m = /(\d+) friends share (\d+) equal pieces fairly\. How many pieces does each friend get\?|into (\d+) equal pieces\. (\d+) friends share them fairly\. How many pieces does each friend get\?/.exec(p))) {
@@ -30,7 +36,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   if ((m = /(\d+) \w+ are shared into (\d+) equal groups\. How many \w+ are in (one|\d+) groups?\?/.exec(p))) {
     const [n, b, k] = [N(m[1]), N(m[2]), m[3] === 'one' ? 1 : N(m[3])];
     const right = (n / b) * k;
-    return [right, [k > 1 ? ['oneGroup', n / b] : ['leftPart', n - right], ['leftPart', n - right], ['whole', n], ['timesWhole', n * k]]];
+    return [right, [k > 1 ? ['justOneGroup', n / b] : ['leftPart', n - right], ['leftPart', n - right], ['whole', n], ['timesWhole', n * k]]];
   }
   // Finding the whole: "15 stickers are 5/6 of a pack", "A piece of ribbon is 10 meters long. It is 5/6 of the whole ribbon",
   // "Tom read 8 pages. That is 2/3 of his book"
@@ -74,7 +80,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   }
   if ((m = /How many (\d+)\/(\d+) cup scoops (?:of \w+ )?fill (?:a )?(\d+)\/(\d+) cup\?/.exec(p))) {
     const [a1, b1, a2, b2] = m.slice(1).map(N);
-    return [(a2 / b2) / (a1 / b1), [['fitNotNumber', a2], ['fitNotNumber', b2], ['oneWhole', b1], ['fitWhole', a2 * b1]]];
+    return [(a2 / b2) / (a1 / b1), [['fitNotNumber', a2], ['fitNotNumber', b2], [fitInWholeSlip(a1, a2 / b2), b1], ['fitWhole', a2 * b1]]];
   }
   // Units: "How many minutes are in 3/4 hour?", "A bag weighs 1/4 kilogram. How many grams is that?",
   // "A 2-liter jug is 1/4 full. How many milliliters are inside?"

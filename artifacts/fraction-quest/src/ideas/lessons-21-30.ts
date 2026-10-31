@@ -23,10 +23,11 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       title: 'Add the numerators to put parts together',
       terms: [{ term: 'the + sign, adding and sums', pattern: /\+|\bsums?\b|\badd\b/i }],
       learn: [
+        // The + sign straight after its word card; the sixteenths card waits until just before the practice that uses it.
         wordsToKnow('compose-to-one', ['+', 'sum', 'cup']),
-        newWord(16),
         example('compose-to-one', '+ means put together'),
         { text: 'Add the numerators: 2 fifths and 3 fifths make 5 fifths.', scene: scenes('compose-to-one').steps[1]! },
+        newWord(16),
       ],
       practice: [{ question: 'compose-to-one-q3' }, { question: 'compose-to-one-p3' }, { question: 'compose-to-one-q4' }],
     },

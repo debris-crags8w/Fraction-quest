@@ -188,6 +188,8 @@ export type Progress = {
   assessmentDraft?: AssessmentDraft;
   /** Completed checks are saved with the rest of progress and never change lesson unlocks. */
   assessments?: AssessmentAttempt[];
+  /** When a grown-up last reset each unit (unit → time), so a merge with an older copy keeps the unit cleared. */
+  unitResets?: Record<string, number>;
 };
 
 export type AdaptiveStatus = 'not-yet' | 'developing' | 'mastered';
@@ -468,12 +470,42 @@ const onlyTaughtParts = (question: PracticeQuestion, missionId: string): Practic
   return withTaughtParts(question, (d) => partTaught(d, COURSE_IDS, missionId, idea)) ?? question;
 };
 
+/** The second and third practices of an idea whose questions all shared one hint: each gets its own hint, about its
+    own numbers, so the help is not the same sentence three times. None says the answer. */
+const VARIED_HINTS: Record<string, string> = {
+  'fraction-of-area-q3': 'How many equal parts is the square cut into? That number goes on the bottom.',
+  'fraction-of-area-q4': 'Count the equal slices of the circle. Then count the colored ones.',
+  'fraction-of-area-p4': 'Count the equal pieces of the hexagon, then the colored ones. Write colored over all.',
+  'fraction-of-area-p5': 'Count all the equal pieces. Which number goes on the bottom?',
+  'build-line-plots-q3': 'Find 4/4 on the line plot. Count the Xs stacked there.',
+  'build-line-plots-q4': 'Find 3/4 on the line plot. How many Xs stack above it?',
+  'add-tenths-hundredths-p4': 'Both are hundredths. Add 20 and 35. The bottom stays 100.',
+  'add-tenths-hundredths-p5': 'The pieces are the same size, so only the numerators change. Add 60 and 12.',
+  'simplify-fractions-q2': 'Which number divides both 4 and 12? Try the biggest one.',
+  'simplify-fractions-q1': 'Find a number that divides both 4 and 6. Divide both by it.',
+  'read-line-plots-p4': 'Find the farthest-right X and the farthest-left X. Take the short length from the long one.',
+  'read-line-plots-p5': 'Longest take away shortest tells how much longer. Find both Xs first.',
+  'fraction-times-fraction-p2': 'Find the denominator of each fraction. The first one makes the rows.',
+  'fraction-times-fraction-p3': 'Which fraction makes the columns? Use its bottom number.',
+  'multiplication-scaling-q2': 'Compare 4/4 with 1. Is it less, the same, or more?',
+  'multiplication-scaling-q4': 'Compare 3/4 with 1 first. Then think about what that does to 20.',
+  'line-plot-totals-p2': 'Add all the 3/4 cups. Add all the 1/4 cups. Then find the difference.',
+  'line-plot-totals-p3': 'Find the total of each stack first. Then take the smaller total away.',
+  'fraction-probability-q2': 'How many marbles are green? How many marbles are in the bag?',
+  'fraction-probability-q3': 'Green marbles go in the numerator. All the marbles go in the denominator.',
+  'fractional-side-area-q3': 'Shade 1 unit one way and 1/4 unit the other way. Count where both are shaded.',
+  'fractional-side-area-q4': 'Count the squares in the overlap. Then count every square in the grid.',
+  'multiply-mixed-numbers-q2': 'Cut each side at the whole meter. That makes four parts to add.',
+  'multiply-mixed-numbers-q3': 'Find the whole-meter part first. Then add the three parts that use a fraction.',
+};
+
 function mission({ ideaQuestions: ideaSeeds, ...seed }: MissionSeed & { unit: number }): Mission {
   const standards = standardsForMission(seed.id);
   const questions = seed.questions.map((question, index) => onlyTaughtParts(noBeforeYes(spreadAnswer({
     ...question,
     choices: withUnits(question.prompt, withoutOverOne(question.prompt, question.choices, question.correctChoice)),
     id: `${seed.id}-q${index + 1}`,
+    hint: VARIED_HINTS[`${seed.id}-q${index + 1}`] ?? question.hint,
     isMastery: index === seed.questions.length - 1,
     standards: [...standards],
   }, `${seed.id}-q${index + 1}`)), seed.id));
@@ -481,6 +513,7 @@ function mission({ ideaQuestions: ideaSeeds, ...seed }: MissionSeed & { unit: nu
     ...question,
     choices: withUnits(question.prompt, withoutOverOne(question.prompt, question.choices, question.correctChoice)),
     id: `${seed.id}-p${index + 1}`,
+    hint: VARIED_HINTS[`${seed.id}-p${index + 1}`] ?? question.hint,
     isMastery: false,
     standards: [...standards],
   }, `${seed.id}-p${index + 1}`)), seed.id));
@@ -703,7 +736,7 @@ const curriculum: MissionSeed[] = [
       practice('Which is just a little less than 1/2?', ['3/8', '1/8', '7/8'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 3, denominator: 8, named: true }, { numerator: 1, denominator: 8, named: true }, { numerator: 7, denominator: 8, named: true }), 'Half of 8 is 4. Which numerator is just under 4?', '3/8 is just under half.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fraction is a little more than 1/2?', ['3/8', '5/8', '1/6'], 1, bars({ numerator: 5, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Half of 8 is 4. Which is a bit more?', '5/8 is just over half. The others are under.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fraction is closest to 1?', ['7/8', '2/8', '3/8'], 0, bars({ numerator: 7, denominator: 8 }, { numerator: 2, denominator: 8 }, { numerator: 3, denominator: 8 }), 'Which numerator is closest to 8?', '7/8 is just 1 part away from one whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('Four 1/8 parts make what?', ['Exactly 1/2', 'Exactly 1/4', 'One whole', '4 wholes'], 0, bars({ numerator: 4, denominator: 8 }), 'How many eighths make half of 8 eighths?', '4/8 is the same as 1/2.', bars({ numerator: 2, denominator: 4 })),
+      practice('Four 1/8 parts make what?', ['Exactly 1/2', 'Exactly 1/4', 'One whole', '4 wholes'], 0, bars({ numerator: 4, denominator: 8 }), 'How many eighths make half of 8 eighths?', '4 of the 8 eighths is half the bar. So 4/8 is the same as 1/2.', bars({ numerator: 2, denominator: 4 })),
     ],
     ideaQuestions: [
       practice('A path is 5/8 of a mile. Is that closest to 0, 1/2 or 1 mile?', ['1/2 mile', '0 miles', '1 mile', '5 miles'], 0, bars({ numerator: 5, denominator: 8 }), 'Half of 8 is 4. Is 5 closest to 0, to 4 or to 8?', '5 is 1 part from 4, so 5/8 of a mile is closest to 1/2 mile.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
@@ -856,9 +889,9 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }),
     },
     questions: [
-      practice('Which fraction covers the same amount as 1/2?', ['2/4', '1/4', '3/4'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Cut the half into 2 equal parts. How many fourths is that?', '2/4 covers the same as 1/2.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which fraction covers the same amount as 1/2?', ['2/4', '1/4', '3/4'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Cut the half into 2 equal parts. How many fourths is that?', 'Cutting the half into 2 equal parts makes 2 fourths. So 2/4 covers the same as 1/2.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 2/3?', ['4/6', '3/6', '2/6'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }), 'Cut each third into 2 parts.', 'Each third became 2 sixths, so 2 thirds is 4 sixths: 2/3 = 4/6.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which is the same as 3/4?', ['6/8', '3/8', '4/8'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'Cut each fourth into 2 parts.', '3/4 and 6/8 are the same amount.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is the same as 3/4?', ['6/8', '3/8', '4/8'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'Cut each fourth into 2 parts.', 'Cutting each fourth into 2 turns 3 fourths into 6 eighths. So 3/4 and 6/8 are the same amount.', bars({ numerator: 1, denominator: 2 })),
       practice('Fold a strip in half. Shade one half. Now fold it in half again. What fraction is shaded now?', ['2/4', '1/4', '1/3'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4, untilAnswered: true }), 'Folding again cuts each half into 2 equal parts. How many fourths are shaded?', 'The second fold cuts the shaded half into 2 fourths. 2 of the 4 parts are shaded: 2/4.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 1/3?', ['2/6', '1/6', '3/1'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 6 }), 'Cut each third into 2 equal parts. Count the shaded parts now.', 'Each third became 2 sixths, so 1 third is 2 sixths: 1/3 = 2/6.', bars({ numerator: 1, denominator: 2 })),
     ],
@@ -1954,7 +1987,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('How many hundredths is 0.9?', ['90', '9', '900', '10'], 0, grids(hundredthsGrid(0)),
         'Each column is one tenth: 10 hundredths.', '0.9 is 9 tenths. 9 columns of 10 squares is 90 hundredths.', grids(hundredthsGrid(90)), { authoredChoices: true }),
       practice('How many hundredths is 0.08?', ['8', '80', '92', '0'], 0, grids(hundredthsGrid(0)),
-        'The 0 right after the point means 0 tenths. The 8 counts hundredths.', '0.08 is 0 tenths and 8 hundredths: 8 single squares.', grids(hundredthsGrid(8)), { authoredChoices: true }),
+        'The first place after the point counts tenths. The next place counts hundredths.', '0.08 is 0 tenths and 8 hundredths: 8 single squares.', grids(hundredthsGrid(8)), { authoredChoices: true }),
       practice('Which decimal does this grid show?', ['0.45', '4.5', '0.55', '45'], 0, grids(hundredthsGrid(45)),
         'Count the full columns for tenths. Then count the single squares for hundredths.', '4 full columns and 5 single squares: 45 hundredths, or 0.45.', grids(hundredthsGrid(45)), { authoredChoices: true }),
       // Idea 3: only compare parts of the same whole.
@@ -2734,6 +2767,17 @@ export function loadProgress(): Progress {
 }
 
 /** Saved progress (from this device or the server) with anything malformed or out of date dropped. */
+/** Unit reset times from saved data: known units, real times. */
+function cleanUnitResets(value: unknown): Record<string, number> | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const out: Record<string, number> = {};
+  for (const [rawUnit, at] of Object.entries(value as Record<string, unknown>)) {
+    const unit = Number(rawUnit);
+    if (Number.isInteger(unit) && unit >= 1 && unit <= UNIT_COUNT && typeof at === 'number' && Number.isFinite(at) && at > 0) out[String(unit)] = at;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 export function cleanProgress(parsed: unknown): Progress {
   try {
     if (!parsed || typeof parsed !== 'object') return EMPTY_PROGRESS;
@@ -2969,6 +3013,7 @@ export function cleanProgress(parsed: unknown): Progress {
           ...(whole(raw.firstTry, GROWN_UP_PRACTICE_COUNT) ? { firstTry: raw.firstTry } : {}) });
       }
     }
+    const unitResets = cleanUnitResets(value.unitResets);
     return {
       completedMissionIds: [...completed],
       starsByMission,
@@ -2985,6 +3030,7 @@ export function cleanProgress(parsed: unknown): Progress {
         && typeof value.placement.at === 'number' && Number.isFinite(value.placement.at) ? { placement: { unit: value.placement.unit, at: value.placement.at } } : {}),
       ...(grownUpPicks.length ? { grownUpPicks } : {}),
       ...(assessmentDraft ? { assessmentDraft } : {}),
+      ...(unitResets ? { unitResets } : {}),
     };
   } catch {
     return EMPTY_PROGRESS;

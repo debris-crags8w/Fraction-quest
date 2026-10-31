@@ -146,3 +146,45 @@ describe('Find my level asks about every part of units 1–12', () => {
     assert.deepEqual(thin, []);
   });
 });
+
+describe('Find my level never shows the answer and never asks for a tap it cannot take', () => {
+  // The quiz's pictures are drawn, not tapped: the rows a worksheet has the child shade show the bar before it is shaded.
+  const shown = (unit: number, seed: number) => placementItems(unit, seed).map((item) => ({ item, drawn: placementPicture(item.problem) }));
+  const amounts = (prompt: string) => [
+    ...[...prompt.matchAll(/(?:(\d+) )?(\d+)\/(\d+)/g)].map((m) => Number(m[1] ?? 0) + Number(m[2]) / Number(m[3])),
+    ...[...prompt.matchAll(/\d*\.\d+/g)].map((m) => Number(m[0])),
+    ...[...prompt.matchAll(/(\d+) whole\b/g)].map((m) => Number(m[1])),
+  ];
+  it('draws no bar or line with the answer amount on it, unless the question names that amount or asks to read the picture', () => {
+    const bad = new Set<string>();
+    for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (let seed = 0; seed < 400; seed++) for (const { item, drawn } of shown(unit, seed)) {
+      const { prompt, answer } = item.problem; const value = answerValue(answer);
+      if (!Number.isFinite(value)) continue;
+      const parts = drawn?.kind === 'model' && drawn.model.kind !== 'set' ? [drawn.model] : [];
+      const bars = drawn?.kind === 'picture' && drawn.picture.kind === 'bars' ? drawn.picture.bars.map((bar) => ({ n: bar.numerator, d: bar.denominator })) : [];
+      for (const { n, d } of [...parts, ...bars]) {
+        if (n === 0 || Math.abs(n / d - value) > 1e-9) continue;
+        if (/this bar|shaded|at the dot/i.test(prompt) || amounts(prompt).some((amount) => Math.abs(amount - value) < 1e-9)) continue;
+        bad.add(`unit ${unit} ${item.missionId}: "${prompt}" (answer ${answer}) is drawn as ${n}/${d}`);
+      }
+    }
+    assert.deepEqual([...bad], []);
+  });
+  it('draws every row a worksheet has the child shade with nothing shaded yet', () => {
+    const bad: string[] = [];
+    for (const mission of MISSIONS.filter((m) => m.unit <= PLACEMENT_UNITS)) {
+      for (const row of [...getWorksheet(mission.id), ...(PLACEMENT_EXTRAS[mission.id] ?? []), ...(PLACEMENT_BLENDS[mission.id] ?? [])]) {
+        const drawn = placementPicture(row);
+        if (row.task?.kind === 'shade' && drawn?.kind === 'model' && drawn.model.n !== 0) bad.push(`${mission.id}: "${row.prompt}" is drawn ${drawn.model.n}/${drawn.model.d}`);
+      }
+    }
+    assert.deepEqual(bad, []);
+  });
+  it('never asks the child to tap, shade or color its picture', () => {
+    const bad = new Set<string>();
+    for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (let seed = 0; seed < 400; seed++) for (const { item } of shown(unit, seed)) {
+      if (/(?:^|[.!?] )(?:Tap|Shade|Colou?r|Drag)\b/.test(item.problem.prompt)) bad.add(`unit ${unit} ${item.missionId}: "${item.problem.prompt}"`);
+    }
+    assert.deepEqual([...bad], []);
+  });
+});

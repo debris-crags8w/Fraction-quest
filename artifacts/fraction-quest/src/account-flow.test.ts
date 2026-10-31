@@ -317,3 +317,61 @@ test('a save that keeps meeting newer copies gives up for now, and the queue ret
   }, memory(1), plainClean, () => {});
   await assert.rejects(save({ progress: finishedOnly(lessonA), fun: {} as AccountBundle['fun'] }));
 });
+
+test('a merged copy is not lost when the connection drops right after a refused save', async () => {
+  // The phone saved lesson A offline (version 4); the tablet has since saved lesson B (version 5). The phone's save is
+  // refused, merged, and then the network drops on the merged save. The retry must still keep lesson B.
+  const server = twoDeviceServer({ progress: finishedOnly(lessonB), version: 5 });
+  let dropNext = false;
+  let dropped = false;
+  const flaky = {
+    load: server.api.load,
+    save: async (copy: { progress: Record<string, unknown>; fun: Record<string, unknown>; version?: number }) => {
+      if (dropNext) { dropNext = false; throw new Error('network'); }
+      // The connection drops once, on the save right after the first refusal.
+      try { return await server.api.save(copy); } catch (error) { if (!dropped) { dropped = true; dropNext = true; } throw error; }
+    },
+  };
+  const version = memory(4);
+  const queue = createProgressSaveQueue<AccountBundle>(versionedProgressSave(flaky, version, plainClean, () => {}));
+  queue.enqueue({ progress: finishedOnly(lessonA), fun: {} as AccountBundle['fun'] }, 0);
+  assert.equal(await queue.flush(), false, 'the merged save met the dropped connection');
+  assert.equal(await queue.flush(), true);
+  assert.deepEqual([...(server.copy.progress as Progress).completedMissionIds].sort(), [lessonA, lessonB].sort(), 'lesson B from the tablet stays');
+});
+
+test('after three refused saves the version is not moved on, so the queued copy is merged again next time', async () => {
+  const server = twoDeviceServer({ progress: finishedOnly(lessonB), version: 9 });
+  let refusals = 0;
+  const busy = {
+    load: server.api.load,
+    save: async (copy: { progress: Record<string, unknown>; fun: Record<string, unknown>; version?: number }) => {
+      // Another device keeps saving in between, three times.
+      if (refusals < 3) { refusals += 1; throw Object.assign(new Error('conflict'), { status: 409, data: { ...server.copy, version: server.copy.version + refusals, clearedSince: false } }); }
+      return server.api.save(copy);
+    },
+  };
+  const version = memory(3);
+  const queue = createProgressSaveQueue<AccountBundle>(versionedProgressSave(busy, version, plainClean, () => {}));
+  queue.enqueue({ progress: finishedOnly(lessonA), fun: {} as AccountBundle['fun'] }, 0);
+  assert.equal(await queue.flush(), false);
+  assert.equal(version.read(), 3, 'no version is kept until a save is accepted');
+  assert.equal(await queue.flush(), true);
+  assert.deepEqual([...(server.copy.progress as Progress).completedMissionIds].sort(), [lessonA, lessonB].sort());
+});
+
+test('after three refused saves the save status says another device is saving, not offline', async () => {
+  const statuses: string[] = [];
+  const save = versionedProgressSave({
+    load: async () => ({ progress: {}, fun: {}, version: 1 }),
+    save: async () => { throw Object.assign(new Error('conflict'), { status: 409, data: { progress: {}, fun: {}, version: 99, clearedSince: false } }); },
+  }, memory(1), plainClean, () => {});
+  const queue = createProgressSaveQueue<AccountBundle>(save, (status) => statuses.push(status));
+  queue.enqueue({ progress: finishedOnly(lessonA), fun: {} as AccountBundle['fun'] }, 0);
+  assert.equal(await queue.flush(), false);
+  assert.equal(statuses.at(-1), 'busy');
+  const offline = createProgressSaveQueue<AccountBundle>(async () => { throw new Error('network'); }, (status) => statuses.push(status));
+  offline.enqueue({ progress: finishedOnly(lessonA), fun: {} as AccountBundle['fun'] }, 0);
+  assert.equal(await offline.flush(), false);
+  assert.equal(statuses.at(-1), 'offline');
+});

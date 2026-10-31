@@ -141,8 +141,8 @@ const TABLE: [string, string, string, string][] = [
   ['This ribbon is cut into 2 parts. Are the parts the same size?', 'Yes, same-size parts', 'No, there must be 3 parts', 'WHY.countNotSize'],
   ['Which number divides both 6 and 9?', '3', '6', 'WHY.justNumber'],
   // 5. The same slip gets the same reason in every idea of a lesson (multiply a whole number by a fraction).
-  ['3 × 1/3 = ?', '3/3', '1/3', 'WHY.oneGroup'],
-  ['What is 3 groups of 2/3?', '6/3', '2/3', 'WHY.oneGroup'],
+  ['3 × 1/3 = ?', '3/3', '1/3', 'WHY.justOneGroup'],
+  ['What is 3 groups of 2/3?', '6/3', '2/3', 'WHY.justOneGroup'],
   ['What is 2 groups of 3/8?', '6/8', '6/16', 'WHY.onlyTop'],
   // Adding the number of groups to the numerator is the slip in repeated addition, not "you added" (adding copies is right).
   ['What is 2 groups of 3/8?', '6/8', '5/8', 'WHY.groupsToTop'],
