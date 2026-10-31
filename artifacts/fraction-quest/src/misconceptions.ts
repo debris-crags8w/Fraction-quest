@@ -5,7 +5,7 @@
    app's answer, so a question it misreads is left as it is. Counting questions ("how many spaces for thirds?")
    keep their near misses: being off by one is the real mistake there. */
 import { answerValue } from './learning-content';
-import { fractionMistakes, fractionMistakesWithWhy } from './fraction-slips';
+import { fitInWholeSlip, fractionMistakes, fractionMistakesWithWhy } from './fraction-slips';
 import type { Why } from './slip-reasons';
 
 const N = Number;
@@ -74,7 +74,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   }
   if ((m = /How many (\d+)\/(\d+) cup scoops (?:of \w+ )?fill (?:a )?(\d+)\/(\d+) cup\?/.exec(p))) {
     const [a1, b1, a2, b2] = m.slice(1).map(N);
-    return [(a2 / b2) / (a1 / b1), [['fitNotNumber', a2], ['fitNotNumber', b2], ['oneWhole', b1], ['fitWhole', a2 * b1]]];
+    return [(a2 / b2) / (a1 / b1), [['fitNotNumber', a2], ['fitNotNumber', b2], [fitInWholeSlip(a1, a2 / b2), b1], ['fitWhole', a2 * b1]]];
   }
   // Units: "How many minutes are in 3/4 hour?", "A bag weighs 1/4 kilogram. How many grams is that?",
   // "A 2-liter jug is 1/4 full. How many milliliters are inside?"

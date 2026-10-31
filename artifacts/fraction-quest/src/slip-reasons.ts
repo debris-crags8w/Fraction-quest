@@ -46,6 +46,8 @@ export const WHY = {
   shareFlip: 'The amount shared goes on top. The number of shares goes on the bottom.',
   shareOne: 'That shares just one whole. Share all of them.',
   oneWhole: 'That is how many fit in one whole. Count them in every whole.',
+  oneWholeLess: 'That is how many fit in one whole. This amount is less than one whole.',
+  denomNotFit: 'That is just the denominator. Count how many fit in the amount.',
   fitFlip: 'That is an amount, not a count. The question asks how many fit.',
   wholesOnly: 'That counts the wholes. Count the pieces in each whole.',
   fitWhole: 'That treats each part as a whole. Count how many fit in the amount.',

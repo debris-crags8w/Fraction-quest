@@ -25,6 +25,13 @@ type Slip = [Why, Amount | number | string];
 /** The right amount the rule worked out, and each slip. */
 type Found = { right: number; slips: Slip[] };
 
+/** Why the scoop's denominator is wrong as a count of how many fit: it is how many fit in one whole only when the
+    scoop is a unit fraction, and "count them in every whole" only helps when the amount is at least one whole. */
+export function fitInWholeSlip(scoopTop: number, amount: number): Why {
+  if (scoopTop !== 1) return 'denomNotFit';
+  return amount >= 1 ? 'oneWhole' : 'oneWholeLess';
+}
+
 /** The slips for x ± y, written over the denominators a child would use. */
 function addOrSubtract(x: Amount, y: Amount, add: boolean): Found {
   const L = lcm(x[1], y[1]); const xs = x[0] * (L / x[1]); const ys = y[0] * (L / y[1]);
@@ -129,7 +136,7 @@ function timesOrShare(p: string): Found | null {
   // "2/3 ÷ 1/6 = ?": the tops multiplied, how many fit in one whole, the top or the bottom, multiplied instead.
   if ((m = /^(\d+)\/(\d+) ÷ (\d+)\/(\d+) = \?$/.exec(p))) {
     const [a, b, c, d] = m.slice(1).map(N);
-    return { right: (a / b) / (c / d), slips: [['fitWhole', a * d], ['oneWhole', d], ['fitNotNumber', b], ['fitNotNumber', a], ['timesNotDivide', [a * c, b * d]]] };
+    return { right: (a / b) / (c / d), slips: [['fitWhole', a * d], [fitInWholeSlip(c, a / b), d], ['fitNotNumber', b], ['fitNotNumber', a], ['timesNotDivide', [a * c, b * d]]] };
   }
   return null;
 }
