@@ -5,6 +5,8 @@
 
 import React from 'react';
 import { CREAM, delay, GOLD, INK, Ledge, outline, StonePiece, type EndDef, type PropDef } from './film-art';
+import { foodWord, pieLook, ToppingArt } from './film-food';
+import type { PropTheme } from './story';
 
 const thin = { ...outline, strokeWidth: 2.5 } as const;
 const WOOD = '#C9915B', WOOD_DARK = '#9A6A3A', STEEL = '#A8B4C8', STEEL_DARK = '#7F8DA3', RED = '#FF6B6B', SKY = '#4CC9F0', GREEN = '#7BD389';
@@ -179,21 +181,30 @@ function RaceEndArt() {
 
 /* ---------------------------------------------------------------- Chapter 10: the team picnic */
 
-/** A whole lattice-topped pie in its tin; steam rises and a cherry lands on top. */
-function PieArt() {
+/** A whole lattice-topped pie in its tin; steam rises and a cherry lands on top. A theme's pie keeps the tin and the
+    steam: a cherry pie is the same, a pumpkin pie is smooth and orange with a dollop of cream landing on it. */
+function PieArt(theme: PropTheme = 'everyday') {
+  const look = pieLook(theme);
   return <>
     {[84, 100, 116].map((x, i) => <path key={x} className="fq-fp-c-puff" style={delay(i)} d={`M${x} 40 q-6 -7 0 -14 q6 -7 0 -14`} fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity=".7" />)}
     <path d="M30 100 h140 l-10 6 h-120 Z" fill={STEEL_DARK} {...thin} />
-    <path d="M28 80 q0 -28 72 -28 q72 0 72 28 Z" fill="#E9A64A" {...outline} />
-    <path d="M46 80 l24 -19 M72 80 l26 -23 M100 80 l26 -23 M126 80 l22 -17 M52 63 l24 17 M76 56 l26 24 M104 54 l28 26 M130 60 l18 20" stroke="#F7C873" strokeWidth="5" strokeLinecap="round" />
-    <circle cx="86" cy="68" r="4" fill={RED} {...thin} strokeWidth={2} /><circle cx="116" cy="68" r="4" fill={RED} {...thin} strokeWidth={2} />
+    <path d="M28 80 q0 -28 72 -28 q72 0 72 28 Z" fill={look.lattice ? '#E9A64A' : look.filling} {...outline} />
+    {look.lattice && <path d="M46 80 l24 -19 M72 80 l26 -23 M100 80 l26 -23 M126 80 l22 -17 M52 63 l24 17 M76 56 l26 24 M104 54 l28 26 M130 60 l18 20" stroke="#F7C873" strokeWidth="5" strokeLinecap="round" />}
+    {look.lattice && <><circle cx="86" cy="68" r="4" fill={RED} {...thin} strokeWidth={2} /><circle cx="116" cy="68" r="4" fill={RED} {...thin} strokeWidth={2} /></>}
     <path d="M24 80 h152 l-12 22 h-128 Z" fill={STEEL} {...outline} />
     <path d="M44 88 v8 M72 88 v10 M100 88 v10 M128 88 v10 M156 88 v8" stroke={STEEL_DARK} strokeWidth="3" strokeLinecap="round" />
     <g className="fq-fp-c-drop">
-      <circle cx="100" cy="50" r="7" fill="#E04058" {...thin} /><path d="M100 43 q4 -8 10 -9" stroke="#3E9954" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      {look.lattice
+        ? <><circle cx="100" cy="50" r="7" fill="#E04058" {...thin} /><path d="M100 43 q4 -8 10 -9" stroke="#3E9954" strokeWidth="2.5" fill="none" strokeLinecap="round" /></>
+        : <ToppingArt kind={look.topping} x={100} y={50} r={8} fill={look.toppingFill} />}
     </g>
   </>;
 }
+const pieLabel = (theme: PropTheme) => {
+  const look = pieLook(theme);
+  if (look.plain) return 'A steaming lattice pie in its tin with a cherry on top';
+  return look.lattice ? `A steaming lattice ${foodWord(theme, 'pie')} in its tin with a cherry on top` : `A steaming ${foodWord(theme, 'pie')} in its tin with a dollop of cream on top`;
+};
 
 /** A plate heaped with sandwiches, crumbs and a bare patch where some are already gone. */
 const SANDWICHES: { x: number; y: number; r: number; fill: string; a: string; b: string }[] = [
@@ -409,7 +420,7 @@ export const PROPS_C: Record<string, PropDef> = {
   'c-jug': { label: 'A big blue drink jug with a cork, and a paper cup beside it', art: JugArt, ledge: true },
   'c-flour': { label: 'A sack of flour and a measuring cup with a puff of flour', art: FlourArt, ledge: true },
   'c-dispenser': { label: 'A big drink jug on a stand with a tap, a cup under it and a stack of cups', art: DispenserArt, ledge: true },
-  'c-pie': { label: 'A steaming lattice pie in its tin with a cherry on top', art: PieArt, ledge: true },
+  'c-pie': { label: pieLabel, art: PieArt, ledge: true },
   'c-sandwiches': { label: 'A plate piled with sandwiches and a few crumbs', art: SandwichesArt, ledge: true },
   'c-lunchbox': { label: 'A tin lunch box with its lid open and food peeking out', art: LunchboxArt, ledge: true },
   'c-hopper': { label: 'A metal hopper full of bolts that drop into a bin', art: HopperArt, ledge: true },
@@ -429,7 +440,7 @@ export const LESSONS_C: Record<string, string> = {
   'fraction-recipes': 'c-flour',                    // "Let's bake for the racers with my recipe."
   'party-portions': 'c-dispenser',                  // "Every racer gets a drink. Is my jug big enough?"
   'add-unlike-fractions': 'c-pie',                  // chapter 10: "Pip's pie is cut a different way."
-  'subtract-unlike-fractions': 'b-donut',           // "I ate some. Oops. How much is left?"
+  'subtract-unlike-fractions': 'b-tray',            // "The team ate some of my sandwiches. How much is left?"
   'mixed-unlike-operations': 'c-sandwiches',       // "The picnic has whole sandwiches and parts of sandwiches."
   'estimate-fraction-operations': 'c-lunchbox',     // "About how much food is left?"
   'sets-nonunit': 'c-hopper',                       // chapter 11: "Some bolts already went into the machine!"

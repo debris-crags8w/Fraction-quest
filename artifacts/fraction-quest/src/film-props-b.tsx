@@ -5,6 +5,8 @@
 
 import React from 'react';
 import { CREAM, delay, GOLD, INK, Ledge, outline, StonePiece, type EndDef, type PropDef } from './film-art';
+import { aFood, foodWord, pieLook, ToppingArt } from './film-food';
+import type { PropTheme } from './story';
 
 const STEEL = '#B8C4D6';
 const STEEL_D = '#8795AB';
@@ -142,23 +144,6 @@ function EmptyJarsArt() {
   </>;
 }
 
-/** Chapter 10, lesson 3: "I ate some. Oops. How much is left?" A plate with a well-bitten donut and crumbs. */
-function DonutArt() {
-  return <>
-    <ellipse cx="100" cy="104" rx="76" ry="17" fill="rgb(0 0 0 / .22)" />
-    <ellipse cx="100" cy="97" rx="76" ry="19" fill={CREAM} {...outline} />
-    <ellipse cx="100" cy="97" rx="52" ry="11" fill="#F2E3B7" />
-    <path d="M56 74 A44 28 0 1 1 136 90 A8 8 0 0 0 121.5 94 A8 8 0 0 0 107 98 A8 8 0 0 0 92.4 101.6 A44 28 0 0 1 56 74 Z" fill="#E0A458" {...outline} />
-    <path d="M62 70 Q62 50 100 48 Q138 50 138 68 Q130 78 124 74 Q116 82 108 78 Q100 82 92 78 Q84 84 76 78 Q68 78 62 70 Z" fill="#FF8FB1" {...thin} />
-    <ellipse cx="100" cy="72" rx="13" ry="8" fill="#F2E3B7" stroke={INK} strokeWidth="2.5" />
-    <rect x="76" y="58" width="9" height="4" rx="2" fill={GOLD} transform="rotate(-25 80 60)" /><rect x="112" y="56" width="9" height="4" rx="2" fill={CYAN} transform="rotate(20 116 58)" />
-    <rect x="94" y="86" width="8" height="4" rx="2" fill="#fff" transform="rotate(10 98 88)" /><rect x="124" y="64" width="8" height="4" rx="2" fill={GOLD} transform="rotate(-15 128 66)" />
-    <g className="fq-fp-b-crumb">
-      {[[144, 98, 4], [154, 94, 3], [136, 102, 3], [160, 102, 4]].map(([x, y, r]) => <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#E0A458" stroke="#9A5B1C" strokeWidth="1.8" />)}
-    </g>
-  </>;
-}
-
 /** Lesson 7: "Robots count in tenths. Which boot has more charge?" A rocket boot plugged in to charge. */
 function BootArt() {
   return <>
@@ -175,15 +160,35 @@ function BootArt() {
 }
 
 /** Lesson 9: "Bolt's screen shows two numbers. Which is bigger?" A little screen on a stalk with two glowing eyes and a smile. */
+/** Lit-segment digits, like a calculator's: which of the seven segments each digit uses (a top, b top right, c bottom
+    right, d bottom, e bottom left, f top left, g middle). */
+const SEGMENTS: Record<string, string> = { 0: 'abcdef', 4: 'bcfg', 5: 'acdfg', 6: 'acdefg' };
+const segmentPath = (digit: string, x: number, y: number, w = 10, h = 20) => SEGMENTS[digit]!.split('').map((part) => ({
+  a: `M${x} ${y} h${w}`, b: `M${x + w} ${y} v${h / 2}`, c: `M${x + w} ${y + h / 2} v${h / 2}`, d: `M${x} ${y + h} h${w}`,
+  e: `M${x} ${y + h / 2} v${h / 2}`, f: `M${x} ${y} v${h / 2}`, g: `M${x} ${y + h / 2} h${w}`,
+}[part])).join(' ');
+/** A decimal in lit segments ("0.6"), its first digit at x. */
+const LitDecimal = ({ text, x, y }: { text: string; x: number; y: number }) => {
+  let at = x;
+  const parts = text.split('').map((char, i) => {
+    if (char === '.') { const dot = <circle key={i} cx={at + 1} cy={y + 20} r="2" fill="#7CF3FF" />; at += 7; return dot; }
+    const digit = <path key={i} d={segmentPath(char, at, y)} stroke="#7CF3FF" strokeWidth="3" strokeLinecap="round" fill="none" />;
+    at += 15; return digit;
+  });
+  return <g className="fq-fp-b-eye">{parts}</g>;
+};
+
+/** Lesson 9: "Bolt's screen shows two decimals." A little screen on a stalk, two decimals lit side by side (never the
+    lesson's own numbers, and nothing says which is bigger). */
 function ScreenArt() {
   return <>
     <rect x="70" y="94" width="60" height="12" rx="5" fill="#7E8FA8" {...outline} />
     <rect x="93" y="78" width="14" height="18" fill="#7E8FA8" {...outline} />
     <rect x="34" y="14" width="132" height="68" rx="11" fill="#6B7A99" {...outline} />
     <rect x="43" y="23" width="114" height="50" rx="6" fill="#0F1A33" />
-    <circle className="fq-fp-b-eye" cx="78" cy="44" r="9" fill="#7CF3FF" /><circle className="fq-fp-b-eye" cx="122" cy="44" r="9" fill="#7CF3FF" />
-    <circle cx="75" cy="41" r="3" fill="#fff" /><circle cx="119" cy="41" r="3" fill="#fff" />
-    <path d="M84 60 q16 9 32 0" fill="none" stroke="#7CF3FF" strokeWidth="3.5" strokeLinecap="round" />
+    <LitDecimal text="0.6" x={54} y={36} />
+    <path d="M94 30 v36" stroke="#3A4A6B" strokeWidth="2.5" strokeLinecap="round" />
+    <LitDecimal text="0.45" x={104} y={36} />
     <circle cx="150" cy="78" r="2.5" fill="#7BD389" />
   </>;
 }
@@ -194,22 +199,20 @@ const Battery = ({ x, y, body, band }: { x: number; y: number; body: string; ban
   <rect x={x} y={y} width="30" height="22" rx="7" fill={body} {...outline} />
   <rect x={x + 9} y={y} width="9" height="22" fill={band} stroke={INK} strokeWidth="2" />
 </>;
+/** "Bolt's battery screen is a grid of hundredths." A big battery whose screen is a grid of little squares (none of
+    them filled in), and a spare battery that rolls up beside it. */
+const GRID = Array.from({ length: 11 }, (_, i) => `M${62 + i * 7.6} 50 v38 M62 ${50 + i * 3.8} h76`).join(' ');
 function BatteriesArt() {
-  return <g transform="translate(97 106) scale(1.22) translate(-97 -106)">
-    <g transform="rotate(-4 60 96)">
-      <Battery x={24} y={86} body="#7BD389" band={CREAM} />
-    </g>
-    <g transform="rotate(5 110 96)">
-      <Battery x={84} y={84} body={CYAN} band={GOLD} />
-    </g>
-    <g transform="rotate(-2 80 70)">
-      <Battery x={56} y={64} body={ORANGE} band={CREAM} />
-    </g>
-    <g className="fq-fp-b-roll"><g transform="rotate(14 150 80)">
-      <Battery x={118} y={72} body={RED} band={CREAM} />
+  return <>
+    <rect x="166" y="60" width="10" height="20" rx="3" fill={STEEL} {...thin} />
+    <rect x="34" y="38" width="134" height="64" rx="12" fill="#7BD389" {...outline} />
+    <rect x="44" y="38" width="12" height="64" fill={CREAM} stroke={INK} strokeWidth="2" />
+    <rect x="60" y="48" width="80" height="42" rx="4" fill="#0F1A33" stroke={INK} strokeWidth="2.5" />
+    <path d={GRID} stroke="#7CF3FF" strokeWidth="1.2" opacity=".85" />
+    <g className="fq-fp-b-roll"><g transform="rotate(10 160 104)">
+      <Battery x={138} y={94} body={RED} band={CREAM} />
     </g></g>
-    <path d="M32 90 h14" {...shine} />
-  </g>;
+  </>;
 }
 
 /** Lesson 11: "Let's join two pieces to fix Bolt's boot strap." Two straps of different lengths, joined at a buckle. */
@@ -253,18 +256,23 @@ function CoinsArt() {
   </>;
 }
 
-/** Lesson 13: "I eat the same small piece every day." A pie with one slice served onto a little plate. */
-function PieArt() {
+/** Lesson 13: "I eat the same small piece every day." A pie with one slice served onto a little plate: a berry pie, or
+    the theme's pie (an orange pumpkin pie with cream, a cherry pie). */
+function PieArt(theme: PropTheme = 'everyday') {
+  const look = pieLook(theme);
+  const filling = look.plain ? '#D6455D' : look.filling;
   return <>
     <path d="M38 80 v10 a46 16 0 0 0 92 0 v-10 Z" fill="#C98B4E" {...outline} />
     <ellipse cx="84" cy="80" rx="46" ry="16" fill="#E0A458" {...outline} />
-    <ellipse cx="84" cy="80" rx="35" ry="11" fill="#D6455D" stroke="#9A1F3A" strokeWidth="2" />
+    <ellipse cx="84" cy="80" rx="35" ry="11" fill={filling} stroke={look.plain ? '#9A1F3A' : INK} strokeWidth="2" />
     <path d="M84 80 L127.2 85.5 A46 16 0 0 1 110.4 93.1 Z" fill="#A9784A" {...thin} />
-    <circle cx="66" cy="78" r="2.5" fill="#FF8FB1" /><circle cx="86" cy="73" r="2.5" fill="#FF8FB1" /><circle cx="100" cy="80" r="2.5" fill="#FF8FB1" />
+    {look.lattice
+      ? <><circle cx="66" cy="78" r="2.5" fill="#FF8FB1" /><circle cx="86" cy="73" r="2.5" fill="#FF8FB1" /><circle cx="100" cy="80" r="2.5" fill="#FF8FB1" /></>
+      : <ToppingArt kind={look.topping} x={78} y={77} r={6} fill={look.toppingFill} />}
     <g className="fq-fp-b-slice">
       <ellipse cx="156" cy="103" rx="28" ry="6" fill={CREAM} {...thin} />
       <path d="M140 100 L172 90 q7 6 0 14 L140 104 Z" fill="#E0A458" {...outline} />
-      <path d="M146 99 L168 93 L168 98 L146 102 Z" fill="#D6455D" />
+      <path d="M146 99 L168 93 L168 98 L146 102 Z" fill={filling} />
     </g>
     <path className="fq-fp-b-steam" d="M64 62 q-5 -6 0 -12 M84 58 q-5 -6 0 -12" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" opacity=".6" />
   </>;
@@ -296,13 +304,12 @@ export const PROPS_B: Record<string, PropDef> = {
   'b-labeler': { label: 'A little label maker pushing out a blank sticker label', art: LabelerArt, ledge: true },
   'b-jars': { label: 'Two full snack jars, and a third jar with only a few cookies in it', art: JarsArt, ledge: true },
   'b-emptyjars': { label: 'A full snack jar, and an empty jar tipped over with cookie crumbs spilling out', art: EmptyJarsArt, ledge: true },
-  'b-donut': { label: 'A plate with a donut that has big bites taken out of it, and a few crumbs', art: DonutArt },
   'b-boot': { label: 'A rocket boot plugged in to a yellow charger', art: BootArt, ledge: true },
-  'b-screen': { label: 'A little screen on a stalk showing two glowing eyes and a smile', art: ScreenArt },
-  'b-batteries': { label: 'A jumbled pile of colorful batteries', art: BatteriesArt, ledge: true },
+  'b-screen': { label: 'A little screen on a stalk showing two decimals side by side', art: ScreenArt },
+  'b-batteries': { label: 'A big battery with a screen that is a grid of little squares, and a spare battery', art: BatteriesArt, ledge: true },
   'b-strap': { label: 'Two leather straps of different lengths joined at a metal buckle', art: StrapArt },
   'b-coins': { label: 'A tipped-over green coin purse with small silver coins and bigger copper coins spilled out', art: CoinsArt, ledge: true },
-  'b-pie': { label: 'A berry pie with one slice served on a little plate beside it', art: PieArt, ledge: true },
+  'b-pie': { label: (theme) => `${pieLook(theme).plain ? 'A berry pie' : aFood(foodWord(theme, 'pie'))} with one slice served on a little plate beside it`, art: PieArt, ledge: true },
   'b-tray': { label: 'A serving tray piled with sandwich triangles', art: TrayArt },
 };
 
@@ -315,8 +322,8 @@ export const LESSONS_B: Record<string, string> = {
   'subtract-mixed-numbers': 'b-emptyjars',       // ch 8: "I ate some of my jars."
   'tenths-decimals': 'note',                     // ch 8: "Bolt's note counts in tenths."
   'decimal-fraction-equivalence': 'b-boot',      // ch 8: "Maybe his boots can say it for him."
-  'compare-decimals': 'b-screen',                // ch 8: "Bolt's screen shows two numbers"
-  'compare-decimals-grid': 'b-batteries',        // ch 8: "Which battery has the most charge?"
+  'compare-decimals': 'b-screen',                // ch 8: "Bolt's screen shows two decimals"
+  'compare-decimals-grid': 'b-batteries',        // ch 8: "Bolt's battery screen is a grid of hundredths"
   'add-tenths-hundredths': 'b-strap',            // ch 8: "join two pieces to fix Bolt's boot strap"
   'dimes-and-pennies': 'b-coins',                // ch 8: "My snack money is dimes and pennies"
   'unit-fraction-multiples': 'b-pie',            // ch 8: "the same small piece of pie each day"

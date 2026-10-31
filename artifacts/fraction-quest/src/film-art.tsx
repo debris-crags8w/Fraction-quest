@@ -2,17 +2,20 @@
    colours, the chapter ledge palette, outline style, the ledge a prop stands on, the stone piece and the flag pole. */
 
 import React, { type CSSProperties, type ReactNode } from 'react';
-import type { StoryScene } from './story';
+import type { PropTheme, StoryScene } from './story';
 
 export const INK = '#2B2D42';
 export const CREAM = '#FFF4D6';
 export const GOLD = '#FFC800';
 
 
-/** One lesson-film object: what a screen reader hears (the object, never the math), its drawing, and whether it stands on a ledge. */
-export type PropDef = { label: string; art: () => ReactNode; ledge?: boolean };
+/** One lesson-film object: what a screen reader hears (the object, never the math), its drawing, and whether it stands on a ledge.
+    A food prop takes the theme showing now (film-food.tsx), so its picture and its name are the food the line names. */
+export type PropDef = { label: string | ((theme: PropTheme) => string); art: (theme: PropTheme) => ReactNode; ledge?: boolean };
 /** One chapter ending: the chapter's key prop beside its stone piece. `sky` replaces the generic ending sky when it does not suit the chapter. */
-export type EndDef = { label: string; art: () => ReactNode; sky?: string };
+export type EndDef = { label: string | ((theme: PropTheme) => string); art: (theme: PropTheme) => ReactNode; sky?: string };
+/** A prop's or ending's name in a theme. */
+export const labelIn = (label: PropDef['label'], theme: PropTheme) => (typeof label === 'function' ? label(theme) : label);
 
 export type ChapterScene = Exclude<StoryScene, 'prologue' | 'chapter-end' | 'epilogue'>;
 

@@ -20,7 +20,8 @@ import { sentences, spokenText } from './lib/voice';
 import { speakerVoice } from './lib/cast-voices';
 import { holdAfterTypingMs, TYPE_STEP_CHARS, TYPE_STEP_MS, VOICED_PAUSE_MS } from './lib/film-pace';
 import { ChapterEndPicture, hasChapterEndPicture, LessonProp, lessonPropFor, PROP_FRIEND } from './film-props';
-import { CHAPTERS, CHAPTER_SCENES, CHARACTERS, propTheme, withName, type Panel, type StoryChoice, type StoryScene } from './story';
+import { OpenerBars, OpenerCake } from './film-food';
+import { CHAPTERS, CHAPTER_SCENES, CHARACTERS, propTheme, withName, type Panel, type PropTheme, type StoryChoice, type StoryScene } from './story';
 import { TaskBar } from './TaskBar';
 import './story-cinema.css';
 import './film-props.css';
@@ -85,7 +86,8 @@ const FILMING: Record<StoryScene, { shots: Shot[]; impact?: number; coldFrom?: n
     impact: 2, coldFrom: 2, end: 'To be continued…',
   },
   bakery: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.22)', '24% 44%'), shot('scale(1.25)', '33% 50%'), shot('scale(1.05)', '50% 40%')], impact: 2 },
-  pond: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.2)', '40% 35%'), shot('scale(1.1)', '50% 50%'), shot('scale(1)', '50% 40%')], impact: 0 },
+  // The still pushes in a little from below, so the bunting is out of the short picture above the choice, not a sliver.
+  pond: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.2)', '40% 35%'), shot('scale(1.1)', '50% 50%'), shot('scale(1.12)', '50% 66%')], impact: 0 },
   hill: { shots: [shot('scale(1.1)', '20% 50%'), shot('scale(1.1)', '50% 30%'), shot('scale(1)', '50% 40%'), shot('scale(1.25)', '35% 40%')] },
   bridge: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.35)', '55% 38%'), shot('scale(1)', '50% 40%'), shot('scale(1.1)', '50% 36%')], impact: 0 },
   tower: { shots: [shot('scale(1.1)', '50% 40%'), shot('scale(1.25)', '30% 36%'), shot('scale(1.2)', '72% 30%'), shot('scale(1.05)', '60% 36%')], impact: 0 },
@@ -146,12 +148,21 @@ function PrologueArt({ beat }: { beat: number }) {
         <span className="fq-cine-case-label">{landed ? 'The case is locked!' : beat === 1 ? 'The Whole Stone' : ''}</span>
       </div>
       {beat === 2 && <><span className="fq-cine-flash" /><strong className="fq-cine-bang">CRACK!</strong></>}
+      {/* "I'm Numi, and this is Hoot": the two stand in the square while Numi introduces them (the camera then pushes in on the case). */}
+      {beat === 0 && <>
+        <span className="fq-cine-actor fq-cine-rise" style={pos(9, 34)}><StoryCharacter id="numi" size={72} happy /></span>
+        <span className="fq-cine-actor fq-cine-rise" style={pos(75, 32)}><StoryCharacter id="hoot" size={70} /></span>
+      </>}
     </>
   );
 }
 
-/** Chapter 1: Chomp grabs the big piece, the camera finds a stone piece in the crumbs, and the pie is cut fairly. */
-function BakeryArt({ beat }: { beat: number }) {
+/** What every scene's art is drawn with: the line on screen, the chapter, who speaks, and the theme whose food the lines name. */
+type ArtProps = { beat: number; unit?: number; speaker?: Panel['speaker']; theme?: PropTheme };
+
+/** Chapter 1: Chomp grabs the big piece, the camera finds a stone piece in the crumbs, and the cake is cut fairly. The
+    cake is the theme's (an orange pumpkin pie at Halloween, a white Christmas cake with holly), as the lines say. */
+function BakeryArt({ beat, theme = 'everyday' }: ArtProps) {
   const fair = beat >= 2;
   return (
     <>
@@ -161,19 +172,7 @@ function BakeryArt({ beat }: { beat: number }) {
       <span className={`fq-cine-actor fq-cine-bakery-enter ${beat === 0 ? 'is-grabbing' : ''} ${fair ? 'is-hopping' : ''}`} style={pos(17, 22)}>
         <StoryCharacter id="chomp" size={112} happy={fair} worried={beat === 1} />
       </span>
-      <svg className="fq-cine-pie" style={pos(50, 24)} viewBox="0 0 120 120" role="img"
-        aria-label={fair ? 'A pie cut into 4 equal pieces' : 'A pie cut into 4 pieces of different sizes'}>
-        <ellipse cx="60" cy="116" rx="52" ry="7" fill="rgb(0 0 0 / .28)" style={{ filter: 'blur(3px)' }} aria-hidden="true" />
-        {fair
-          ? ['M60 60 V8 A52 52 0 0 1 112 60 Z', 'M60 60 H112 A52 52 0 0 1 60 112 Z', 'M60 60 V112 A52 52 0 0 1 8 60 Z', 'M60 60 H8 A52 52 0 0 1 60 8 Z'].map((d, i) => (
-            <path key={i} className={`fq-cine-slice is-${i}`} d={d} fill="#F6A55B" stroke="#B5651D" strokeWidth="3" />
-          ))
-          : <>
-            <circle cx="60" cy="60" r="52" fill="#F6A55B" stroke="#B5651D" strokeWidth="6" />
-            <path className={beat === 1 ? 'fq-cine-pulse' : ''} d="M60 60 L60 8 A52 52 0 0 1 108 80 Z" fill="#FFB86B" />
-            <path d="M60 60 L60 8 M60 60 L108 80 M60 60 L30 108 M60 60 L10 50" stroke="#2B2D42" strokeWidth="3" fill="none" />
-          </>}
-      </svg>
+      <OpenerCake theme={theme} fair={fair} beat={beat} style={pos(50, 24)} />
       {beat === 2 && <><span className="fq-cine-knife is-first" /><span className="fq-cine-knife is-second" /></>}
       <span className={`fq-cine-glint ${beat === 1 ? 'is-found' : ''}`} style={pos(44, 56)} aria-hidden="true" />
       {beat === 1 && <span className="fq-cine-spot" style={{ '--x': '46%', '--y': '58%' } as CSSProperties} />}
@@ -185,7 +184,7 @@ function BakeryArt({ beat }: { beat: number }) {
 /** Chapter 2: a stone piece splashes into Pip's snack bowl; two same-size snack bars are cut into thirds and eighths,
     as Numi says, and one piece of each stays lit: more equal parts means smaller parts. Each label sits on its own
     piece, so nothing hangs down under the caption. */
-function PondArt({ beat }: { beat: number }) {
+function PondArt({ beat, theme = 'everyday' }: ArtProps) {
   const cut = beat >= 1;
   const compared = beat >= 2;
   return (
@@ -198,21 +197,18 @@ function PondArt({ beat }: { beat: number }) {
       <span className="fq-cine-bowl" style={pos(50, 22)} />
       {beat === 0 && <><span className="fq-cine-falling" style={pos(74, 0)} /><span className="fq-cine-splash" style={pos(58, 18)} /></>}
       {cut && (
-        <span className={`fq-cine-bars ${compared ? 'is-compared' : ''}`} style={pos(30, 36)}>
-          {/* Both bars are the same size: one is cut into 3 equal pieces, the other into 8. */}
+        <OpenerBars theme={theme} compared={compared} style={pos(30, 36)}>
+          {/* Both bars are the same size: one is cut into 3 equal pieces, the other into 8 (the theme's bars: snack, candy or peppermint). */}
           {([[3, 'is-thirds'], [8, 'is-eighths']] as const).map(([parts, name]) => (
             <span key={parts} className={`fq-cine-cutbar ${name}`}>
               {Array.from({ length: parts }, (_, i) => <i key={i} className={compared && i === 0 ? 'is-picked' : compared ? 'is-set-aside' : ''} />)}
               <span className="fq-cine-cutbar-label"><Frac n={1} d={parts} /></span>
             </span>
           ))}
-        </span>
+        </OpenerBars>
       )}
       <span className={`fq-cine-glint ${compared ? 'is-found' : 'is-hidden'}`} style={pos(63, 26)} aria-hidden="true" />
-      <span className="fq-cine-sr" role="img" aria-label={compared
-        ? 'One third and one eighth side by side: the third is bigger. More equal parts means smaller parts.'
-        : cut ? 'Two same-size snack bars: one cut into 3 equal pieces, one cut into 8 equal pieces'
-          : 'A stone piece falls into a snack bowl'} />
+      {!cut && <span className="fq-cine-sr" role="img" aria-label="A stone piece falls into a snack bowl" />}
     </>
   );
 }
@@ -220,7 +216,7 @@ function PondArt({ beat }: { beat: number }) {
 /** Chapter 3: something shines at the top of Tilly's hill; landmark flags for 0, one half and 1 pop up along the path. */
 function HillArt({ beat }: { beat: number }) {
   const flags = beat >= 1;
-  const landmarks: [number, number, ReactNode][] = [[22, 49, <b>0</b>], [50, 27, <Frac n={1} d={2} />], [80, 8, <b>1</b>]];
+  const landmarks: [number, number, ReactNode][] = [[22, 49, <b>0</b>], [50, 27, <Frac n={1} d={2} />], [78, 19, <b>1</b>]];
   return (
     <>
       <span className="fq-cine-sun is-low" />
@@ -290,7 +286,7 @@ function TowerArt({ beat }: { beat: number }) {
 }
 
 /** Chapter 6: three honey jars with different labels hold the same amount; a map flutters down. */
-function HoneyArt({ beat }: { beat: number }) {
+function HoneyArt({ beat }: ArtProps) {
   return (
     <>
       <span className="fq-cine-hive" style={pos(80, 14)} />
@@ -383,16 +379,19 @@ function PicnicArt({ beat }: { beat: number }) {
       <span className="fq-cine-picnic-sky" /><span className="fq-cine-picnic-grass" />
       <span className="fq-cine-picnic-blanket" />
       <span className="fq-cine-picnic-plate" style={pos(62, 66)} />
-      <span className="fq-cine-picnic-basket" style={pos(74, 34)} />
+      {/* The other basket, 2/3 full (Numi names it on the second line). */}
+      <span className="fq-cine-picnic-basket" style={pos(74, 34)} role="img" aria-label="A basket two thirds full">
+        <i className="fq-cine-basket-fill" />
+        {beat >= 1 && <span className="fq-cine-basket-label fq-cine-rise"><Frac n={2} d={3} /></span>}
+      </span>
       <span className={`fq-cine-sandwiches fq-cine-move ${cut ? 'is-cut' : ''}`} style={pos(26, 47)} role="img"
-        aria-label={cut ? 'The half is cut into two fourths, and with the other fourth that makes three fourths' : 'One half of a sandwich and one fourth of a sandwich'}>
+        aria-label={cut ? 'The half is cut into two fourths, the same size as the other fourth' : 'One half of a sandwich and one fourth of a sandwich'}>
         <i /><i /><i />
         <span className="fq-cine-sandwich-cut" />
         <span className="fq-cine-sandwich-label is-half"><Frac n={1} d={2} /></span>
         <span className="fq-cine-sandwich-label is-fourth"><Frac n={1} d={4} /></span>
-        <span className="fq-cine-sandwich-label is-sum"><Frac n={3} d={4} /></span>
       </span>
-      <span className="fq-cine-actor" style={pos(4, 22)}><StoryCharacter id="chomp" size={80} happy={beat >= 2} /></span>
+      <span className="fq-cine-actor" style={pos(8, 22)}><StoryCharacter id="chomp" size={80} happy={beat >= 2} /></span>
       <span className={`fq-cine-peeker ${beat >= 1 ? 'is-arriving' : ''}`} style={pos(77, 18)}><StoryCharacter id="bolt" size={58} worried={beat < 2} happy={beat >= 2} /></span>
       <span className="fq-cine-note" style={pos(64, 60)}>B</span>
     </>
@@ -412,7 +411,7 @@ function MachineArt({ beat }: { beat: number }) {
       <span className={`fq-cine-machine-plank fq-cine-move ${built ? 'is-built' : ''}`} role="img"
         aria-label={built ? 'A short plank went into the machine and came out 2 times as long, across the river' : 'A short plank waits by the machine'} />
       {beat === 0 && <span className="fq-cine-cracked-boot" style={pos(30, 62)} aria-hidden="true" />}
-      <span className="fq-cine-actor" style={pos(4, 29)}><StoryCharacter id="bolt" size={94} worried={beat === 0} happy={beat >= 2} /></span>
+      <span className="fq-cine-actor" style={pos(8, 29)}><StoryCharacter id="bolt" size={94} worried={beat === 0} happy={beat >= 2} /></span>
       <span className={`fq-cine-actor fq-cine-move ${built ? 'is-crossing' : ''}`} style={built ? pos(78, 46) : pos(66, 46)}>
         <StoryCharacter id="pip" size={56} happy={built} />
       </span>
@@ -432,7 +431,7 @@ function StageArt({ beat }: { beat: number }) {
         <span className="fq-cine-measure-tape" />
         {[1, 2, 3].map((n) => <span key={n} className={`fq-cine-measure-mark is-${n}`}><Frac n={n} d={4} /></span>)}
       </span>
-      <span className="fq-cine-actor" style={pos(4, 24)}><StoryCharacter id="pip" size={88} happy={beat >= 2} /></span>
+      <span className="fq-cine-actor" style={pos(8, 24)}><StoryCharacter id="pip" size={88} happy={beat >= 2} /></span>
       {beat >= 2 && <span className="fq-cine-glint is-found" style={pos(84, 70)} aria-hidden="true" />}
     </>
   );
@@ -450,7 +449,7 @@ function GardenArt({ beat }: { beat: number }) {
         <i className={`fq-cine-move ${beat >= 2 ? 'is-picked' : ''}`} /><i /><i /><i />
       </span>
       {beat >= 2 && <span className="fq-cine-chance fq-cine-rise" style={pos(36, 44)}><Frac n={1} d={4} /></span>}
-      <span className="fq-cine-actor is-buzzing" style={pos(8, 18)}><StoryCharacter id="bea" size={80} happy={beat >= 2} /></span>
+      <span className="fq-cine-actor is-buzzing" style={pos(20, 18)}><StoryCharacter id="bea" size={80} happy={beat >= 2} /></span>
       {beat >= 2 && <span className="fq-cine-glint is-found" style={pos(64, 70)} aria-hidden="true" />}
     </>
   );
@@ -495,14 +494,14 @@ function FestivalArt({ beat }: { beat: number }) {
 }
 
 /** Finished chapters close on the friend, their recovered piece, and an image of that chapter's story. */
-function ChapterEndArt({ beat, unit = 1, speaker }: { beat: number; unit?: number; speaker?: Panel['speaker'] }) {
+function ChapterEndArt({ beat, unit = 1, speaker, theme }: ArtProps) {
   const chapter = CHAPTERS[unit - 1] ?? CHAPTERS[0];
   // Chapters with their own ending picture (film-props.tsx) draw their backdrop, key prop and stone piece there.
   const scene = CHAPTER_SCENES[unit];
   const own = hasChapterEndPicture(unit) && isChapterScene(scene);
   return (
     <>
-      {own ? <ChapterEndPicture unit={unit} beat={beat} speaker={speaker} backdrop={BACKDROPS[scene]()} /> : <>
+      {own ? <ChapterEndPicture unit={unit} beat={beat} speaker={speaker} theme={theme} backdrop={BACKDROPS[scene]()} /> : <>
       <span className="fq-cine-end-horizon" />
       <span className={`fq-cine-end-stone ${beat >= 1 ? 'is-found' : ''}`} role="img" aria-label={`Chapter ${unit} stone piece recovered`} />
       <span className="fq-cine-actor" style={pos(26, 27)}><StoryCharacter id={speaker ?? chapter.character} size={96} happy={beat >= 1} /></span>
@@ -562,14 +561,14 @@ const isChapterScene = (scene: StoryScene): scene is ChapterScene => scene in BA
 const SET_SPEAKER_TOP = 18;
 const SET_FRIEND_TOP = 28;
 
-function SetArt({ scene, beat, unit = 1, speaker, lessonId }: { scene: ChapterScene; beat: number; unit?: number; speaker?: Panel['speaker']; lessonId?: string }) {
+function SetArt({ scene, beat, unit = 1, speaker, lessonId, theme }: ArtProps & { scene: ChapterScene; lessonId?: string }) {
   const friend = (CHAPTERS[unit - 1] ?? CHAPTERS[0]).character;
   const Backdrop = BACKDROPS[scene];
   const prop = lessonPropFor(lessonId); // the lesson's own object (film-props.tsx), if it has one yet
   return (
     <>
       {Backdrop(!!prop)}
-      {prop && <LessonProp prop={prop} scene={scene} beat={beat} />}
+      {prop && <LessonProp prop={prop} scene={scene} beat={beat} theme={theme} />}
       <span key={speaker ?? friend} className="fq-cine-actor fq-cine-set-speaker" style={pos(10, SET_SPEAKER_TOP)} data-testid="story-set-speaker">
         <StoryCharacter id={speaker ?? friend} size={96} happy />
       </span>
@@ -585,7 +584,7 @@ const setFilming = (panels: number) => ({
   shots: [shot('scale(1.06)', '50% 45%'), ...Array.from({ length: panels }, (_, i) => shot(`scale(${i % 2 ? 1.12 : 1.18})`, i % 2 ? '45% 45%' : '24% 45%')), shot('scale(1.04)', '50% 45%')],
 }) as { shots: Shot[]; impact?: number; coldFrom?: number; warmFrom?: number; end?: string };
 
-const ART: Record<StoryScene, (props: { beat: number; unit?: number; speaker?: Panel['speaker'] }) => ReactNode> = {
+const ART: Record<StoryScene, (props: ArtProps) => ReactNode> = {
   prologue: PrologueArt, bakery: BakeryArt, pond: PondArt, hill: HillArt, bridge: BridgeArt, tower: TowerArt, honey: HoneyArt,
   workshop: WorkshopArt, den: DenArt, race: RaceArt, picnic: PicnicArt, machine: MachineArt, stage: StageArt,
   garden: GardenArt, lock: LockArt, festival: FestivalArt, 'chapter-end': ChapterEndArt, epilogue: EpilogueArt,
@@ -614,7 +613,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
   const lessonSet = setOnly && isChapterScene(scene) ? scene : null;
   const filming = lessonSet ? setFilming(panels.length) : FILMING[scene];
   const Art = useMemo(() => (lessonSet
-    ? (props: { beat: number; unit?: number; speaker?: Panel['speaker'] }) => <SetArt scene={lessonSet} lessonId={lessonId} {...props} />
+    ? (props: ArtProps) => <SetArt scene={lessonSet} lessonId={lessonId} {...props} />
     : ART[scene]), [lessonSet, scene, lessonId]);
   const [voiceOn, setVoiceOn] = useState(() => savedFilmVoice() ?? fun.sound !== false);
   // Story music: a grown-up allows it (on unless turned off, and only with sounds on); the film's button makes it softer or turns it off.
@@ -844,7 +843,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
             <span className="fq-sr">{done ? 'The last scene of the story: ' : 'The story scene: '}</span>
             <span className={`fq-cine-cam ${cold ? 'is-cold' : 'is-warm'}`} style={{ transform: camera, transformOrigin: origin }}>
               <span className={`fq-cine-set ${!done && beat === filming.impact ? 'is-shaking' : ''}`} data-testid="story-stage">
-                <Art beat={done ? lines.length - 1 : Math.max(beat, 0)} unit={unit} speaker={lines[done ? lines.length - 1 : Math.max(beat, 0)]?.speaker} />
+                <Art beat={done ? lines.length - 1 : Math.max(beat, 0)} unit={unit} speaker={lines[done ? lines.length - 1 : Math.max(beat, 0)]?.speaker} theme={theme} />
               </span>
             </span>
             <span className={`fq-cine-grade ${cold ? 'is-cold' : 'is-warm'}`} aria-hidden="true" />

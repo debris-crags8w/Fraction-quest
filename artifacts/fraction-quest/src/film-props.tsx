@@ -5,6 +5,9 @@
 
    Rules every prop keeps:
    - The object only: no numbers, no letters, no tick marks and no equal parts, so a picture never gives an answer away.
+     One exception: when the line says the object shows numbers ("Bolt's screen shows two decimals"), it shows two that
+     are not the lesson's, in lit segments, and nothing says which is bigger.
+   - Food follows the theme (film-food.tsx): when the line says "pumpkin pie" or "hot cocoa", that is what is drawn.
    - Light: a few dozen shapes, no filters, no images. All movement is CSS and sits under `fq-cine-move`, so the
      existing Reduce motion rules (system setting and the app setting) hold it still; the resting style of every
      moving part is its finished position, so the still picture is complete.
@@ -14,8 +17,8 @@
 
 import React, { type CSSProperties, type ReactNode } from 'react';
 import { StoryCharacter } from './characters';
-import { CHAPTERS, CHAPTER_SCENES, type Panel, type StoryScene } from './story';
-import { paletteFor, Ledge, StonePiece, type ChapterScene, type EndDef, type PropDef } from './film-art';
+import { CHAPTERS, CHAPTER_SCENES, type Panel, type PropTheme, type StoryScene } from './story';
+import { labelIn, paletteFor, Ledge, StonePiece, type ChapterScene, type EndDef, type PropDef } from './film-art';
 import { SAMPLE_ENDS, SAMPLE_LESSONS, SAMPLE_PROPS } from './film-props-samples';
 import { ENDS_A, LESSONS_A, PROPS_A } from './film-props-a';
 import { ENDS_B, LESSONS_B, PROPS_B } from './film-props-b';
@@ -31,15 +34,15 @@ export const END_SCENES: Partial<Record<number, EndDef>> = { ...SAMPLE_ENDS, ...
 export const lessonPropFor = (lessonId: string | undefined): PropId | null => (lessonId && LESSON_PROPS[lessonId]) || null;
 
 /** A lesson film's object, on the chapter's backdrop, in the band right of the speaker. `beat >= 1` is its small move. */
-export function LessonProp({ prop, scene, beat }: { prop: PropId; scene: StoryScene; beat: number }) {
+export function LessonProp({ prop, scene, beat, theme = 'everyday' }: { prop: PropId; scene: StoryScene; beat: number; theme?: PropTheme }) {
   const def = PROP_DEFS[prop]!;
   const { ledge, glow } = paletteFor(scene);
   return (
     <span className={`fq-fp fq-cine-move is-${prop} ${beat >= 1 ? 'is-on' : ''}`} data-testid="film-prop" data-prop={prop}
       style={{ '--fp-ledge': ledge, '--fp-glow': glow } as CSSProperties}>
-      <svg viewBox="0 0 200 130" role="img" aria-label={def.label}>
+      <svg viewBox="0 0 200 130" role="img" aria-label={labelIn(def.label, theme)}>
         {def.ledge && <Ledge />}
-        {def.art()}
+        {def.art(theme)}
       </svg>
     </span>
   );
@@ -53,7 +56,7 @@ export const END_FRIEND = { style: { left: '14%', top: '17%' } as CSSProperties,
 export const hasChapterEndPicture = (unit: number | undefined): boolean => !!END_SCENES[unit ?? 1];
 
 /** A finished chapter's ending: its backdrop, the speaker, the chapter's key prop and its stone piece (found from the second line on). */
-export function ChapterEndPicture({ unit, beat, speaker, backdrop }: { unit: number; beat: number; speaker?: Panel['speaker']; backdrop: ReactNode }) {
+export function ChapterEndPicture({ unit, beat, speaker, backdrop, theme = 'everyday' }: { unit: number; beat: number; speaker?: Panel['speaker']; backdrop: ReactNode; theme?: PropTheme }) {
   const chapter = CHAPTERS[unit - 1] ?? CHAPTERS[0];
   const scene = CHAPTER_SCENES[unit] as ChapterScene;
   const picture = END_SCENES[unit]!;
@@ -65,7 +68,7 @@ export function ChapterEndPicture({ unit, beat, speaker, backdrop }: { unit: num
       {backdrop}
       <span className={`fq-fp fq-cine-move is-end is-${scene} ${beat >= 1 ? 'is-on is-found' : ''}`} data-testid="film-prop" data-prop={`end-${unit}`}
         style={{ '--fp-ledge': ledge, '--fp-glow': glow } as CSSProperties}>
-        <svg viewBox="0 0 200 130" role="img" aria-label={picture.label}>{picture.art()}</svg>
+        <svg viewBox="0 0 200 130" role="img" aria-label={labelIn(picture.label, theme)}>{picture.art(theme)}</svg>
       </span>
       <span key={speaking} className="fq-cine-actor fq-cine-set-speaker" style={{ left: '15%', top: '30%' }} data-testid="story-end-speaker">
         <StoryCharacter id={speaking} size={88} happy={beat >= 1} />
