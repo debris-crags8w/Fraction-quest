@@ -13,6 +13,24 @@ describe('a worksheet row carries the standards it really tests, not the whole l
     for (const row of rowsOf('spot-the-mistake')) assert.ok(!has(row, '4.NF.2'), row.prompt);
   });
 
+  it('spot-the-mistake tags each row by what it asks: add/subtract 4.NF.3a, times 4.NF.4b, equal fractions 4.NF.1, mixed numbers 4.NF.3b, same-numerator compare 3.NF.3d', () => {
+    const expected = (prompt: string): string => {
+      if (/\d+\/\d+ [+−] \d+\/\d+ =/.test(prompt)) return '4.NF.3a';
+      if (/\d+ × \d+\/\d+ =/.test(prompt)) return '4.NF.4b';
+      if (/\d+\/\d+ = \d+ \d+\/\d+\./.test(prompt)) return '4.NF.3b';
+      if (/(\d+)\/\d+ is bigger than \1\/\d+/.test(prompt)) return '3.NF.3d';
+      if (/\d+\/\d+ = \d+\/\d+/.test(prompt)) return '4.NF.1';
+      return 'unknown row';
+    };
+    const seen = new Set<string>();
+    for (const row of rowsOf('spot-the-mistake')) {
+      const want = expected(row.prompt);
+      seen.add(want);
+      assert.deepEqual(row.standards, [want], row.prompt);
+    }
+    assert.deepEqual([...seen].sort(), ['3.NF.3d', '4.NF.1', '4.NF.3a', '4.NF.3b', '4.NF.4b']);
+  });
+
   it('equal-parts claims 3.G.2 only on the rows that show a shape', () => {
     const rows = rowsOf('equal-parts');
     assert.ok(rows.some(row => row.area) && rows.some(row => !row.area));
@@ -136,5 +154,13 @@ describe('Check-ins', () => {
       assert.ok(hasPicture, `${definition.id} ${seed}: ${item.prompt}`);
       if (item.visualFractions) assert.ok(item.visualFractions.length > 0, item.prompt);
     }
+  });
+
+  it('credits 4.NF.3a from spot-the-mistake only for a row that adds or subtracts', () => {
+    const wrong: string[] = [];
+    for (const definition of definitions) for (let seed = 1; seed <= 30; seed++) for (const item of buildAssessmentItems(definition, seed)) {
+      if (item.missionId === 'spot-the-mistake' && item.standards.includes('4.NF.3a') && !/\d+\/\d+ [+−] \d+\/\d+ =/.test(item.prompt)) wrong.push(`${definition.id}: ${item.prompt}`);
+    }
+    assert.deepEqual(wrong.slice(0, 5), [], `${wrong.length} credits`);
   });
 });

@@ -73,6 +73,8 @@ type Rule = { name: string; re: RegExp; solve: (m: RegExpExecArray, item: ProofI
 /** One amount as written: 1 3/4, 1 and 3/4, 3/4, 0.35, 45%, 7. */
 const TERM = String.raw`\d+ (?:and )?\d+\/\d+|\d+\/\d+|\d*\.\d+|\d+%|\d+`;
 const EXPR = String.raw`(?:${TERM})(?: [+−×] (?:${TERM}))+`;
+/** The same with ÷ too ("3 ÷ 4 __ 3 ÷ 1/4"), for comparing two divisions. */
+const GAP_EXPR = String.raw`(?:${TERM})(?: [+−×÷] (?:${TERM}))+`;
 /** Evaluate a + b − c × d ÷ e left to right with × and ÷ first (all the app writes). */
 const evaluate = (expr: string): number => {
   const tokens = expr.split(/ ([+−×÷]) /);
@@ -138,7 +140,7 @@ const RULES: Rule[] = [
       if (v.filter((x) => near(x, pick)).length > 1) return 'two choices tie'; return { value: pick }; } },
   { name: 'gap sign', re: /^(?:Put <, = or > in the gap|Pick the sign|Compare):? (\S+) __ (\S+?)\.?$/,
     solve: (m) => ({ symbol: sym(valueOf(m[1]), valueOf(m[2])), statement: `${m[1]} ${sym(valueOf(m[1]), valueOf(m[2]))} ${m[2]}` }) },
-  { name: 'gap sign with a sum or product', re: new RegExp(String.raw`^Put <, = or > in the gap: (${EXPR}|${TERM}) __ (${EXPR}|${TERM})\.$`),
+  { name: 'gap sign with a sum or product', re: new RegExp(String.raw`^Put <, = or > in the gap: (${GAP_EXPR}|${TERM}) __ (${GAP_EXPR}|${TERM})\.$`),
     solve: (m) => { const [a, b] = [evaluate(m[1]), evaluate(m[2])]; return { symbol: sym(a, b), statement: `${m[1]} ${sym(a, b)} ${m[2]}` }; } },
   { name: 'order', re: /^Put (.+) in order, (smallest|biggest) first\.$/,
     solve: (m) => { const v = m[1].split(/,? and |, /).map(valueOf); if (new Set(v.map((x) => x.toFixed(9))).size < v.length) return 'two fractions are equal, so the order is not unique';
@@ -372,6 +374,10 @@ const RULES: Rule[] = [
     solve: (m) => (m[3] !== m[2] || m[4] !== m[1] ? 'the division does not match the story' : { value: N(m[1]) * N(m[2]) }) },
   { name: 'share a unit fraction (÷)', re: /^(\d+) (?:children|friends) share 1\/(\d+) of a pan(?: of [\w’ -]+)?\. 1\/(\d+) ÷ (\d+) = \?$/,
     solve: (m) => (m[3] !== m[2] || m[4] !== m[1] ? 'the division does not match the story' : { value: 1 / N(m[2]) / N(m[1]) }) },
+  { name: 'share a whole, then cut each share', re: /^(\d+) friends share 1 (cake|pie) equally\. Each friend cuts a share into (\d+) equal pieces\. What fraction of the \2 is one small piece\?$/,
+    solve: (m) => ({ value: 1 / N(m[1]) / N(m[3]) }) },
+  { name: 'pour into cups, then fill', re: /^\w+ pours 1\/(\d+) liter of (?:juice|milk) equally into (\d+) cups\. How many cups that size hold (\d+) liters\?$/,
+    solve: (m) => ({ value: N(m[3]) / (1 / N(m[1]) / N(m[2])) }) },
   { name: 'division', re: new RegExp(String.raw`^(${TERM}) ÷ (${TERM}) = \?$`), solve: (m) => ({ value: valueOf(m[1]) / valueOf(m[2]) }) },
   { name: 'division as a fraction', re: /^(?:Write|Make) (\d+) ÷ (\d+) as a fraction\.$/, solve: (m) => ({ value: N(m[1]) / N(m[2]), denominator: N(m[2]) }) },
   { name: 'between whole numbers (the bigger one)', re: /^(\d+)\/(\d+) is between two whole numbers\. What is the bigger one\?$/,

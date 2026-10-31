@@ -134,4 +134,26 @@ describe('standard-tagged assessments', () => {
     }
     assert.deepEqual(repeats.slice(0, 6), [], `${repeats.length} forms ask a calculation twice`);
   });
+
+  it('never asks one question twice in other words (same lesson, same numbers in any order, same answer), and keeps every form full', () => {
+    // "Which is smaller, 3/6 or 3/4?" / "Which is smaller, 3/4 or 3/6?"; "1/3 of 1/2" / "1/2 of 1/3"; "3/5 × 1/2" / "3/5 of 1/2";
+    // "Mia reads 2/5 ... and 1/5" / "2/5 of a garden ... then 1/5 more" (both 2/5): each pair is one question.
+    const repeats: string[] = [];
+    let forms = 0;
+    for (const definition of getAssessmentDefinitions()) for (let seed = 1; seed <= 30; seed++) {
+      forms++;
+      const items = buildAssessmentItems(definition, seed);
+      assert.equal(items.length, assessmentItemCount(definition), `${definition.id} seed ${seed} is short`);
+      const seen = new Map<string, string>();
+      for (const item of items) {
+        const numbers = item.prompt.match(/\d+(?:\/\d+)?/g) ?? [];
+        if (numbers.length < 2) continue;
+        const key = `${item.missionId}|${[...numbers].sort().join(',')}|${item.problem.answer}`;
+        if (seen.has(key)) { repeats.push(`${definition.id} seed ${seed}: "${seen.get(key)}" / "${item.prompt}"`); break; }
+        seen.set(key, item.prompt);
+      }
+    }
+    assert.equal(forms, 48 * 30);
+    assert.deepEqual(repeats.slice(0, 6), [], `${repeats.length} of ${forms} forms ask one question twice in other words`);
+  });
 });

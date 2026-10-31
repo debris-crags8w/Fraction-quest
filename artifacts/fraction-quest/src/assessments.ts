@@ -121,6 +121,14 @@ function promptFractions(prompt: string): { n: number; d: number; wholes: number
     with 1" and "Sam says 2/3 + 1/2 = 3/5" count as one question. A question with no sum in it is itself. */
 const calculation = (prompt: string) => /(?:\d+ )?\d+\/\d+ [+−] (?:\d+ )?\d+\/\d+/.exec(prompt)?.[0] ?? prompt;
 
+/** One question in other words: the same lesson, the same numbers in any order and the same answer ("Which is smaller, 3/6 or 3/4?"
+    and "... 3/4 or 3/6?"; "1/3 of 1/2" and "1/2 of 1/3"; "3/5 × 1/2" and "3/5 of 1/2"; the same numbers in a new story). A question
+    with fewer than two numbers has no such key. */
+const sameNumbers = (item: AssessmentItem): string | undefined => {
+  const numbers = item.prompt.match(/\d+(?:\/\d+)?/g) ?? [];
+  return numbers.length < 2 ? undefined : `${item.missionId}|${[...numbers].sort().join(',')}|${item.problem.answer}`;
+};
+
 /** Build a deterministic, varied 12-item form. A different seed changes both worksheet variants and selection. */
 export function buildAssessmentItems(definition: AssessmentDefinition, seed: number): AssessmentItem[] {
   const count = assessmentItemCount(definition);
@@ -163,22 +171,30 @@ export function buildAssessmentItems(definition: AssessmentDefinition, seed: num
   const selected: AssessmentItem[] = [];
   const selectedIds = new Set<string>();
   const askedPrompts = new Set<string>(); // the same question twice in one check-in is wasted
-  const fresh = (candidate: AssessmentItem) => !selectedIds.has(candidate.id) && !askedPrompts.has(calculation(candidate.prompt));
+  const askedNumbers = new Set<string>();
+  const fresh = (candidate: AssessmentItem) => {
+    const numbers = sameNumbers(candidate);
+    return !selectedIds.has(candidate.id) && !askedPrompts.has(calculation(candidate.prompt)) && !(numbers && askedNumbers.has(numbers));
+  };
+  const take = (candidate: AssessmentItem) => {
+    selectedIds.add(candidate.id); askedPrompts.add(calculation(candidate.prompt));
+    const numbers = sameNumbers(candidate);
+    if (numbers) askedNumbers.add(numbers);
+    selected.push({ ...candidate, id: `${definition.id}:${seed}:${selected.length + 1}` });
+  };
   // Round-robin by standard so a check samples the whole scope instead of one lesson.
   for (let round = 0; selected.length < count && round < candidates.length; round++) {
     for (const standard of definition.standards) {
       const candidate = byStandard.get(standard)?.[round];
       if (!candidate || !fresh(candidate)) continue;
-      selectedIds.add(candidate.id); askedPrompts.add(calculation(candidate.prompt));
-      selected.push({ ...candidate, id: `${definition.id}:${seed}:${selected.length + 1}` });
+      take(candidate);
       if (selected.length >= count) break;
     }
   }
   if (selected.length < count) {
     for (const candidate of [...candidates].sort((a, b) => mix(`${seed}:fill:${a.id}`) - mix(`${seed}:fill:${b.id}`))) {
       if (!fresh(candidate)) continue;
-      selectedIds.add(candidate.id); askedPrompts.add(calculation(candidate.prompt));
-      selected.push({ ...candidate, id: `${definition.id}:${seed}:${selected.length + 1}` });
+      take(candidate);
       if (selected.length >= count) break;
     }
   }

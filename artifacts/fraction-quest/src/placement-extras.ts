@@ -2,10 +2,13 @@ import type { WorksheetProblem } from './learning-content';
 
 /* Find my level draws its questions from each lesson's worksheet rows, but three lessons' rows all need a tool the
    quiz does not show (a ruler to move along, a line plot to fill in). Their standards (3.MD.4, 4.MD.4, 5.MD.2) were never
-   asked. These rows ask the same skill with what the quiz can show: a number line for a ruler, and the measurements
-   written in the question for a line plot. */
+   asked. These rows ask the same skill with what the quiz can show: a number line for a ruler, and for a line plot the
+   measurements written in the question and drawn as the line plot they come from (read-only, nothing to fill in). */
 const row = (id: string, prompt: string, answer: string, hint: string, standard: string, extra: Partial<WorksheetProblem> = {}): WorksheetProblem =>
   ({ id: `placement-${id}`, prompt, answer, hint, standards: [standard], ...extra });
+
+/** The amounts a line-plot row lists, drawn as the line plot they come from (an X for each, in fourths or eighths). */
+const plot = (denominator: number, values: number[]): WorksheetProblem['picture'] => ({ kind: 'lineplot', denominator, wholes: 1, values });
 
 export const PLACEMENT_EXTRAS: Record<string, WorksheetProblem[]> = {
   'ruler-measurement': [
@@ -17,14 +20,14 @@ export const PLACEMENT_EXTRAS: Record<string, WorksheetProblem[]> = {
       { model: { kind: 'line', n: 3, d: 4, wholes: 2 } }),
   ],
   'read-line-plots': [
-    row('plots-1', 'These pencil lengths are 1/8, 2/8, 2/8, 5/8 and 7/8 inch. What is the difference between the longest and shortest?', '6/8', 'Take the shortest length away from the longest.', '4.MD.4'),
-    row('plots-2', 'These seed lengths are 2/4, 3/4, 3/4 and 1/4 inch. What is the difference between the longest and shortest?', '2/4', 'Take the shortest length away from the longest.', '4.MD.4'),
-    row('plots-3', 'These twig lengths are 1/8, 3/8, 3/8, 6/8 inch. How many twigs are 3/8 inch long?', '2', 'Count the lengths that are 3/8.', '4.MD.4'),
+    row('plots-1', 'These pencil lengths are 1/8, 2/8, 2/8, 5/8 and 7/8 inch. What is the difference between the longest and shortest?', '6/8', 'Take the shortest length away from the longest.', '4.MD.4', { picture: plot(8, [1, 2, 2, 5, 7]) }),
+    row('plots-2', 'These seed lengths are 2/4, 3/4, 3/4 and 1/4 inch. What is the difference between the longest and shortest?', '2/4', 'Take the shortest length away from the longest.', '4.MD.4', { picture: plot(4, [2, 3, 3, 1]) }),
+    row('plots-3', 'These twig lengths are 1/8, 3/8, 3/8, 6/8 inch. How many twigs are 3/8 inch long?', '2', 'Count the lengths that are 3/8.', '4.MD.4', { picture: plot(8, [1, 3, 3, 6]) }),
   ],
   'line-plot-totals': [
-    row('totals-1', 'Cups hold: 2/8, 2/8, 5/8, 5/8 liter. How much water in all?', '14/8', 'Add all the eighths together.', '5.MD.2'),
-    row('totals-2', 'Beakers hold: 1/8, 1/8, 2/8, 6/8 liter. How much water in all?', '10/8', 'Add all the eighths together.', '5.MD.2'),
-    row('totals-3', 'Cups hold: 3/8, 3/8, 4/8, 6/8, 6/8 liter. How much water in all?', '22/8', 'Add all the eighths together.', '5.MD.2'),
+    row('totals-1', 'Cups hold: 2/8, 2/8, 5/8, 5/8 liter. How much water in all?', '14/8', 'Add all the eighths together.', '5.MD.2', { picture: plot(8, [2, 2, 5, 5]) }),
+    row('totals-2', 'Beakers hold: 1/8, 1/8, 2/8, 6/8 liter. How much water in all?', '10/8', 'Add all the eighths together.', '5.MD.2', { picture: plot(8, [1, 1, 2, 6]) }),
+    row('totals-3', 'Cups hold: 3/8, 3/8, 4/8, 6/8, 6/8 liter. How much water in all?', '22/8', 'Add all the eighths together.', '5.MD.2', { picture: plot(8, [3, 3, 4, 6, 6]) }),
   ],
 };
 
@@ -33,12 +36,18 @@ export const PLACEMENT_EXTRAS: Record<string, WorksheetProblem[]> = {
    earlier in the unit, so the same three questions cover more of it. Every row really needs each skill it is tagged with. */
 const blend = (id: string, prompt: string, answer: string, hint: string, standards: string[], form?: WorksheetProblem['form'], picture?: WorksheetProblem['picture']): WorksheetProblem =>
   ({ id: `placement-${id}`, prompt, answer, hint, standards, ...(form ? { form } : {}), ...(picture ? { picture } : {}) });
-/** The amounts a line-plot row lists, drawn as the line plot they come from (an X for each, in fourths or eighths). */
-const plot = (denominator: number, values: number[]): WorksheetProblem['picture'] => ({ kind: 'lineplot', denominator, wholes: 1, values });
 const MIXED_LENGTH = ['4.NF.3c', '4.NF.3d']; // a mixed number in a story about one length
 const DECIMAL_SIGN = ['4.NF.7', '4.NF.6']; // hundredths written as a decimal, then compared
 const SUM_SIGN = ['4.NF.5', '4.NF.7']; // tenths and hundredths added, then compared with a decimal
 export const PLACEMENT_BLENDS: Record<string, WorksheetProblem[]> = {
+  // A length past 1 inch read on a ruler (3.MD.4) is a fraction beyond 1 on a number line (3.NF.2b, earlier in unit 4). The line plot
+  // lesson measures before it plots, so it asks the measuring too, and so every quiz can ask 3.MD.4.
+  'build-line-plots': [
+    { ...blend('ruler-beyond-1', 'A ruler is marked in fourths of an inch. The ribbon ends at the dot. How long is the ribbon in inches?', '1 3/4', 'Count the fourths from 0 to the dot. 4 fourths make 1 inch.', ['3.MD.4', '3.NF.2b'], 'mixed'),
+      model: { kind: 'line', n: 7, d: 4, wholes: 2 } },
+    { ...blend('ruler-beyond-2', 'A ruler is marked in halves of an inch. The feather ends at the dot. How long is the feather in inches?', '2 1/2', 'Count the halves from 0 to the dot. 2 halves make 1 inch.', ['3.MD.4', '3.NF.2b'], 'mixed'),
+      model: { kind: 'line', n: 5, d: 2, wholes: 3 } },
+  ],
   'add-mixed-numbers': [
     blend('mixed-add-1', 'A rope is 1 3/8 meters long. Add 2/8 meter more. How long is it now?', '1 5/8', 'Add the eighths. The whole meter stays.', MIXED_LENGTH, 'mixed'),
     blend('mixed-add-2', 'A rope is 1 3/4 meters long. Add 2/4 meter more. How long is it now?', '2 1/4', 'Add the fourths. 4 fourths make a new whole.', MIXED_LENGTH, 'mixed'),
@@ -102,8 +111,8 @@ export const PLACEMENT_BLENDS: Record<string, WorksheetProblem[]> = {
   ],
   'line-plot-totals': [
     // Adding halves, fourths and eighths: unlike denominators in a story (5.NF.1, 5.NF.2) from measurements (5.MD.2).
-    blend('totals-mixed-1', 'Cups hold: 1/2, 1/4, 3/4 liter. How much water in all?', '1 2/4', 'Change 1/2 into fourths. Then add all the fourths.', ['5.MD.2', '5.NF.1', '5.NF.2'], 'mixed'),
-    blend('totals-mixed-2', 'Cups hold: 1/2, 3/8, 5/8 liter. How much water in all?', '1 4/8', 'Change 1/2 into eighths. Then add all the eighths.', ['5.MD.2', '5.NF.1', '5.NF.2'], 'mixed'),
+    blend('totals-mixed-1', 'Cups hold: 1/2, 1/4, 3/4 liter. How much water in all?', '1 2/4', 'Change 1/2 into fourths. Then add all the fourths.', ['5.MD.2', '5.NF.1', '5.NF.2'], 'mixed', plot(4, [2, 1, 3])),
+    blend('totals-mixed-2', 'Cups hold: 1/2, 3/8, 5/8 liter. How much water in all?', '1 4/8', 'Change 1/2 into eighths. Then add all the eighths.', ['5.MD.2', '5.NF.1', '5.NF.2'], 'mixed', plot(8, [4, 3, 5])),
   ],
   'fractional-unit-conversions': [
     // A fraction of 2 or 3 big units (5.NF.4a), changed to small units (5.MD.1), in a measurement story (4.MD.2).
@@ -115,6 +124,24 @@ export const PLACEMENT_BLENDS: Record<string, WorksheetProblem[]> = {
   'fractional-sharing': [
     blend('level-1', 'Three jars hold 2/4, 3/4, 3/4 liter. Share the total equally. How many liters go in each?', '2/3', 'Add them first: 8/4 is 2 liters. Then share 2 liters by 3.', ['5.NF.3', '5.MD.2'], undefined, plot(4, [2, 3, 3])),
     blend('level-2', 'Three cups hold 1/8, 3/8, 4/8 liter. Share the total equally. How many liters go in each?', '1/3', 'Add them first: 8/8 is 1 liter. Then share 1 liter by 3.', ['5.NF.3', '5.MD.2'], undefined, plot(8, [1, 3, 4])),
+  ],
+  // A unit fraction shared by a whole number (5.NF.7a) beside a whole number shared as a fraction (5.NF.3, earlier in unit 12).
+  'unit-fraction-divided-whole': [
+    blend('share-sign-1', 'Put <, = or > in the gap: 1/2 ÷ 2 __ 1 ÷ 4.', '=', 'Work out each side first. 1 ÷ 4 is 1 shared by 4.', ['5.NF.7a', '5.NF.3'], 'symbol'),
+    blend('share-sign-2', 'Put <, = or > in the gap: 1/3 ÷ 2 __ 1 ÷ 3.', '<', 'Work out each side first. 1 ÷ 3 is 1 shared by 3.', ['5.NF.7a', '5.NF.3'], 'symbol'),
+  ],
+  // A whole number cut into unit fractions (5.NF.7b) beside a whole number shared (5.NF.3) or a unit fraction shared (5.NF.7a).
+  'divide-whole-by-unit-fraction': [
+    blend('fit-sign-1', 'Put <, = or > in the gap: 3 ÷ 4 __ 3 ÷ 1/4.', '<', 'Work out each side first. 3 ÷ 1/4 asks how many fourths fit in 3.', ['5.NF.7b', '5.NF.3'], 'symbol'),
+    blend('fit-sign-2', 'Put <, = or > in the gap: 2 ÷ 1/3 __ 1/3 ÷ 2.', '>', 'Work out each side first. 2 ÷ 1/3 asks how many thirds fit in 2.', ['5.NF.7b', '5.NF.7a'], 'symbol'),
+  ],
+  // Stories (5.NF.7c) with two steps: share one whole (5.NF.3), then share each part (5.NF.7a); or share a unit fraction (5.NF.7a),
+  // then count how many of those parts fit in a whole number (5.NF.7b).
+  'share-or-fit': [
+    blend('share-twice-1', '4 friends share 1 cake equally. Each friend cuts a share into 2 equal pieces. What fraction of the cake is one small piece?', '1/8', 'First find one friend\'s share. Then cut it into 2.', ['5.NF.7c', '5.NF.3', '5.NF.7a']),
+    blend('share-twice-2', '3 friends share 1 pie equally. Each friend cuts a share into 2 equal pieces. What fraction of the pie is one small piece?', '1/6', 'First find one friend\'s share. Then cut it into 2.', ['5.NF.7c', '5.NF.3', '5.NF.7a']),
+    blend('pour-fill-1', 'Ana pours 1/2 liter of juice equally into 2 cups. How many cups that size hold 3 liters?', '12', 'First find how much one cup holds. Then count how many fit in 3 liters.', ['5.NF.7c', '5.NF.7a', '5.NF.7b']),
+    blend('pour-fill-2', 'Leo pours 1/3 liter of milk equally into 2 cups. How many cups that size hold 3 liters?', '18', 'First find how much one cup holds. Then count how many fit in 3 liters.', ['5.NF.7c', '5.NF.7a', '5.NF.7b']),
   ],
   'two-step-conversions': [
     blend('total-ml-1', 'Cups hold: 2/4, 1/4, 1/4 liter. How many milliliters in all?', '1000', 'Add the liters first. 1 liter is 1000 milliliters.', ['5.MD.1', '4.MD.2', '5.MD.2'], undefined, plot(4, [2, 1, 1])),

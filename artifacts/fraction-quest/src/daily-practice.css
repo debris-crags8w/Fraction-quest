@@ -115,3 +115,42 @@
 .fq-lantern-week .fq-oil-jar p { margin: 0; color: #EDEEF8; font-size: .92rem; line-height: 1.35; }
 .fq-oil-jar strong { color: #FFE27A; }
 .fq-oil-jar u { text-decoration-color: #FFE27A; text-underline-offset: 3px; }
+
+/* Phones: a whole daily question (Chomp's line, the question, its picture, every answer and Check, or the parts, the model
+   and Check) fits the part of the screen Safari shows, about 664 points on an iPhone, as a lesson question does. The same
+   tighter spacing, slimmer bars and shorter answer buttons as lesson questions (theme-pop.css); the picture fit in
+   DailyPractice.tsx shrinks a tall picture the rest of the way. */
+@media (max-width: 560px) {
+  .fq-daily-shell { padding: 4px 0 24px; }
+  .fq-daily-card { padding: 12px 14px 14px; }
+  .fq-daily-shell .fq-riddle-setup { margin: 0 0 4px; }
+  .fq-daily-shell .fq-riddle-setup p { padding: 5px 10px; font-size: .84rem; }
+  .fq-daily-topic { min-height: 24px; padding: 2px 10px; font-size: .76rem; }
+  .fq-daily-step-note { margin-top: 4px; padding: 2px 8px; font-size: .78rem; }
+  .fq-daily-card h2 { margin: 6px 0 2px; font-size: 1.25rem; line-height: 1.3; }
+  .fq-daily-picture { margin: 4px 0 6px; }
+  .fq-daily-picture .fq-visual-model { min-height: 0; gap: 6px; padding: 6px 10px; }
+  .fq-daily-picture svg { max-height: 24svh; }
+  .fq-daily-picture .fq-bar { height: 26px; }
+  .fq-daily-picture .fq-visual-bars { gap: 4px; }
+  .fq-daily-picture .fq-bar-model { gap: 5px; }
+  .fq-daily-picture .fq-bar-label { width: 44px; margin-top: 0; padding: 1px 5px; border-radius: 10px; font-size: .82rem; }
+  .fq-daily-picture .fq-bar-whole + .fq-bar-whole .fq-whole-bracket,
+  .fq-daily-picture .fq-visual-bar-row + .fq-visual-bar-row .fq-whole-bracket { display: none; }
+  .fq-daily-choices { gap: 4px; margin: 6px auto 6px; }
+  .fq-daily-choice { min-height: 44px; padding: 5px 12px; gap: 10px; font-size: 1.02rem; line-height: 1.25; }
+  .fq-daily-choice .fq-mfrac { font-size: .7em; line-height: 1; }
+  .fq-daily-choice .fq-choice-marker { flex-basis: 26px; width: 26px; height: 26px; font-size: .78rem; }
+  .fq-daily-actions { gap: 8px; margin-top: 6px; }
+  .fq-daily-actions .fq-button { min-height: 44px; }
+  /* Building: the parts to choose, the model and Check stay together. */
+  .fq-daily-instruction { margin-bottom: 6px; font-size: .88rem; line-height: 1.35; }
+  .fq-daily-choice-label { margin-bottom: 4px; font-size: .9rem; }
+  .fq-daily-parts { gap: 6px; margin-bottom: 8px; }
+  .fq-daily-parts-choice { min-width: 44px; min-height: 44px; }
+  .fq-daily-part { min-height: 44px; }
+  .fq-daily-count { margin-top: 6px; }
+  .fq-daily-line-track { height: 48px; }
+  /* Set by the picture fit when even the smallest picture leaves Check below the screen. */
+  .fq-daily-card.is-tight .fq-riddle-setup, .fq-daily-card.is-tight .fq-daily-topic { display: none; }
+}

@@ -162,8 +162,7 @@ describe('unit challenge skills', () => {
       'u2-p1': '3.NF.1: naming n of d equal parts on a picture, a review in the unit that teaches comparing',
       'u10-c5': '4.MD.2: a measurement story with fractions of a liter, from unit 9',
       'u13-c2': '4.NF.4b, 4.NF.4c: a fraction times a whole number in a story, from unit 9',
-      'u14-p1': '4.NF.6: the unit teaches percent, which the catalog has no standard for; each percent puzzle carries the fraction or decimal standard it converts',
-      'u14-c2': '4.NF.7, same', 'u14-c4': '4.NF.6, same',
+      'u14-c4': '4.NF.6: the unit teaches percent, which the catalog has no standard for; the garden story reads 0.3 as 3/10 before it converts',
     };
     const unjustified: string[] = [];
     for (const puzzle of PUZZLES) {

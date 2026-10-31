@@ -2183,6 +2183,10 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   /* Set by the picture fit when even the smallest picture leaves Check below the screen. */
   .fq-lesson-app .fq-play-card.is-tight .fq-story-say { display: none; }
   .fq-lesson-app .fq-play-card.is-tight .fq-model-area { margin: 2px 0; }
+  /* A long question with a tall picture (a line plot to make): the top line steps aside too (the dots above still show the
+     question number), and the question is a little smaller. */
+  .fq-lesson-app .fq-play-card.is-tight .fq-play-kicker { display: none; }
+  .fq-lesson-app .fq-play-card.is-tight h1 { font-size: 1.15rem; }
 }
 
 /* Number-line tick labels: 0, 1, 2… at the wholes and a small stacked fraction (1/5, 2/5…) at the other ticks. */

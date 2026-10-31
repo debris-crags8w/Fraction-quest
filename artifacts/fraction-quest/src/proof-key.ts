@@ -211,6 +211,8 @@ export const PROOF_KEY: Record<string, string> = {
   "Each bar is one whole. Which is the same as the shaded part?": "7 × 1/5",
   // u8-c8: 7/10 + 30/100 = 70/100 + 30/100 = 1; the others are 73/100, 37/100 and 7 3/10.
   "The big square is one whole. 7/10 of it is shaded. Which sum makes exactly 1 whole?": "7/10 + 30/100",
+  // u8-c9: 6 shaded columns are 0.60; only 0.65 is more (0.06, 0.58 and 0.5 are less).
+  "The big square is one whole. Which decimal is bigger than the shaded part?": "0.65",
   // u9-c7: 6 × 3/4 = 18/4 = 4 2/4.
   "One lap of the track is 3/4 mile, like the shaded bar. Ben runs 6 laps. How far does he run?": "4 2/4 miles",
   // u9-c8: three Xs at 3/8: 9/8.

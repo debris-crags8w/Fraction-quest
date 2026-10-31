@@ -121,7 +121,9 @@ function WorksheetPage({ missionId }: { missionId: string }) {
 
 /** A lesson model drawn in black and white for paper. `asked`: the picture belongs to a question, so, as on the screen,
     a bar that shows the answer (`untilAnswered`) is left off the page. */
-export function PrintModel({ model, labels = true, asked = false }: { model: ModelSpec; labels?: boolean; asked?: boolean }) {
+/** `oneBracket`: a stack of one-whole bars brackets only the last ("one whole" once), as the lesson pictures do, so a worksheet
+    question with three or four bars still fits a phone screen. */
+export function PrintModel({ model, labels = true, asked = false, oneBracket = false }: { model: ModelSpec; labels?: boolean; asked?: boolean; oneBracket?: boolean }) {
   const setLayout = model.kind === 'set' ? setModelLayout(model) : null;
   const bars = model.kind === 'bars' ? (asked ? model.bars.filter((bar) => !bar.untilAnswered) : model.bars) : [];
   const barLabelled = (bar: { named?: boolean }) => !!bar.named || (labels && bars.length > 1);
@@ -133,7 +135,8 @@ export function PrintModel({ model, labels = true, asked = false }: { model: Mod
       {model.kind === 'bars' && bars.map((bar, index) => (
         <div className="fq-print-bar-row" key={index}>
           <BarSvg n={bar.numerator} d={bar.denominator} wholes={Math.max(1, Math.ceil(bar.numerator / bar.denominator))} fraction={barLabelled(bar)}
-            labelSpace={bars.some(barLabelled)} />
+            labelSpace={bars.some(barLabelled)}
+            bracket={!oneBracket || index === bars.length - 1 || bars.some((item) => item.numerator > item.denominator)} />
         </div>
       ))}
       {model.kind === 'decimal' && <div className="fq-print-bar-row"><BarSvg n={model.tenths} d={10} />{labels && <b className="fq-print-decimal-value">{(model.tenths / 10).toFixed(1)}</b>}</div>}

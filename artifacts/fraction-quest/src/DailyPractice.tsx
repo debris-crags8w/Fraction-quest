@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowRight, Check, Sparkles } from 'lucide-react';
 import type { DailyPracticeAttempt, DailyPracticeSession, ModelSpec } from './game';
 import { dailyBuildCorrect, dailyBuildSpeech, dailyChoiceQuestion } from './daily-practice';
@@ -71,6 +71,38 @@ export default function DailyPractice({
   const current = question ? session.attempts[question.id] : undefined;
   useRevealWhen(nextRef, !!current?.answerCorrect);
   useRevealWhen(checkRef, !current?.answerCorrect && (current?.choice !== undefined || (!!current?.parts && (current?.shaded.length ?? 0) > 0)));
+  // Phones: the question, its picture, the answers and Check fit the screen Safari shows (about 664 points), as on a lesson
+  // question. Only the picture gives way: it shrinks by as much as the screen overflows, never below 60% (65% for a number
+  // line) nor 82 points tall.
+  const pictureRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return;
+    const fit = () => {
+      const area = pictureRef.current;
+      area?.style.removeProperty('zoom');
+      const check = checkRef.current;
+      const card = check?.closest('.fq-daily-card');
+      card?.classList.remove('is-tight');
+      if (window.innerWidth > 560 || !check || !card) return;
+      const top = card.closest('.fq-daily-shell')?.getBoundingClientRect().top ?? 0;
+      const over = () => check.getBoundingClientRect().bottom - top + 8 - window.innerHeight;
+      let overflow = over();
+      if (overflow <= 0) return;
+      const height = area?.getBoundingClientRect().height ?? 0;
+      const least = Math.max(topicQuestion?.model.kind === 'line' ? 0.65 : 0.6, 82 / Math.max(height, 1));
+      // When even the smallest picture (or a build question, which has none to shrink) leaves Check below the screen,
+      // Chomp's line and the topic step aside first (as the friend's line does on a lesson question).
+      if (height * (1 - least) < overflow) {
+        card.classList.add('is-tight');
+        overflow = over();
+        if (overflow <= 0 || !area) return;
+      }
+      area?.style.setProperty('zoom', String(Math.min(1, Math.max(least, (height - overflow) / height))));
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [question?.id, topicQuestion, current?.parts]);
   // A missed topic question: Hoot names the slip when it can (else the hint), and it is read aloud with sound on.
   const fun = useOptionalFun()?.fun;
   const sound = fun?.sound ?? true;
@@ -149,7 +181,7 @@ export default function DailyPractice({
     };
     return shell(<>
       {questionHeader}
-      {renderModel && <div className="fq-daily-picture">{renderModel(topicQuestion.model, done)}</div>}
+      {renderModel && <div ref={pictureRef} className="fq-daily-picture">{renderModel(topicQuestion.model, done)}</div>}
       <div className="fq-daily-choices" role="radiogroup" aria-label="Answer choices" onKeyDown={radioArrows}>
         {topicQuestion.choices.map((choice, index) => (
           <button key={index} type="button" role="radio" aria-checked={attempt.choice === index} disabled={done} tabIndex={tabStop(attempt.choice === index, index, attempt.choice !== undefined)}

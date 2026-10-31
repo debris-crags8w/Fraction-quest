@@ -90,7 +90,7 @@ describe('Find my level asks about every part of units 1–12', () => {
         assert.ok(problem.standards!.includes(standardsForMission(id)[0]), `${id}: ${problem.prompt} asks its own lesson's standard`);
         for (const standard of problem.standards!) assert.ok(taughtBy.has(standard), `${id}: ${standard} is not taught by then`);
         assert.ok(answerMatches(problem, problem.answer), `${id}: ${problem.prompt}`);
-        const result = prove({ source: 'Find my level', lesson: id, prompt: problem.prompt, answer: problem.answer, pictures: [] });
+        const result = prove({ source: 'Find my level', lesson: id, prompt: problem.prompt, answer: problem.answer, pictures: problem.model ? [problem.model as never] : [] });
         assert.ok(result?.ok, `${id}: ${problem.prompt}: ${result && !result.ok ? result.why : 'no proof rule'}`);
       }
     }
@@ -108,14 +108,38 @@ describe('Find my level asks about every part of units 1–12', () => {
     assert.deepEqual([...missing].slice(0, 8), [], `${missing.size} questions show no picture`);
   });
 
-  it('asks line plots (4.MD.4, 5.MD.2), groups of a unit fraction (4.NF.4a), tenths plus hundredths (4.NF.5) and comparing decimals (4.NF.7) in most quizzes', () => {
+  it('draws a line plot for every row that claims a line-plot standard (4.MD.4, 5.MD.2), from the amounts it lists', () => {
+    const bare: string[] = [];
+    const rows = [...Object.entries(PLACEMENT_EXTRAS), ...Object.entries(PLACEMENT_BLENDS)].flatMap(([id, list]) => list.map((problem) => ({ id, problem })));
+    for (const { id, problem } of rows) {
+      if (!problem.standards?.some((standard) => standard === '4.MD.4' || standard === '5.MD.2')) continue;
+      const picture = placementPicture(problem);
+      if (picture?.kind !== 'picture' || picture.picture.kind !== 'lineplot') { bare.push(`${id}: ${problem.prompt}`); continue; }
+      const { denominator, values } = picture.picture;
+      // The amounts are listed in the first sentence ("Cups hold: 2/8, 2/8, 5/8, 5/8 liter.").
+      const listed = (problem.prompt.split(/[.?] /)[0]!.match(/\d+\/\d+/g) ?? []).map((amount) => answerValue(amount));
+      assert.deepEqual(values.map((tick) => tick / denominator), listed, `${id}: the plot draws the amounts the question lists`);
+    }
+    assert.deepEqual(bare, [], 'line-plot rows with no line plot drawn');
+  });
+
+  it('asks line plots, groups of a unit fraction, tenths plus hundredths, comparing decimals, dividing with unit fractions, a fraction as a division and measuring with a ruler in most quizzes, counting only what the question shows', () => {
     // Each sits in one or two lessons of a long unit, so a 3-question quiz used to ask them in only a third of quizzes (main: 10-13 of 30).
-    const rare = ['4.MD.4', '5.MD.2', '4.NF.4a', '4.NF.5', '4.NF.7'];
+    // A line-plot standard counts only when a line plot is drawn, and measuring (3.MD.4) only when the ruler's number line or a line plot is.
+    const rare = ['4.MD.4', '5.MD.2', '4.NF.4a', '4.NF.5', '4.NF.7', '5.NF.7a', '5.NF.7b', '5.NF.3', '3.MD.4'];
+    const shown = (standard: string, item: { problem: Parameters<typeof placementPicture>[0] }) => {
+      const picture = placementPicture(item.problem);
+      if (standard === '4.MD.4' || standard === '5.MD.2') return picture?.kind === 'picture' && picture.picture.kind === 'lineplot';
+      if (standard === '3.MD.4') return (picture?.kind === 'model' && picture.model.kind === 'line') || (picture?.kind === 'picture' && picture.picture.kind === 'lineplot');
+      return true;
+    };
     const asked = Object.fromEntries(rare.map((standard) => [standard, 0]));
     const QUIZZES = 360; // a whole number of turns of every third's rotation, so the count is not biased by where the seeds start
     for (let seed = 1; seed <= QUIZZES; seed++) {
       const quiz = new Set<string>();
-      for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (const item of placementItems(unit, seed)) (item.problem.standards ?? standardsForMission(item.missionId)).forEach((standard) => quiz.add(standard));
+      for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (const item of placementItems(unit, seed)) {
+        (item.problem.standards ?? standardsForMission(item.missionId)).filter((standard) => shown(standard, item)).forEach((standard) => quiz.add(standard));
+      }
       for (const standard of rare) if (quiz.has(standard)) asked[standard]++;
     }
     const thin = rare.filter((standard) => asked[standard] <= QUIZZES / 2).map((standard) => `${standard} in ${asked[standard]} of ${QUIZZES}`);
