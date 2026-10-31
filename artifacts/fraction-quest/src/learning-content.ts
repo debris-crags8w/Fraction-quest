@@ -1163,6 +1163,7 @@ function transferTarget(id: string, n: number, d: number, kind: LearningModel['k
     Lessons that share a skill family still get their own sheet (different question types). */
 /** The standards one worksheet row really tests: the lesson's list, less the ones a row of this kind does not reach, so a Check-in
     credits a standard only for a question that asks it. A row left with none (a stretch question) is not asked in a Check-in. */
+const bareEquation = (prompt: string) => /^[\d/ +−÷×-]+= \?$/.test(prompt);
 function rowStandards(id: string, row: WorksheetProblem): string[] {
   const all = [...standardsForMission(id)];
   const keep = (standard: string, test: boolean) => all.filter(item => item !== standard || test);
@@ -1179,6 +1180,16 @@ function rowStandards(id: string, row: WorksheetProblem): string[] {
     case 'multiply-whole-by-fraction': return keep('4.NF.4a', /^\d+ × 1\/\d+ = \?$/.test(row.prompt));
     // 5.NF.7b counts unit fractions in a whole: the part must be 1/b of it (2/3 or 3/5 of it are stretch questions).
     case 'find-the-whole': return keep('5.NF.7b', /(?:^|\D)1\/\d+/.test(row.prompt));
+    // 4.NF.3d is word problems: the rope, ribbon and tape stories, not "1/3 + 1/3 = ?".
+    case 'add-like-denominators': case 'subtract-like-denominators': return keep('4.NF.3d', !bareEquation(row.prompt));
+    // 5.NF.7a shares a unit fraction by a whole number ("1/4 ÷ 2", "1/2 pound ... shared by 3"); 5.NF.7b cuts a whole number into
+    // unit fractions ("2 ÷ 1/6", "How many 1/3-cup scoops ..."); 5.NF.7c is the story rows.
+    case 'share-or-fit': {
+      const unitByWhole = /^1\/\d+ ÷ \d+ = \?$/.test(row.prompt) || /\bshared by \d+ /.test(row.prompt);
+      return all.filter(item => (item !== '5.NF.7a' || unitByWhole) && (item !== '5.NF.7b' || !unitByWhole) && (item !== '5.NF.7c' || !bareEquation(row.prompt)));
+    }
+    // 5.NF.2 adds and takes away fractions: the pizza rows (what fraction is left). The sticker rows only multiply and count.
+    case 'fraction-of-remainder': return keep('5.NF.2', row.answer.includes('/'));
     default: return all;
   }
 }

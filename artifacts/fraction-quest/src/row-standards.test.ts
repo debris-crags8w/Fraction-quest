@@ -60,6 +60,47 @@ describe('a worksheet row carries the standards it really tests, not the whole l
   });
 });
 
+describe('word-problem and division standards sit only on the rows that ask them', () => {
+  const bare = (prompt: string) => /^[\d/ +−÷×-]+= \?$/.test(prompt);
+
+  it('4.NF.3d (word problems) is claimed only by the story rows of add-like and subtract-like denominators, never "1/3 + 1/3 = ?"', () => {
+    for (const id of ['add-like-denominators', 'subtract-like-denominators']) {
+      let story = 0; let plain = 0;
+      for (const row of rowsOf(id)) {
+        if (bare(row.prompt)) plain++; else story++;
+        assert.equal(has(row, '4.NF.3d'), !bare(row.prompt), `${id}: ${row.prompt}`);
+        assert.ok(has(row, '4.NF.3a'), `${id}: ${row.prompt}`);
+      }
+      assert.ok(story > 0 && plain > 0, id);
+    }
+  });
+
+  it('share-or-fit: a unit fraction shared by a whole number is 5.NF.7a, a whole number cut into unit fractions is 5.NF.7b, a story is 5.NF.7c', () => {
+    const counts = { a: 0, b: 0, c: 0 };
+    for (const row of rowsOf('share-or-fit')) {
+      const a = /^1\/\d+ ÷ \d+ = \?$/.test(row.prompt) || /^1\/\d+ [a-z ]+ is shared by \d+ /.test(row.prompt);
+      const b = /^\d+ ÷ 1\/\d+ = \?$/.test(row.prompt) || /^How many 1\/\d+-[a-z]+ [a-z]+ (do|does) \d+ /.test(row.prompt);
+      assert.ok(a !== b, `share-or-fit row is neither or both: ${row.prompt}`);
+      assert.equal(has(row, '5.NF.7a'), a, row.prompt);
+      assert.equal(has(row, '5.NF.7b'), b, row.prompt);
+      assert.equal(has(row, '5.NF.7c'), !bare(row.prompt), row.prompt);
+      if (a) counts.a++; if (b) counts.b++; if (!bare(row.prompt)) counts.c++;
+    }
+    assert.ok(counts.a && counts.b && counts.c, JSON.stringify(counts));
+  });
+
+  it('fraction-of-remainder claims 5.NF.2 (adding and taking away fractions) only where the answer is a fraction, not the sticker counts', () => {
+    let fraction = 0; let count = 0;
+    for (const row of rowsOf('fraction-of-remainder')) {
+      const isFraction = row.answer.includes('/');
+      if (isFraction) fraction++; else count++;
+      assert.equal(has(row, '5.NF.2'), isFraction, row.prompt);
+      assert.ok(has(row, '5.NF.6'), row.prompt);
+    }
+    assert.ok(fraction > 0 && count > 0);
+  });
+});
+
 describe('Check-ins', () => {
   const definitions = getAssessmentDefinitions();
   const seeds = Array.from({ length: 30 }, (_, k) => 11 + k * 37);

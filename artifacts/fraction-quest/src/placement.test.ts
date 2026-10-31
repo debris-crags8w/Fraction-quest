@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { MISSIONS, PLACEMENT_UNITS } from './game';
 import { answerMatches, getWorksheet } from './learning-content';
-import { PER_UNIT, placementItems } from './placement';
+import { PER_UNIT, placementItems, placementPicture } from './placement';
 import { PLACEMENT_BLENDS, PLACEMENT_EXTRAS } from './placement-extras';
 import { prove } from './proof';
 import { standardsForMission } from './standard-catalog';
@@ -94,5 +94,31 @@ describe('Find my level asks about every part of units 1–12', () => {
         assert.ok(result?.ok, `${id}: ${problem.prompt}: ${result && !result.ok ? result.why : 'no proof rule'}`);
       }
     }
+  });
+
+  it('draws the picture every question needs: a row that carries its line, grid or coins in `picture` shows it', () => {
+    // "What decimal is at the dot?" keeps its number line in `picture` and has no model: the quiz used to show the bare words.
+    const needs = /at the dot|shaded|colou?red|picture|shown|grid|pizza|dimes|pennies|beads/i;
+    const missing = new Set<string>();
+    for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (let seed = 1; seed <= 120; seed++) for (const item of placementItems(unit, seed)) {
+      const drawn = placementPicture(item.problem);
+      if (item.problem.picture && drawn?.kind !== 'picture' && !item.problem.model && !item.problem.area) missing.add(`unit ${unit} ${item.missionId}: ${item.problem.prompt}`);
+      if (needs.test(item.problem.prompt) && !drawn) missing.add(`unit ${unit} ${item.missionId}: ${item.problem.prompt} (no picture at all)`);
+    }
+    assert.deepEqual([...missing].slice(0, 8), [], `${missing.size} questions show no picture`);
+  });
+
+  it('asks line plots (4.MD.4, 5.MD.2), groups of a unit fraction (4.NF.4a), tenths plus hundredths (4.NF.5) and comparing decimals (4.NF.7) in most quizzes', () => {
+    // Each sits in one or two lessons of a long unit, so a 3-question quiz used to ask them in only a third of quizzes (main: 10-13 of 30).
+    const rare = ['4.MD.4', '5.MD.2', '4.NF.4a', '4.NF.5', '4.NF.7'];
+    const asked = Object.fromEntries(rare.map((standard) => [standard, 0]));
+    const QUIZZES = 360; // a whole number of turns of every third's rotation, so the count is not biased by where the seeds start
+    for (let seed = 1; seed <= QUIZZES; seed++) {
+      const quiz = new Set<string>();
+      for (let unit = 1; unit <= PLACEMENT_UNITS; unit++) for (const item of placementItems(unit, seed)) (item.problem.standards ?? standardsForMission(item.missionId)).forEach((standard) => quiz.add(standard));
+      for (const standard of rare) if (quiz.has(standard)) asked[standard]++;
+    }
+    const thin = rare.filter((standard) => asked[standard] <= QUIZZES / 2).map((standard) => `${standard} in ${asked[standard]} of ${QUIZZES}`);
+    assert.deepEqual(thin, []);
   });
 });

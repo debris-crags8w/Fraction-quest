@@ -25,19 +25,28 @@ const askableRows = (missionId: string) => {
   return [...(rows.length ? rows : PLACEMENT_EXTRAS[missionId] ?? []), ...(PLACEMENT_BLENDS[missionId] ?? [])];
 };
 const rowStandards = (missionId: string, problem: WorksheetProblem) => problem.standards ?? standardsForMission(missionId);
+const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
 /** Every standard some row of the lesson can ask. */
 const lessonStandards = (missionId: string) => [...new Set([...standardsForMission(missionId), ...askableRows(missionId).flatMap((problem) => rowStandards(missionId, problem))])];
 
 /** The lessons a unit's three questions come from: one from each third of the unit (its start, middle and end), so the
-    quiz still spans the unit. Which lesson of a third rotates with `seed`, and a lesson that brings a standard the earlier
-    picks have not asked is preferred, so over many quizzes every lesson, and so every standard, is asked. */
+    quiz still spans the unit. Which lesson of a third rotates with `seed`, each of the third's standards taking an equal share of
+    the turns, and a lesson that brings a standard the earlier picks have not asked is preferred, so over many quizzes every
+    lesson, and so every standard, is asked. */
 export function placementLessons(unit: number, seed: number): Mission[] {
   const lessons = MISSIONS.filter((mission) => mission.unit === unit && askableRows(mission.id).length > 0);
   const size = lessons.length;
+  const groups = Array.from({ length: PER_UNIT }, (_, third) => lessons.slice(Math.floor((third * size) / PER_UNIT), Math.floor(((third + 1) * size) / PER_UNIT)));
   const picks: Mission[] = []; const covered = new Set<string>();
   for (let third = 0; third < PER_UNIT; third++) {
-    const group = lessons.slice(Math.floor((third * size) / PER_UNIT), Math.floor(((third + 1) * size) / PER_UNIT));
-    const options = (group.length ? group : lessons).map((_, k, list) => list[(seed + third + k) % list.length]);
+    const group = groups[third].length ? groups[third] : lessons;
+    // Each standard the third can ask gets an equal share of the turns, split between the lessons that ask it. So a standard
+    // taught in one lesson of a long unit (4.NF.4a, 4.NF.5) is asked as often as one that five lessons teach.
+    const thirdStandards = [...new Set(group.flatMap((mission) => lessonStandards(mission.id)))].sort();
+    const askers = thirdStandards.map((standard) => group.filter((mission) => lessonStandards(mission.id).includes(standard)));
+    const share = askers.reduce((lcm, list) => lcm * list.length / gcd(lcm, list.length), 1);
+    const turns = askers.flatMap((list) => list.flatMap((mission) => Array.from({ length: share / list.length }, () => mission)));
+    const options = turns.map((_, k, list) => list[(seed + third + k) % list.length]);
     const pick = options.find((mission) => lessonStandards(mission.id).some((standard) => !covered.has(standard))) ?? options[0];
     lessonStandards(pick.id).forEach((standard) => covered.add(standard));
     picks.push(pick);
@@ -52,7 +61,8 @@ export function placementItems(unit: number, seed: number): PlacementItem[] {
   const covered = new Set<string>(); // standards the questions so far ask
   return placementLessons(unit, seed).map((mission) => {
     const sheet = askableRows(mission.id);
-    // Prefer rows that need no picture; fall back to any row (its picture is shown, read-only).
+    // Prefer rows with no model to read; fall back to any row (its picture is shown, read-only). Rows that carry a `picture`
+    // count as plain too: the quiz draws it (placementPicture).
     const plain = sheet.filter((problem) => !problem.model && !problem.area);
     const pool = plain.length >= 3 ? plain : sheet;
     const fresh = pool.filter((problem) => !asked.has(`${problem.prompt}|${problem.answer}`));
@@ -64,6 +74,17 @@ export function placementItems(unit: number, seed: number): PlacementItem[] {
     rowStandards(mission.id, problem).forEach((standard) => covered.add(standard));
     return { unit, missionId: mission.id, problem };
   });
+}
+
+/** What the quiz draws above a question: the row's own model (bar, line or set), its area figure, or the picture it carries. */
+export type PlacementPicture = { kind: 'model'; model: NonNullable<WorksheetProblem['model']> } | { kind: 'area'; area: NonNullable<WorksheetProblem['area']> }
+  | { kind: 'picture'; picture: NonNullable<WorksheetProblem['picture']> };
+export function placementPicture(problem: WorksheetProblem): PlacementPicture | null {
+  if (problem.model) return { kind: 'model', model: problem.model };
+  if (problem.area) return { kind: 'area', area: problem.area };
+  // A number line with a dot, hundredths grids, coins, pizzas: the row keeps its picture here, and the question needs it.
+  if (problem.picture) return { kind: 'picture', picture: problem.picture };
+  return null;
 }
 
 /** Where to start, given how many units in a row were passed from unit 1. */

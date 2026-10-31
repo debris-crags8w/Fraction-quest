@@ -6,7 +6,8 @@ import { LearningListenButton } from './LearningText';
 import { Mascot } from './fun-ui';
 import { BarSvg, LineSvg, SetSvg } from './models';
 import { AreaSvg } from './AreaModel';
-import { PER_UNIT, PLACEMENT_UNITS, placementItems, startUnit } from './placement';
+import { PER_UNIT, PLACEMENT_UNITS, placementItems, placementPicture, startUnit } from './placement';
+import { PrintModel } from './Printables';
 import { YesNoCards } from './YesNoCards';
 import { AnswerTiles } from './AnswerTiles';
 import { answerShape } from './answer-shape';
@@ -14,10 +15,17 @@ import { useRevealWhen, useScrollTopOn } from './lib/reveal';
 
 /* "Find my level": a short quiz answered with tiles, unit by unit, that stops at the first unit not yet known. */
 
+/** In development only, `?placementSeed=12` fixes which questions the quiz asks, so a browser test can walk a known quiz. */
+const devSeed = (): number | null => {
+  if (!import.meta.env.DEV || typeof window === 'undefined') return null;
+  const value = Number(new URLSearchParams(window.location.search).get('placementSeed'));
+  return Number.isInteger(value) && value > 0 ? value : null;
+};
+
 export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
   unitTitles: string[]; onDone: (unitsPassed: number) => void; onExit: () => void;
 }) {
-  const [seed] = useState(() => 1 + Math.floor(Math.random() * 100000));
+  const [seed] = useState(() => devSeed() ?? 1 + Math.floor(Math.random() * 100000));
   const [phase, setPhase] = useState<'intro' | 'quiz' | 'result'>('intro');
   const [unit, setUnit] = useState(1);
   const [index, setIndex] = useState(0);
@@ -74,7 +82,7 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
     );
   }
 
-  const m = item.problem.model;
+  const drawn = placementPicture(item.problem);
   const question = isYesNoProblem(item.problem) ? yesNoPrompt(item.problem) : paperPrompt(item.problem, true);
   return (
     <div className="fq-app"><main className="fq-shell fq-place fq-appear" data-testid="placement-quiz">
@@ -89,17 +97,20 @@ export default function PlacementQuiz({ unitTitles, onDone, onExit }: {
           <h2 data-testid="text-placement-question"><MathText text={question} /></h2>
           <LearningListenButton text={question} label="Listen to the question" compact />
         </div>
-        {m && <div className="fq-place-model">{m.kind === 'line' ? <LineSvg n={m.n} d={m.d} wholes={m.wholes} jumps={false} /> : m.kind === 'set' ? <SetSvg n={m.n} d={m.d} total={m.total ?? m.d} /> : <BarSvg n={m.n} d={m.d} wholes={m.wholes} sizes={m.sizes} />}</div>}
-        {item.problem.area && <div className="fq-place-model"><AreaSvg figure={item.problem.area} /></div>}
+        {drawn?.kind === 'model' && <div className="fq-place-model">{drawn.model.kind === 'line' ? <LineSvg n={drawn.model.n} d={drawn.model.d} wholes={drawn.model.wholes} jumps={false} /> : drawn.model.kind === 'set' ? <SetSvg n={drawn.model.n} d={drawn.model.d} total={drawn.model.total ?? drawn.model.d} /> : <BarSvg n={drawn.model.n} d={drawn.model.d} wholes={drawn.model.wholes} sizes={drawn.model.sizes} />}</div>}
+        {drawn?.kind === 'area' && <div className="fq-place-model"><AreaSvg figure={drawn.area} /></div>}
+        {drawn?.kind === 'picture' && <div className="fq-place-model fq-place-picture" data-testid="placement-picture"><PrintModel model={drawn.picture} labels={false} /></div>}
         <form onSubmit={submit} className="fq-place-form">
           {isYesNoProblem(item.problem) ? (
             <YesNoCards value={draft} onChange={setDraft} testIdPrefix="placement" />
           ) : (
             <AnswerTiles key={`${unit}-${index}`} shape={answerShape(item.problem)} value={draft} onChange={setDraft} testIdPrefix="placement" />
           )}
-          <button ref={nextRef} type="submit" className="fq-button" disabled={!draft.trim()} data-testid="button-placement-next">Next <ArrowRight size={17} /></button>
+          <div className="fq-place-actions">
+            <button ref={nextRef} type="submit" className="fq-button" disabled={!draft.trim()} data-testid="button-placement-next">Next <ArrowRight size={17} /></button>
+            <button type="button" className="fq-button ghost fq-place-skip" onClick={() => record(false)} data-testid="button-placement-unknown">I haven't learned this yet</button>
+          </div>
         </form>
-        <button type="button" className="fq-button ghost fq-place-skip" onClick={() => record(false)} data-testid="button-placement-unknown">I haven't learned this yet</button>
       </section>
     </main></div>
   );

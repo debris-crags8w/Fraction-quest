@@ -9,6 +9,7 @@ import { WebView, type WebViewMessageEvent, type WebViewNavigation } from 'react
 import { useStoreSubscription } from '@/lib/store';
 import { useReminders } from '@/lib/use-reminders';
 import { isAppPage, parseShellMessage, shellInfoScript, webAppUrl } from '@/lib/web-app';
+import { playHaptic, startLoadTimer, type HapticsModule } from '@/lib/shell';
 
 /* Fraction Quest on iPhone: a native shell around the live web app. Every lesson and screen comes from the web app,
    so a change there shows up here on the next launch (no app rebuild). The shell adds what a website can't do on
@@ -25,7 +26,7 @@ export default function FractionQuestShell() {
   // `never`; naming it (no extra props) restores the real props.
   const web = useRef<WebView<object>>(null);
   const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState<false | 'offline' | 'slow'>(false);
   const [wifi, setWifi] = useState(false);
 
   // Wi-Fi or not: the page downloads the whole voice pack only on Wi-Fi.
@@ -53,16 +54,7 @@ export default function FractionQuestShell() {
     const message = parseShellMessage(event.nativeEvent.data);
     if (!message) return;
     if (message.type === 'haptic') {
-      const feedback = message.cue === 'selection'
-        ? Haptics.selectionAsync()
-        : message.cue === 'retry'
-          ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning)
-          : message.cue === 'complete'
-            ? Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
-            : message.cue === 'impact' // a big story moment: the stone cracking, a splash, a falling plank
-              ? Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
-              : Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      void feedback.catch(() => { /* haptics are optional and may be unavailable on this device */ });
+      void playHaptic(message.cue, Haptics as unknown as HapticsModule);
     } else if (message.type === 'print') {
       void Print.printAsync({ html: message.html }).catch(() => { /* the child closed the sheet */ });
     } else if (message.type === 'subscription') {
@@ -79,6 +71,11 @@ export default function FractionQuestShell() {
   }, []);
 
   const retry = () => { setFailed(false); setLoading(true); web.current?.reload(); };
+  // A first load that stalls (no connection yet, a very slow line) stops waiting and offers "Try again".
+  useEffect(() => {
+    if (!loading || failed || Platform.OS === 'web') return;
+    return startLoadTimer(() => setFailed('slow'));
+  }, [loading, failed]);
 
   if (!APP_URL) {
     return (
@@ -88,10 +85,13 @@ export default function FractionQuestShell() {
   if (Platform.OS === 'web') return <Message icon="external-link" title="Opening Fraction Quest…" body={APP_URL} />;
 
   return (
+    // The shell owns the safe area (the notch and the home bar); the page adds no inset of its own in the app (fq-in-app).
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       {/* Android draws under the status bar now (edge to edge), so it has no colour of its own. */}
       <StatusBar barStyle="dark-content" />
-      {failed ? (
+      {failed === 'slow' ? (
+        <Message icon="clock" title="This is taking a long time" body="The internet may be slow right now. Let's try again." action="Try again" onAction={retry} />
+      ) : failed ? (
         <Message icon="wifi-off" title="Can't reach Fraction Quest" body="Check the internet connection, then try again." action="Try again" onAction={retry} />
       ) : (
         <WebView<object>
@@ -103,8 +103,8 @@ export default function FractionQuestShell() {
           injectedJavaScriptBeforeContentLoaded={shellInfoScript(Platform.OS, wifi, subscription, extras)}
           onShouldStartLoadWithRequest={onNavigate}
           onLoadEnd={() => { setLoading(false); tellPage(); }}
-          onError={() => setFailed(true)}
-          onHttpError={(event) => { if (event.nativeEvent.statusCode >= 500) setFailed(true); }}
+          onError={() => setFailed('offline')}
+          onHttpError={(event) => { if (event.nativeEvent.statusCode >= 500) setFailed('offline'); }}
           // Read-aloud: let the natural voice and the device voice play inside the app.
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}

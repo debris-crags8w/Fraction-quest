@@ -1565,20 +1565,17 @@ export const LESSON_SCENES: Record<string, LessonScene> = {
       play([
         { kind: 'line', max: 2, spaces: 3, cut: true, label: '2/3 × 9 = 6: less than 9', hidden: true },
         { kind: 'line', max: 2, spaces: 3, cut: true, label: '4/3 × 9 = 12: more than 9', hidden: true },
-        { kind: 'text', text: 'And 3/3 is 1, so 3/3 × 9 = 9.', hidden: true },
       ],
       [400, { 0: { hidden: false } }],
       [500, { 0: { stretch: 2 } }],
       [400, { 1: { hidden: false } }],
-      [500, { 1: { stretch: 4 } }],
-      [500, { 2: { hidden: false } }]),
+      [500, { 1: { stretch: 4 } }]),
     ],
     why: play([
+      // The page's own sentence says "Part of a copy is less. More than a copy is more.", so the scene does not repeat it.
       { kind: 'line', max: 2, spaces: 3, cut: true, stretch: 3, label: 'One copy of 9', marks: [{ at: 2, label: '2/3' }, { at: 4, label: '4/3' }], hidden: true },
-      { kind: 'text', text: 'Part of a copy is less. More than a copy is more.', hidden: true },
     ],
-    [400, { 0: { hidden: false } }],
-    [400, { 1: { hidden: false } }]),
+    [400, { 0: { hidden: false } }]),
   },
   // Unit 12 · Measure and share
   'fraction-of-length': {
