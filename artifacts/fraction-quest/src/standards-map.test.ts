@@ -47,8 +47,8 @@ describe('standards map', () => {
     assert.deepEqual(Object.keys(CHALLENGE_STANDARDS).sort(), puzzles.map((puzzle) => puzzle.id).sort(), 'one tag list per puzzle');
     const known = new Set(FRACTION_STANDARDS.map((standard) => standard.id));
     for (const puzzle of puzzles) for (const standard of puzzle.standards ?? []) assert.ok(known.has(standard as never), `${puzzle.id}: ${standard}`);
-    // Only the chance puzzles go past the grade 3–5 standards.
-    assert.deepEqual(puzzles.filter((puzzle) => !puzzle.standards?.length).map((puzzle) => puzzle.id), ['u13-p1', 'u13-c1', 'u13-c4']);
+    // Only the chance puzzles and the percent puzzles go past the grade 3–5 standards.
+    assert.deepEqual(puzzles.filter((puzzle) => !puzzle.standards?.length).map((puzzle) => puzzle.id), ['u13-p1', 'u13-c1', 'u13-c4', 'u14-p1', 'u14-c2', 'u14-c3']);
     const asked = new Set(puzzles.flatMap((puzzle) => puzzle.standards ?? []));
     assert.deepEqual(FRACTION_STANDARDS.filter((standard) => !asked.has(standard.id)).map((standard) => standard.id), [], 'standards no challenge asks about');
     // A puzzle only asks about what the course has taught by the end of its unit.
@@ -59,6 +59,15 @@ describe('standards map', () => {
       for (const standard of puzzle.standards ?? []) if (!taught.has(standard)) missing.push(`${puzzle.id}: ${standard}`);
     }
     assert.deepEqual(missing, [], 'tags not yet taught by the puzzle\'s unit');
+  });
+
+  it('tags the unit 14 percent puzzles only with grade 4 work they really ask', () => {
+    // Percent is not a grade 3-5 standard. "40% shaded", "17/20 = 85%" (20 is not a grade 4 denominator) and "order 0.6, 1/2, 55%"
+    // carry none. "3/4 = 75/100" renames fourths as hundredths (4.NF.1); the two stories add or take away tenths (4.NF.3d).
+    assert.deepEqual(CHALLENGE_STANDARDS['u14-p1'], []);
+    assert.deepEqual(CHALLENGE_STANDARDS['u14-c2'], []);
+    assert.deepEqual(CHALLENGE_STANDARDS['u14-c3'], []);
+    assert.deepEqual(CHALLENGE_STANDARDS['u14-c1'], ['4.NF.1']);
   });
 
   it('asks every standard in the challenge map in at least two different puzzles', () => {

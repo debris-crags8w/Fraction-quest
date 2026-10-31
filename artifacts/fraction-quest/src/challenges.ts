@@ -305,6 +305,12 @@ export const CHALLENGE_ALTERNATES: Record<string, ChallengeQuestion> = {
     { kind: 'bars', bars: [{ n: 5, d: 5 }, { n: 2, d: 5 }] },
     { 0: '2 counts the bars. Count the shaded parts instead.', 1: 'The numbers are swapped. Which number tells the size of one part?',
       3: 'Each bar is a whole by itself. Its parts are fifths, not tenths.' }),
+  // 4.NF.7: compare two decimals by thinking of both as hundredths.
+  'u8-c3': puzzle('u8-c9', 4, 'The big square is one whole. Which decimal is bigger than the shaded part?', ['0.06', '0.58', '0.65', '0.5'], 2,
+    'The shaded part is 6 tenths. That is 0.60, or 60 hundredths. 0.65 is 65 hundredths, and 65 is more than 60.',
+    { kind: 'grid', rows: 10, cols: 10, shaded: Array.from({ length: 100 }, (_, i) => i).filter((i) => i % 10 < 6) },
+    { 0: '0.06 is only 6 small squares. The shaded part is 6 whole columns.', 1: '0.58 is 58 hundredths. The shaded part is 60 hundredths.',
+      3: '0.5 is 5 columns. The shaded part has 6 columns.' }),
   // 4.NF.5: tenths as hundredths, to add them.
   'u8-c1': puzzle('u8-c8', 3, 'The big square is one whole. 7/10 of it is shaded. Which sum makes exactly 1 whole?', ['7/10 + 3/100', '7/100 + 3/10', '7/10 + 30/100', '70/10 + 30/100'], 2,
     '30/100 is the same as 3/10. 7/10 + 3/10 = 10/10, which is 1 whole.',

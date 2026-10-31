@@ -2404,7 +2404,7 @@ describe('unit challenges', () => {
     'u14-p1': '40%', 'u14-c1': `${(3 / 4) * 100}%`, 'u14-c2': '1/2, 55%, 0.6', 'u14-c3': `${(17 / 20) * 100}%`, 'u14-c4': `${100 - 40 - 30}%`, 'u14-c5': `${10 - 3 - 4}0%`,
     // Second puzzles for single-puzzle standards, worked out here.
     'u1-c6': 'They cover the same space', 'u4-c6': `${Math.floor(9 / 4)} ${9 % 4}/4 inches`, 'u7-c6': `${3 * 4}/4`, 'u8-c6': `${7 - 3}/8`,
-    'u8-c7': `${5 + 2} × 1/5`, 'u8-c8': ['7/10 + 3/100', '7/100 + 3/10', '7/10 + 30/100', '70/10 + 30/100'].find((sum) => { const [a, b] = sum.split(' + ').map((f) => { const [t, d] = f.split('/').map(Number); return t / d; }); return Math.abs(a + b - 1) < 1e-9; })!,
+    'u8-c7': `${5 + 2} × 1/5`, 'u8-c9': ['0.06', '0.58', '0.65', '0.5'].find((decimal) => Number(decimal) > 6 / 10)!, 'u8-c8': ['7/10 + 3/100', '7/100 + 3/10', '7/10 + 30/100', '70/10 + 30/100'].find((sum) => { const [a, b] = sum.split(' + ').map((f) => { const [t, d] = f.split('/').map(Number); return t / d; }); return Math.abs(a + b - 1) < 1e-9; })!,
     'u9-c6': `${4 * 2}/3`, 'u9-c7': `${Math.floor((6 * 3) / 4)} ${(6 * 3) % 4}/4 miles`, 'u9-c8': `${[2, 3, 3, 3, 5, 6, 6, 7].filter((x) => x === 3).length * 3}/8 inches`,
     'u11-c6': 20 * (5 / 4) > 20 ? 'More than 20' : 'Less than 20',
     'u12-c6': `${3}/${5} pancake`, 'u12-c7': (1 / 3) / 2 === (1 / 2) / 3 ? 'They get the same' : 'not equal', 'u12-c8': `${2.5 * 12} inches`,
@@ -2439,7 +2439,7 @@ describe('unit challenges', () => {
     // The Challenge screen and the saved progress agree: a finished attempt is counted and survives a reload.
     saveProgress({ ...EMPTY_PROGRESS, challengeAttempts: { 12: 3 } });
     assert.deepEqual(loadProgress().challengeAttempts, { 12: 3 });
-    assert.equal(Object.keys(CHALLENGE_ALTERNATES).length, 15);
+    assert.equal(Object.keys(CHALLENGE_ALTERNATES).length, 16);
   });
 
   it('says why each wrong choice is wrong in the line plot, tenths and hundredths, and sharing puzzles', () => {
@@ -2465,7 +2465,7 @@ describe('unit challenges', () => {
   });
 
   it('gives each second puzzle for a thin standard a picture and a reason for every wrong choice', () => {
-    const SECOND = ['u1-c6', 'u4-c6', 'u7-c6', 'u8-c6', 'u8-c7', 'u8-c8', 'u9-c6', 'u9-c7', 'u9-c8', 'u11-c6', 'u12-c6', 'u12-c7', 'u12-c8', 'u12-c9', 'u13-c6'];
+    const SECOND = ['u1-c6', 'u4-c6', 'u7-c6', 'u8-c6', 'u8-c7', 'u8-c8', 'u8-c9', 'u9-c6', 'u9-c7', 'u9-c8', 'u11-c6', 'u12-c6', 'u12-c7', 'u12-c8', 'u12-c9', 'u13-c6'];
     const all = ALL_CHALLENGE_PUZZLES;
     for (const id of SECOND) {
       const item = all.find((puzzle) => puzzle.id === id);

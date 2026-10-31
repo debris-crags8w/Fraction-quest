@@ -1190,6 +1190,17 @@ function rowStandards(id: string, row: WorksheetProblem): string[] {
     }
     // 5.NF.2 adds and takes away fractions: the pizza rows (what fraction is left). The sticker rows only multiply and count.
     case 'fraction-of-remainder': return keep('5.NF.2', row.answer.includes('/'));
+    // spot-the-mistake: each claim is one rule. Adding or taking away like fractions is 4.NF.3a, a whole number times a fraction 4.NF.4b,
+    // a fraction as a mixed number 4.NF.3b, "1/8 is bigger than 1/4" (same numerator) 3.NF.3d, and "2/3 = 4/6" 4.NF.1.
+    case 'spot-the-mistake': {
+      const only = (standard: string) => all.filter(item => item === standard);
+      if (/\d+\/\d+ [+−] \d+\/\d+ =/.test(row.prompt)) return only('4.NF.3a');
+      if (/\d+ × \d+\/\d+ =/.test(row.prompt)) return only('4.NF.4b');
+      if (/\d+\/\d+ = \d+ \d+\/\d+\./.test(row.prompt)) return only('4.NF.3b');
+      if (/(\d+)\/\d+ is bigger than \1\/\d+/.test(row.prompt)) return only('3.NF.3d');
+      if (/\d+\/\d+ = \d+\/\d+/.test(row.prompt)) return only('4.NF.1');
+      return [];
+    }
     default: return all;
   }
 }
