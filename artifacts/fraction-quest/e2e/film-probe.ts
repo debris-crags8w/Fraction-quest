@@ -8,13 +8,14 @@ export type Box = { l: number; t: number; r: number; b: number };
 export type FilmSnap = {
   caption: string;           // data-testid of the caption (story-panel-N, or story-caption-final)
   screen: Box;
-  frame: Box;                // the visible picture: the screen without its two letterbox bars
+  frame: Box;                // the visible picture: the screen without its two letterbox bars (as tall as they are drawn)
   set: Box;                  // the whole set after the camera and the drift
   captionBox: Box | null;
   speaker: Box | null;       // the set-only film's speaker
   friend: Box | null;        // the set-only film's chapter friend (when someone else speaks)
-  actors: { who: string; box: Box }[];   // every character in the picture
-  fractions: { text: string; box: Box }[]; // every written fraction in the picture
+  actors: { who: string; box: Box }[];   // every character in the picture (a buzzing one: everywhere its buzz takes it)
+  fractions: { text: string; box: Box }[]; // every written fraction or number in the picture (fractions, number flags) that shows
+  things: { what: string; box: Box }[];  // story things a line talks about (Bea's map)
   bunting: Box | null;
   ribbon: Box | null;        // a chapter ending's "N of 15 pieces" label (once it shows)
   prop: Box | null;          // the drawn part of the lesson or chapter-ending prop
@@ -62,9 +63,11 @@ export async function countMusicNotes(page: Page) {
   });
 }
 
-/** Starts recording a snapshot each time a caption appears (a new shot), once the camera has been frozen where it is
-    going: transitions are cut and the set's own animations stop, but the set's slow drift is pushed to its far end so
-    the check sees the worst case. Call after the page has loaded, before the film opens. */
+/** Starts recording a snapshot each time a caption appears (a new shot), once the camera has settled where it is
+    going: transitions are cut and the set's own animations stop, but the set's slow drift is pushed to its far end and
+    a buzzing character (Bea) is measured everywhere her buzz takes her, so the check sees the worst case. The still the
+    film ends on (its own camera shot) is measured too: call `snapStill` once the film has ended. Call after the page
+    has loaded, before the film opens. */
 export async function watchFilm(page: Page) {
   await page.addStyleTag({ content: `
     *, *::before, *::after { transition: none !important; }
@@ -98,19 +101,34 @@ export async function watchFilm(page: Page) {
       if (drift) { drift.pause(); drift.currentTime = 8999; }
       const actorsOf = [...document.querySelectorAll('.fq-cine-set .fq-cine-actor, .fq-cine-set .fq-cine-peeker')];
       const friend = document.querySelector('.fq-cine-set .fq-cine-actor:not([data-testid=story-set-speaker]):not(.fq-cine-set-speaker)');
+      // The camera's scale, so a buzz (drawn in the set's pixels) is measured in screen pixels.
+      const camera = new DOMMatrix(getComputedStyle(document.querySelector('.fq-cine-cam')!).transform);
+      const buzz = [...document.styleSheets].flatMap((sheet) => { try { return [...sheet.cssRules]; } catch { return []; } })
+        .find((rule): rule is CSSKeyframesRule => rule instanceof CSSKeyframesRule && rule.name === 'fq-cine-buzz');
+      const buzzMoves = buzz ? [...buzz.cssRules].map((frame) => ((frame as CSSKeyframeRule).style.translate || '0 0').split(' ').map((part) => parseFloat(part) || 0)) : [];
+      const actorBox = (actor: Element) => {
+        const drawn = box(actor.firstElementChild)!;
+        if (!actor.classList.contains('is-buzzing') || !buzzMoves.length) return drawn;
+        const moved = buzzMoves.map(([x = 0, y = 0]) => ({ l: drawn.l + x * camera.a, t: drawn.t + y * camera.d, r: drawn.r + x * camera.a, b: drawn.b + y * camera.d }));
+        return { l: Math.min(...moved.map((item) => item.l)), t: Math.min(...moved.map((item) => item.t)), r: Math.max(...moved.map((item) => item.r)), b: Math.max(...moved.map((item) => item.b)) };
+      };
+      const shows = (el: Element) => { for (let at: Element | null = el; at && at !== set; at = at.parentElement) if (getComputedStyle(at).opacity === '0') return false; return true; };
       scope.filmSnaps.push({
         caption: caption.getAttribute('data-testid'),
-        screen, frame: { l: screen.l, t: screen.t + 30, r: screen.r, b: screen.b - 30 },
+        // The visible picture is the screen between the two letterbox bars as they are drawn now (the still has none).
+        screen, frame: { l: screen.l, t: box(document.querySelector('.fq-cine-bar.is-top'))?.b ?? screen.t + 30, r: screen.r, b: box(document.querySelector('.fq-cine-bar.is-bottom'))?.t ?? screen.b - 30 },
         set: box(set), captionBox: box(caption),
         speaker: box(document.querySelector('[data-testid=story-set-speaker]')?.firstElementChild),
         friend: document.querySelector('[data-testid=story-set-speaker]') ? box(friend?.firstElementChild) : null,
-        actors: actorsOf.map((actor) => ({ who: actor.firstElementChild?.getAttribute('data-character') ?? actor.firstElementChild?.getAttribute('class') ?? 'actor', box: box(actor.firstElementChild)! })),
-        fractions: [...document.querySelectorAll('.fq-cine-set .fq-cine-frac')].map((frac) => ({ text: frac.getAttribute('aria-label') ?? '', box: box(frac)! })),
+        actors: actorsOf.map((actor) => ({ who: actor.firstElementChild?.getAttribute('data-character') ?? (actor.firstElementChild?.classList.contains('fq-mascot') ? 'numi' : actor.firstElementChild?.classList.contains('fq-hoot') ? 'hoot' : actor.firstElementChild?.getAttribute('class')) ?? 'actor', box: actorBox(actor) })),
+        fractions: [...document.querySelectorAll('.fq-cine-set .fq-cine-frac, .fq-cine-set .fq-cine-flag')].filter(shows).map((frac) => ({ text: frac.getAttribute('aria-label') ?? frac.textContent ?? '', box: box(frac)! })),
+        things: [...document.querySelectorAll('.fq-cine-set .fq-cine-map')].filter(shows).map((thing) => ({ what: thing.className, box: box(thing)! })),
         bunting: box(document.querySelector('.fq-cine-set .fq-cine-bunting')),
         ribbon: box(document.querySelector('.fq-cine-end-ribbon.is-visible')),
         prop: drawn(document.querySelector('.fq-cine-set [data-testid=film-prop] svg')),
       });
     };
+    (window as unknown as { filmSnapNow: () => void }).filmSnapNow = snap;
     // A caption is new each shot (it is keyed by the shot). Look once the browser has laid it out.
     new MutationObserver((records) => {
       for (const record of records) for (const node of record.addedNodes) {
@@ -118,6 +136,13 @@ export async function watchFilm(page: Page) {
       }
     }).observe(document.body, { childList: true, subtree: true });
   });
+}
+
+/** Measures the still the film ends on (after Skip or the last line): it has its own camera shot, and no new caption. */
+export async function snapStill(page: Page) {
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
+    (window as unknown as { filmSnapNow: () => void }).filmSnapNow(); resolve();
+  }))));
 }
 
 export const snaps = (page: Page) => page.evaluate(() => (window as unknown as { filmSnaps: FilmSnap[] }).filmSnaps);

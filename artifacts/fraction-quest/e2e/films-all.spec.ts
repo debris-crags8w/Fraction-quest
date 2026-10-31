@@ -1,5 +1,5 @@
 import { expect, test, type Page } from './fixtures';
-import { coveredShare, fakeVoice, countMusicNotes, snaps, visibleShare, watchFilm } from './film-probe';
+import { coveredShare, fakeVoice, countMusicNotes, snaps, snapStill, visibleShare, watchFilm } from './film-probe';
 
 /* Every film (the prologue, each chapter's opening and ending, and the finale) on a phone: it opens with Skip in reach,
    fits without scrolling, nothing jumps while it plays, and Skip lands on a Next that is also in reach. With Reduce
@@ -158,37 +158,55 @@ test('a lesson film from every chapter plays on a phone with sound, music and a 
 /** In a chapter opening, how much of a character may sit under the caption: a foot or a tail, never the face. */
 const OPENING_CAPTION_TOLERANCE = 0.2;
 
-test('every chapter opening keeps its characters and written fractions inside the picture and clear of the caption, and the set never shows a gap at the edge', async ({ page }) => {
-  test.setTimeout(8 * 60_000);
+test('every chapter opening keeps its characters, written numbers and story things inside the picture and clear of the caption, on every line and in the still, and the set never shows a gap at the edge', async ({ page }) => {
+  test.setTimeout(9 * 60_000);
   const MISSIONS = await openStorybook(page, false, true);
   const { CHAPTERS } = await import('../src/story');
   await fakeVoice(page);
+  const films: { name: string; open: () => Promise<void> }[] = [{ name: 'prologue', open: async () => {
+    await page.goto('/');
+    const guest = page.getByTestId('button-play-guest');
+    await expect(guest.or(page.getByTestId('button-open-storybook'))).toBeVisible({ timeout: 20_000 });
+    if (await guest.isVisible()) await guest.click();
+    await page.getByTestId('button-open-storybook').click();
+    await page.getByTestId('button-storybook-prologue').click();
+    await expect(page.getByTestId('story-comic')).toBeVisible();
+  } }];
   for (const chapter of CHAPTERS) {
     const first = MISSIONS.find((mission) => mission.unit === chapter.unit)!;
-    const name = `chapter ${chapter.unit} opening`;
-    await openLessonFilm(page, chapter.unit, first.id);
+    films.push({ name: `chapter ${chapter.unit} opening`, open: () => openLessonFilm(page, chapter.unit, first.id) });
+  }
+  for (const { name, open } of films) {
+    await open();
     await watchFilm(page);
     await expect(page.getByTestId('button-story-go'), `${name}: the film ends`).toBeVisible({ timeout: 60_000 });
+    await snapStill(page);
     const shots = await snaps(page);
-    expect(shots.length, `${name}: one caption per shot was measured`).toBeGreaterThanOrEqual(3);
-    for (const shot of shots) {
-      const where = `${name} ${shot.caption}`;
+    expect(shots.length, `${name}: one caption per shot, and the still, were measured`).toBeGreaterThanOrEqual(4);
+    // "I'm Numi, and this is Hoot": both are in the picture when Numi says so.
+    if (name === 'prologue') expect.soft(shots[0]!.actors.map((actor) => actor.who).sort(), 'prologue line 1: Numi and Hoot are in the picture').toEqual(expect.arrayContaining(['hoot', 'numi']));
+    for (const [index, shot] of shots.entries()) {
+      const where = `${name} ${index === shots.length - 1 ? 'still' : shot.caption}`;
       // The camera never uncovers the edge of the set (a dark sliver or a line of the next object).
       expect.soft(shot.set.l, `${where}: set's left edge`).toBeLessThanOrEqual(shot.screen.l + 0.5);
       expect.soft(shot.set.t, `${where}: set's top edge`).toBeLessThanOrEqual(shot.screen.t + 0.5);
       expect.soft(shot.set.r, `${where}: set's right edge`).toBeGreaterThanOrEqual(shot.screen.r - 0.5);
       expect.soft(shot.set.b, `${where}: set's bottom edge`).toBeGreaterThanOrEqual(shot.screen.b - 0.5);
-      // Every character, on every line, is inside the picture and not behind the caption (the camera pushes in on
-      // some lines, so each line is checked where its camera ends up).
+      // Every character, on every line and in the still, is inside the picture (not touching its edge) and not behind
+      // the caption, where the camera ends up and wherever a buzz takes them.
       for (const actor of shot.actors) {
         // A character's box has about 8 px of empty margin round the drawing: the drawing itself is what must show.
         const body = { l: actor.box.l + 8, t: actor.box.t + 8, r: actor.box.r - 8, b: actor.box.b - 8 };
-        expect.soft(visibleShare(body, shot.frame), `${where}: ${actor.who} is inside the picture`).toBeGreaterThanOrEqual(0.92);
+        expect.soft(visibleShare(body, shot.frame), `${where}: ${actor.who} is inside the picture`).toBeGreaterThanOrEqual(0.995);
         expect.soft(coveredShare(body, shot.captionBox), `${where}: ${actor.who} is behind the caption`).toBeLessThanOrEqual(OPENING_CAPTION_TOLERANCE);
       }
       for (const fraction of shot.fractions) {
-        expect.soft(visibleShare(fraction.box, shot.frame), `${where}: ${fraction.text} is inside the picture`).toBeGreaterThanOrEqual(0.85);
+        expect.soft(visibleShare(fraction.box, shot.frame), `${where}: ${fraction.text} is inside the picture`).toBeGreaterThanOrEqual(0.95);
         expect.soft(coveredShare(fraction.box, shot.captionBox), `${where}: ${fraction.text} is behind the caption`).toBeLessThanOrEqual(COVER_TOLERANCE);
+      }
+      for (const thing of shot.things) {
+        expect.soft(visibleShare(thing.box, shot.frame), `${where}: ${thing.what} is inside the picture`).toBeGreaterThanOrEqual(0.95);
+        expect.soft(coveredShare(thing.box, shot.captionBox), `${where}: ${thing.what} is behind the caption`).toBeLessThanOrEqual(COVER_TOLERANCE);
       }
       // The bunting is cut by the top bar or fully there, never a thin line under it.
       if (shot.bunting) {
@@ -197,6 +215,29 @@ test('every chapter opening keeps its characters and written fractions inside th
       }
     }
   }
+});
+
+/** Chapter 10's opening asks which basket is fuller: one holds 1/2 + 1/4, the other 2/3. The film draws both baskets
+    and shows how to make the parts the same size, but never writes the sum the child has to find. */
+test('the chapter 10 opening draws the 2/3 basket and never writes the sum', async ({ page }) => {
+  const MISSIONS = await openStorybook(page, false, true);
+  await fakeVoice(page);
+  const first = MISSIONS.find((mission) => mission.unit === 10)!;
+  await openLessonFilm(page, 10, first.id);
+  await watchFilm(page);
+  const written = () => page.evaluate(() => [...document.querySelectorAll('.fq-cine-set .fq-cine-frac')]
+    .filter((frac) => { for (let at: Element | null = frac; at; at = at.parentElement) if (getComputedStyle(at).opacity === '0') return false; return true; })
+    .map((frac) => frac.getAttribute('aria-label')));
+  for (const beat of [0, 1, 2]) {
+    await expect(page.getByTestId(`story-panel-${beat}`)).toBeVisible({ timeout: 30_000 });
+    await page.waitForTimeout(2200);
+    const shown = await written();
+    expect(shown, `line ${beat + 1}: the sum three fourths is not written`).not.toContain('3 over 4');
+    if (beat >= 1) expect(shown, `line ${beat + 1}: the other basket is labelled two thirds`).toContain('2 over 3');
+  }
+  await expect(page.getByTestId('button-story-go')).toBeVisible({ timeout: 60_000 });
+  expect(await written(), 'the still: the sum three fourths is not written').not.toContain('3 over 4');
+  expect(await written(), 'the still: the 2/3 basket is labelled').toContain('2 over 3');
 });
 
 test('every chapter ending keeps its speaker, friend and "pieces" label inside the picture, the label off the prop, and nobody sits on anybody', async ({ page }) => {

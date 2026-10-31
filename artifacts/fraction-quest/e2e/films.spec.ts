@@ -275,7 +275,9 @@ const CHAPTER_FILM_CHECKS: Record<number, (stage: ReturnType<Page['getByTestId']
   8: async (stage) => { await expect(stage.locator('.fq-cine-boot-shadow')).toHaveClass(/is-tall/); },
   9: async (stage) => { await expect(stage.getByRole('img', { name: /one half: the same spot as two fourths/ })).toHaveClass(/is-flipped/); },
   10: async (stage) => {
-    await expect(stage.getByRole('img', { name: /two fourths, and with the other fourth that makes three fourths/ })).toBeAttached();
+    // The half is cut into two fourths beside the other fourth; the sum stays the child's to find (no "three fourths").
+    await expect(stage.getByRole('img', { name: /cut into two fourths, the same size as the other fourth/ })).toBeAttached();
+    await expect(stage.getByRole('img', { name: /three fourths/ })).toHaveCount(0);
     // Three same-size fourths side by side: each is half the half sandwich it was cut from.
     const widths = await stage.locator('.fq-cine-sandwiches i').evaluateAll((pieces) => pieces.map((piece) => piece.getBoundingClientRect().width));
     expect(new Set(widths.map((width) => Math.round(width))).size).toBe(1);
