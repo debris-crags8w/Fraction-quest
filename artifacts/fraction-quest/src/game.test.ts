@@ -4193,7 +4193,7 @@ describe('wrong-answer help', () => {
     assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 1)!, /More equal parts make each part smaller/);
     assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 3)!, /You can tell/);
     assert.match(wrongChoiceReason('Which is bigger, 1/4 or 1/6?', ['1/4', '1/6', 'They are equal', "You can't tell"], 0, 2)!, /top numbers match, but the parts are different sizes/);
-    assert.match(wrongChoiceReason('Which is bigger, 5/8 or 1/2?', ['5/8', '1/2', 'They are equal', "You can't tell"], 0, 2)!, /not the same size/);
+    assert.match(wrongChoiceReason('Which is bigger, 5/8 or 1/2?', ['5/8', '1/2', 'They are equal', "You can't tell"], 0, 2)!, /Rename both to the same size parts/); // sizes and counts differing is no reason (5/6 = 10/12)
     assert.equal(wrongChoiceReason('Is this strip cut into thirds?', ['Yes, 3 equal pieces', 'No, the pieces are unequal'], 1, 0), null, 'worded choices fall back to the lesson help');
     assert.equal(wrongChoiceReason(q, ['9/1', '1/9'], 1, 1), null, 'no help for a right answer');
     for (const m of MISSIONS) for (const question of m.questions) question.choices.forEach((_, i) => {

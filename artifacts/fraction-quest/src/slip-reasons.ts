@@ -159,7 +159,8 @@ export const WHY = {
   sameSizeCount: 'The pieces are the same size. Compare how many pieces each one has.',
   sameCountSizes: 'The top numbers match, but the parts are different sizes.',
   sameSizeCounts: 'The parts are the same size, but each one has a different number of them.',
-  bothDiffer: 'The parts are not the same size, and there are not the same number of them.',
+  // Different sizes and counts can still be equal (5/6 and 10/12), so the reason is the check, not those two facts.
+  bothDiffer: 'They are not equal. Rename both to the same size parts, then compare.',
   sizeAndCount: 'Look at both: how big each part is, and how many parts there are.',
   canTellSize: 'You can tell. Compare how big the parts are and how many there are.',
   sameWay: 'Write both the same way, then compare them.',

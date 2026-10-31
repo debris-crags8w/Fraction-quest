@@ -745,9 +745,10 @@ const REASON_FITS: Record<string, ReasonFit> = {
   },
   // "Fill up to one whole" fits what is left of a whole ("+ ? = 1", "not painted") or n/n, not "Build 3/2" or "Build 1/4".
   'compose-to-one': {
-    kind: (check) => (/\+ \? = 1\b|not painted|\bleft\b/.test(check.prompt) || check.target.n === check.target.d ? 'fill' : 'build'),
-    trueFor: { 'Fill up to one whole': ['fill'] },
-    right: { fill: 'Fill up to one whole', build: 'A whole is all its parts' },
+    // "A whole is all its parts" is true but says nothing about 1/4 or 3/2: those say how they sit against one whole.
+    kind: (check) => (/\+ \? = 1\b|not painted|\bleft\b/.test(check.prompt) || check.target.n === check.target.d ? 'fill' : check.target.n > check.target.d ? 'past' : 'under'),
+    trueFor: { 'Fill up to one whole': ['fill'], 'A whole is all its parts': ['fill'] },
+    right: { fill: 'Fill up to one whole', under: 'Some of the parts: less than 1', past: 'More parts than a whole: more than 1' },
     wrong: {},
   },
 };
@@ -1169,7 +1170,9 @@ export function getBuildPracticeChecks(id: string, batch = 0, count = 10): Build
     all.push(check);
   }
   if (!all.length) throw new Error(`No optional Build practice questions available for ${id}`);
-  while (all.length < (batch + 1) * count) all.push(all[all.length % Math.max(1, all.length)]);
+  // A short pool goes round in turn (all.length % all.length was always the first build, repeated up to 10 times).
+  const pool = all.length;
+  while (all.length < (batch + 1) * count) all.push(all[all.length % pool]);
   const selected = all.slice(batch * count, (batch + 1) * count).map((check, index) => acceptAnyName(id, {
     ...check, id: `practice-${batch + 1}-${index + 1}`, stepLabel: `Extra build ${index + 1} of ${count}`,
   }));

@@ -279,7 +279,10 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       const rightN = toOne ? e - r.int(1, e >= 7 ? 2 : 1) : r.int(1, e >= 7 ? 2 : 1);
       const mid = Math.round(e / 2); const far = toOne ? 1 : e - 1;
       return { prompt: `Which fraction is closest to ${toOne ? 'one whole' : '0'}?`, right: f(rightN, e), wrong: [f(mid, e), f(far, e)],
-        hint: toOne ? 'Is it almost a full bar?' : 'Is it almost an empty bar?', retry: `${f(rightN, e)} is almost ${toOne ? 'a whole bar' : 'an empty bar'}, so it is closest to ${toOne ? '1' : '0'}.`,
+        // 3/4 and 1/4 sit halfway, and 5/7 is nearer 1/2 than 1: it is the closest of these three, not "almost" whole or empty.
+        hint: toOne ? 'Which bar is nearest to full?' : 'Which bar is nearest to empty?',
+        retry: toOne ? `${f(rightN, e)} needs only ${f(e - rightN, e)} more to make one whole. The other two need more, so it is the closest to 1.`
+          : `${f(rightN, e)} has the fewest parts shaded. The other two have more, so it is the closest to 0.`,
         model: { kind: 'bars', bars: [rightN, mid, far].map((numerator) => ({ numerator, denominator: e })), hideLabels: true } };
     }
     if (form === 2) {

@@ -815,6 +815,9 @@ function stepReason(fullPrompt: string, pick: string, right: string): string | n
   if (nums.length === 2 && (plus || minus) && /^\d+(?: \d+)?\/\d+$/.test(pick.replace(/ [a-z]+$/, '').trim())) {
     if (nums[0][1] !== nums[1][1]) return WHY.renameCheck;
     if (otherSize) return WHY.sameBottom;
+    // A mixed-number pick in other parts ("1 8/16" for 1 6/8 + 2/8): the denominators were added, or the size changed.
+    const part = /(\d+)\/(\d+)$/.exec(pick.replace(/ [a-z]+$/, '').trim());
+    if (part && Number(part[2]) !== nums[0][1]) return plus && !minus && Number(part[2]) === nums[0][1] + nums[1][1] ? SLIPS.addTops : WHY.sameBottom;
     if (mixed && minus) return WHY.tradeWhole;
     return minus && !plus ? WHY.takeTopsAgain : plus && !minus ? WHY.addTopsAgain : null;
   }
