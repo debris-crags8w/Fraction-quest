@@ -127,8 +127,8 @@ export function dailySecret(day = today(), afterEnding = false): string {
 const MYSTERIES: { ask: string; answer: string }[] = [
   { ask: 'Mystery of the week: who left a tiny footprint by Hoot’s lantern?', answer: 'Last week’s tiny footprint by the lantern was Pip’s. He hopped by to say hello.' },
   { ask: 'Mystery of the week: the lantern flickered at midnight. Who blew on it?', answer: 'Last week the lantern flickered because Hoot’s owl friend flapped past at midnight.' },
-  { ask: 'Mystery of the week: a trail of crumbs leads to the lantern. Chomp swears it wasn’t him. Who was it?', answer: 'Last week Chomp told the truth. The crumbs fell from Bea’s honey cake.' },
-  { ask: 'Mystery of the week: someone left a riddle under the lantern. Whose writing is it?', answer: 'Last week’s riddle under the lantern was Chomp’s. He wrote it just for the Keeper.' },
+  { ask: 'Mystery of the week: a trail of crumbs leads to the lantern. I swear it wasn’t me. Who was it?', answer: 'Last week I told the truth. The crumbs fell from Bea’s honey cake.' },
+  { ask: 'Mystery of the week: someone left a riddle under the lantern. Whose writing is it?', answer: 'Last week’s riddle under the lantern was mine. I wrote it just for the Keeper.' },
   { ask: 'Mystery of the week: the lantern glows a new color every night. Why?', answer: 'Last week the lantern glowed new colors because Hoot swaps its glass cover every night.' },
   { ask: 'Mystery of the week: Pip heard a hum from the lantern. Is it the stone singing?', answer: 'Last week’s hum by the lantern was Bolt. He hums while he polishes the glass.' },
   { ask: 'Mystery of the week: something shiny sits at the foot of the lantern. Where did it come from?', answer: 'Last week’s shiny thing by the lantern was a bolt that rolled off Bolt’s bench.' },
