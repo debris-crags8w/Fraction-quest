@@ -281,7 +281,9 @@
 /* Phones: one row of lesson steps, so the question starts higher on the screen. */
 @media (max-width: 620px) {
   /* Every step stays in view (finished ones too): the chips wrap onto a second row instead of scrolling away. */
-  .fq-ll-steps { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; padding-bottom: 4px; }
+  /* position: relative keeps the hidden screen-reader words of the steps past the edge inside this scrolling row (without it,
+     they widened the page to 460 points, so it slid sideways). */
+  .fq-ll-steps { position: relative; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; gap: 6px; padding-bottom: 4px; }
   .fq-ll-steps li { flex: none; gap: 5px; padding: 5px 10px; font-size: .75rem; white-space: nowrap; }
   .fq-ll-steps li > button { padding: 5px 10px; }
 }
@@ -322,3 +324,23 @@
 .fq-ll-part-locked, .fq-ll-part-lead, .fq-ll-model-how { margin: 0; color: hsl(var(--muted-foreground)); font-weight: 700; line-height: 1.4; }
 .fq-ll-part .fq-ll-builder.is-in-part { padding: 0; border: 0; background: none; }
 .fq-ll-part .fq-ll-model-status.success { align-items: center; }
+
+/* Phones (390 × 664 in Safari): one worksheet question fits one screen. A question to read has its words, picture, tiles and
+   Check on one screen; a question with something to build first has its words and all of that on one screen (the tiles open
+   below once it is done). Listen moves up beside "Question 1 of 12", so the question uses the whole width; pictures of
+   several shapes or grids sit side by side; one shape, a set of counters and the card's padding are a little smaller. */
+@media (max-width: 560px) {
+  .fq-ll-row { padding: 10px 12px; }
+  .fq-ll-row form { gap: 8px; }
+  .fq-ll-row-prompt:has(> .fq-ll-sequence) { position: relative; }
+  .fq-ll-row-prompt:has(> .fq-ll-sequence) > .fq-ll-sequence { display: flex; min-height: 34px; align-items: center; padding-right: 96px; }
+  .fq-ll-row-prompt:has(> .fq-ll-sequence) .fq-ll-row-prompt-header .fq-learning-listen { position: absolute; top: 0; right: 0; margin: 0; }
+  .fq-ll-row .fq-svg-area { width: min(100%, 150px); }
+  .fq-ll-row .fq-area-model:has(.fq-area-figure + .fq-area-figure) { flex-wrap: nowrap; gap: 8px; }
+  .fq-ll-row .fq-area-model:has(.fq-area-figure + .fq-area-figure) .fq-svg-area { width: calc(min(26vw, 104px) * var(--area-scale, 1)); }
+  .fq-ll-row .fq-svg-set { max-height: 22svh; width: auto; max-width: 100%; }
+  .fq-ll-row .fq-ll-groups { gap: 6px; }
+  .fq-ll-row .fq-ll-group { max-width: none; min-height: 36px; gap: 3px; padding: 5px 6px; }
+  .fq-ll-row .fq-ll-group i { width: 9px; height: 9px; border-width: 1.5px; }
+  .fq-ll-row .fq-tile-help { margin-top: 0; font-size: .76rem; line-height: 1.3; }
+}
