@@ -128,6 +128,7 @@ const NUDGES: [RegExp, string][] = [
   [/^Check the rule: a whole number times a fraction multiplies only the numerator\.$/, 'Check the multiplying rule.'],
   [/^Divide both by \d+\.$/, 'Divide both.'],
   [/^Make \d+ equal groups\.$/, 'Make equal groups.'],
+  [/^Give one piece to each friend, then go around again\.$/, 'Hand out one at a time.'],
 ];
 
 /** Hint fading: once the child has answered one of an idea's practices right without the hint, its later hints open as a

@@ -71,7 +71,7 @@ describe('c. Practice-more wrong picks are named', () => {
   }
   it('equal-parts yes/no picks get their own reasons', () => {
     const fair = ['No, some parts are bigger', 'No, the shapes are different', 'Yes, same-size parts', 'Yes, it is cut into parts'];
-    assert.equal(ask('Is this hexagon cut into equal parts?', fair, 2, 0), WHY.lookAgainSize);
+    assert.equal(ask('Is this hexagon cut into equal parts?', fair, 2, 0), WHY.onlyLooksBigger); // a fair cut called unfair: the parts only look different
     assert.equal(ask('Is this hexagon cut into equal parts?', fair, 2, 1), WHY.shapeNotSize);
     assert.equal(ask('Is this hexagon cut into equal parts?', fair, 2, 3), WHY.cutNotEqual);
     const unfair = ['No, it is not cut', 'No, some parts are bigger', 'Yes, same-size parts', 'Yes, it is cut into parts'];

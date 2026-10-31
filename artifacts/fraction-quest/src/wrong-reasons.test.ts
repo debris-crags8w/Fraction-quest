@@ -9,6 +9,9 @@ import { MISSIONS } from './game';
 import { generateQuestions } from './practice-bank';
 import { SLIPS, wrongChoiceReason } from './wrong-answer';
 import { WHY } from './slip-reasons';
+import { lessonCheckpoint } from './checkpoint';
+import { ideaPracticeQuestions } from './lesson-ideas';
+import { getBuildChecks, getBuildPracticeChecks } from './learning-content';
 
 const why = (prompt: string, right: string, pick: string) => wrongChoiceReason(prompt, [right, pick], 0, 1);
 const keyOf = (text: string | null) => {
@@ -174,7 +177,12 @@ const TABLE: [string, string, string, string][] = [
   ['Each bar is one whole. Which mixed number is shaded?', '1 and 2/3', '2/3', 'WHY.leftWholes'],
   ['Start with 5/8. Take away 2/8. How many eighths are left?', '3', '7', 'WHY.otherOpTake'],
   ['A cat eats 1/4 cup of food, then 2/4 cup more. How much in all?', '3/4 cup', '2/4 cup', 'WHY.oneAmount'],
-  ['Mia reads 2/8 of a book on Monday and 3/8 on Tuesday. How much is left to read? First, how much does she read in all?', '5/8', '3/8', 'WHY.oneAmount'],
+  // A pick that is the whole story's answer on a first-step question did both steps (3/8 is also Tuesday's amount, but it is
+  // what is left to read after both steps).
+  ['Mia reads 2/8 of a book on Monday and 3/8 on Tuesday. How much is left to read? First, how much does she read in all?', '5/8', '3/8', 'WHY.bothSteps'],
+  ['Mia reads 2/8 of a book on Monday and 3/8 on Tuesday. How much is left to read? First, how much does she read in all?', '5/8', '1/8', 'WHY.otherOpAdd'],
+  ['A jug has 4/6 liter. Sam drinks 1/6 liter, then adds 2/6 liter. How much is in the jug now? First, how much is left after Sam drinks?', '3/6 liter', '5/6 liter', 'WHY.bothSteps'],
+  ['A jug has 4/6 liter. Sam drinks 1/6 liter, then adds 2/6 liter. How much is in the jug now? First, how much is left after Sam drinks?', '3/6 liter', '7/6 liters', 'WHY.otherOpTake'],
   ['A ribbon is 5/6 meter long. Cut off 1/6 meter, then 2/6 meter. How much is left? First, how long is it after the first cut?', '4/6 meter', '2/6 meter', 'WHY.bothSteps'],
   ['For 1/2 + 1/3, what is 1/2 in sixths?', '3/6', '2/6', 'WHY.otherFraction'],
   ['For 1/2 + 1/3, what is 1/2 in sixths?', '3/6', '5/6', 'WHY.wholeSum'],
@@ -221,6 +229,20 @@ const TABLE: [string, string, string, string][] = [
   ['To find 2/3 of 12 cards, you make 3 equal groups. How many cards are in one group?', '4', '3', 'WHY.groupsNotEach'],
   ['To find 2/3 of 12 cards, you make 3 equal groups. How many cards are in one group?', '4', '12', 'WHY.allNotEach'],
   ['18 buttons are shared into 6 equal groups. How many buttons are in each group?', '3', '6', 'WHY.groupsNotEach'],
+  // Mixed numbers with like parts: a pick in other parts added the denominators.
+  ['1 6/8 + 2/8 = ?', '2', '1 8/16', 'SLIPS.addTops'],
+  ['2 3/5 + 1/5 = ?', '2 4/5', '2 4/10', 'SLIPS.addTops'],
+  ['1 1/3 + 2/3 = ?', '2', '1 4/6', 'SLIPS.addTops'],
+  // Which sum makes the amount: too much, too little, exactly one whole, more than one whole.
+  ['Which adds up to 4/5?', '1/5 + 3/5', '1/5 + 2/5', 'WHY.sumLess'],
+  ['Which adds up to 4/5?', '1/5 + 3/5', '1/5 + 4/5', 'WHY.sumWhole'],
+  ['Which adds up to 4/5?', '1/5 + 3/5', '4/5 + 4/5', 'WHY.sumPastWhole'],
+  ['Which adds up to 7/10?', '1/10 + 6/10', '1/10 + 7/10', 'WHY.sumMore'],
+  // Leveling: a pick worth the biggest cup, written in the answer's own parts.
+  ['Three beakers hold 1/4, 1/4, 4/4 liter. Share the total equally. How many liters go in each?', '1/2 liter', '2/2 liter', 'WHY.oneCup'],
+  // A fair cut called unfair: the parts only look different.
+  ['Is this square cut into equal parts?', 'Yes, same-size parts', 'No, some parts are bigger', 'WHY.onlyLooksBigger'],
+  ['Is this pizza cut into sixths?', 'Yes, same-size parts', 'No, some parts are bigger', 'WHY.onlyLooksBigger'],
 ];
 
 describe('the exact reason for a wrong tap', () => {
@@ -326,5 +348,67 @@ describe('the exact reason for a wrong tap', () => {
     const start = Object.keys(WHY).indexOf('shapeNotSize');
     assert.ok(start > 0, 'the practice-pick reasons are in WHY');
     for (const [key, sentence] of Object.entries(WHY).slice(start)) assert.doesNotMatch(sentence, /\d/, `${key} has a digit`);
+  });
+});
+
+/* The root cause behind rescore 5's A to C: a reason that is true on its own but does not fit the pick it is given for.
+   Families: picks in other parts (the denominators added), "They are equal" picks, and benchmark words in the whys. */
+describe('each named reason fits its pick', () => {
+  const ids = ['add-mixed-numbers', 'compare-unlike-fractions', 'benchmarks-zero-one', 'compose-to-one', 'add-same-denominator', 'compare-same-numerator'];
+  const all = MISSIONS.filter((m) => ids.includes(m.id)).flatMap((m) => {
+    const qids = m.questions.map((q) => q.id);
+    return [...m.questions, ...ideaPracticeQuestions(m), ...lessonCheckpoint(m), ...Array.from({ length: 30 }, (_, s) => generateQuestions(m.id, qids, s * 3313 + 71, 12)).flat()];
+  });
+  const picks = all.flatMap((q) => q.choices.flatMap((choice, i) => i === q.correctChoice ? [] : [{ q, choice, reason: wrongChoiceReason(q.prompt, q.choices, q.correctChoice, i) }]));
+  it('a mixed-number pick in other parts is never told to add the numerators again', () => {
+    const bad = picks.filter(({ q, choice, reason }) => {
+      const part = /(\d+)\/(\d+)$/.exec(choice.replace(/ [a-z]+$/, ''));
+      const asked = [...q.prompt.matchAll(/\d+\/(\d+)/g)].map((m) => m[1]);
+      return part && asked.length && !asked.includes(part[2]) && reason === WHY.addTopsAgain;
+    }).map(({ q, choice }) => `${q.prompt} / ${choice}`);
+    assert.deepEqual(bad.slice(0, 5), []);
+  });
+  it('a wrong "They are equal" is never answered with "the sizes and the counts differ" (5/6 and 10/12 differ both ways and are equal)', () => {
+    const bad = picks.filter(({ choice, reason }) => /^they are equal$/i.test(choice) && reason && /not the same size, and there are not the same number/.test(reason))
+      .map(({ q, choice }) => `${q.prompt} / ${choice}`);
+    assert.deepEqual(bad.slice(0, 5), []);
+  });
+  it('benchmark words fit the number: "almost a whole" or "almost empty" only within 1/4 of it, never at or near 1/2', () => {
+    const bad = new Set<string>();
+    for (const q of all) for (const text of [q.retryFeedback, q.hint]) {
+      for (const m of text.matchAll(/(\d+)\/(\d+) is almost (a whole|a full|an empty|empty)/g)) {
+        const x = Number(m[1]) / Number(m[2]);
+        const gap = /empty/.test(m[3]) ? x : 1 - x;
+        if (gap >= 0.25) bad.add(`${q.prompt} | ${text}`);
+      }
+      if (/^Which fraction is closest to (?:one whole|0)\?$/.test(q.prompt) && /\balmost\b/.test(text)) bad.add(`${q.prompt} | ${text}`);
+    }
+    assert.deepEqual([...bad].slice(0, 5), []);
+  });
+  it('compose-to-one Build it items say how the amount sits against one whole, not only "A whole is all its parts"', () => {
+    const checks = [...getBuildChecks('compose-to-one'), ...[0, 1, 2].flatMap((b) => getBuildPracticeChecks('compose-to-one', b))];
+    const bad = checks.filter((c) => c.target.n !== c.target.d && !/\+ \? = 1\b|not painted|\bleft\b/.test(c.prompt) && c.reasons[c.correctReason] === 'A whole is all its parts')
+      .map((c) => c.prompt);
+    assert.deepEqual(bad.slice(0, 5), []);
+  });
+  it('a unit choice worth more than one is plural ("9/8 meters")', () => {
+    const bad = MISSIONS.flatMap((m) => [...m.questions, ...(m.ideaQuestions ?? [])]).flatMap((q) => q.choices.filter((c) => {
+      const m = /^(\d+)\/(\d+) (meter|inch|foot|cup|liter|mile|pound|hour)$/.exec(c);
+      return m && Number(m[1]) > Number(m[2]);
+    }).map((c) => `${q.id}: ${c}`));
+    assert.deepEqual(bad, []);
+  });
+});
+
+describe('extra Build it sets', () => {
+  it('a short pool is rotated through, never one build repeated (hundredths-decimals set 3 was "Write 0.50" ten times)', () => {
+    const bad: string[] = [];
+    for (const m of MISSIONS) for (const batch of [0, 1, 2]) {
+      const counts = new Map<string, number>();
+      for (const c of getBuildPracticeChecks(m.id, batch)) counts.set(c.prompt + JSON.stringify(c.target), (counts.get(c.prompt + JSON.stringify(c.target)) ?? 0) + 1);
+      const n = [...counts.values()];
+      if (Math.max(...n) - Math.min(...n) > 1) bad.push(`${m.id} set ${batch + 1}: ${n.join(',')}`);
+    }
+    assert.deepEqual(bad.slice(0, 5), []);
   });
 });

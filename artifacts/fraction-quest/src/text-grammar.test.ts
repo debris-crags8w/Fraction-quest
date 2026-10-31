@@ -18,6 +18,8 @@ const BAD: [RegExp, string][] = [
   [/\bmore halve\b|\band 1 halve\b/i, 'halve'],
   [new RegExp(`(?<![/\\d.])\\b(?:1|one) (?:part|piece|slice|jump|group|half|third|fourth|fifth|sixth|tenth|hundredth) are\\b`, 'i'), 'one with "are"'],
   [/\b(?:a|an) (?:eighth|eighths)s?\b(?<!an eighth)/i, 'a eighth'],
+  // "1 place after the point show tenths": one place shows.
+  [/\b(?:1|one) (?:decimal )?place (?:after|past) the (?:decimal )?point show\b/i, 'one place with "show"'],
   // "on a art print": "a" before a vowel sound ("a unit", "a one" and "a use" start with a "y" or "w" sound, so they stay).
   [/(?<![\w'’-])a (?:[aei]|o(?!ne\b|nce\b)|u(?!ni|s[eu]|r[aeiou]|tensil))[a-z]/, 'a before a vowel'],
 ];
