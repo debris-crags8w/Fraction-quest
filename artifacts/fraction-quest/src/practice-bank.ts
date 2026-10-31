@@ -1,6 +1,7 @@
 import { fourthChoice, noBeforeYes, orderedWithSigns, withSignComparisons } from './fourth-choice';
-import { withUnits } from './measure-units';
-import { preferMisconceptions, withoutOverOne } from './misconceptions';
+import { unitFor, withUnits, withoutUnit } from './measure-units';
+import { misconceptionWrongs, preferMisconceptions, withoutOverOne } from './misconceptions';
+import { fractionMistakes } from './fraction-slips';
 import { MISSIONS, nameBars, problemPicture, withChoiceBars, type ModelSpec, type PracticeQuestion } from './game';
 import { G3_EQUIVALENTS_WIDE, answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
@@ -1282,6 +1283,33 @@ export function oneIsSingular(text: string): string {
 /** The parts a picture is cut into, written as fractions ("1/5") so the taught-parts check reads them like a sentence. */
 const pictureDenominators = (model: ModelSpec): string[] => [...JSON.stringify(model).matchAll(/"denominator":(\d+)/g)].map((match) => `1/${match[1]}`);
 
+/** Two wrong choices worth the same amount ("0.4 / 4 / 4.0", "2/2 liter / 4/4 liter") can both be ruled out at once: the later
+    one is swapped for another of the question's slips with a value no choice has yet, in parts the question already uses
+    when there is one. A choice set with "They are equal" keeps the two equal amounts it compares. Null when no swap is left. */
+function distinctValues(choices: string[], right: number, spares: string[], allowed: (choice: string) => boolean): string[] | null {
+  if (choices.some((choice) => /\bequal\b/i.test(choice))) return choices;
+  const amount = (choice: string) => answerValue(withoutUnit(choice.trim()));
+  const parts = (text: string) => [...text.matchAll(/\/(\d+)/g)].map((match) => Number(match[1]));
+  const out = [...choices];
+  for (let i = 0; i < out.length; i++) {
+    if (i === right) continue;
+    const v = amount(out[i]!);
+    if (!Number.isFinite(v) || !out.some((other, j) => j !== i && (j < i || j === right) && Math.abs(amount(other) - v) < 1e-9)) continue;
+    // Keep the unit the choice was written with ("1/2 liter", "6/4 liters").
+    const unit = out[i]!.trim().slice(withoutUnit(out[i]!).length).trim();
+    const used = new Set(out.flatMap(parts));
+    const fresh = spares.map((spare) => withoutUnit(spare.trim())).filter((spare) => {
+      const w = amount(spare);
+      return Number.isFinite(w) && w >= 0 && parts(spare).every((d) => d <= 12 || used.has(d)) && allowed(spare)
+        && out.every((other, j) => j === i || Math.abs(amount(other) - w) > 1e-9);
+    });
+    const swap = fresh.find((spare) => parts(spare).every((d) => used.has(d))) ?? fresh[0];
+    if (swap === undefined) return null;
+    out[i] = unit ? `${swap} ${unitFor(amount(swap), unit)}` : swap;
+  }
+  return out;
+}
+
 export function generateQuestions(missionId: string, baseQuestionIds: string[], seed: number, count: number): PracticeQuestion[] {
   const recipe = RECIPES[missionId];
   if (!recipe) throw new Error(`No question generator for ${missionId}`);
@@ -1311,9 +1339,14 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
     const drawn = withChoiceBars({ choices, model }, [item.right, ...item.wrong]);
     const kept = withTaughtParts({ ...placed, choices, model: drawn.model, simplerModel }, taught);
     if (!kept || !onlyTaught([item.hint, item.retry, ...pictureDenominators(model)], taught)) continue;
+    // Only real mistakes stand in (the recipe's own slips, then the known slips for this kind of question), never a near-miss number.
+    const spares = [...(item.slips ?? []), item.extra ?? '', ...misconceptionWrongs(item.prompt, item.right), ...fractionMistakes(item.prompt, item.right)].filter(Boolean);
+    const decimalTaught = (choice: string) => { const places = /\.(\d+)/.exec(choice)?.[1].length; return !places || taught(10 ** places); };
+    const distinct = distinctValues(kept.choices, placed.correctChoice, spares, (choice) => inTaughtParts(missionId, [choice]) && onlyTaught([choice], taught) && decimalTaught(choice));
+    if (!distinct) continue;
     const question = {
       ...placed,
-      choices: withUnits(placed.prompt, kept.choices),
+      choices: withUnits(placed.prompt, distinct),
       hint: oneIsSingular(item.hint),
       retryFeedback: oneIsSingular(item.retry),
       model: kept.model,

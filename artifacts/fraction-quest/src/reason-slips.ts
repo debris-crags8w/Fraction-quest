@@ -46,7 +46,7 @@ export const REASON_SLIPS: Record<string, [string, string, string]> = {
   'compare-decimals-grid': ['More digits always means bigger', 'Count only the shaded columns', 'Each square is one tenth'],
   'add-tenths-hundredths': ['Add the digits as they are', 'A tenth is one hundredth', 'Add the denominators too'],
   'unit-fraction-multiples': ['Multiply the denominator too', 'Copies make the parts bigger', 'Add the denominators each time'],
-  'dimes-and-pennies': ['A dime is 1 hundredth', 'A dime is a whole dollar', 'Add ten for every dime'],
+  'dimes-and-pennies': ['A dime is 1 hundredth', 'A dime is a whole dollar', 'A penny is 1 tenth'],
   'multiply-whole-by-fraction': ['Each group gets a bigger part', 'Multiply the denominator too', 'Add the whole to the numerator'],
   // Unit 9 · Rename, compare, line plots
   'simplify-fractions': ['Divide only the numerator', 'Take 1 from top and bottom', 'Simplest form is a smaller amount'],
