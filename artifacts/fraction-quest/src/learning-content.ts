@@ -1236,6 +1236,10 @@ function rowStandards(id: string, row: WorksheetProblem): string[] {
     }
     // 5.NF.2 adds and takes away fractions: the pizza rows (what fraction is left). The sticker rows only multiply and count.
     case 'fraction-of-remainder': return keep('5.NF.2', row.answer.includes('/'));
+    // "How much is missing from 4/6 to make one whole?" builds one whole: it compares nothing (3.NF.3d, 4.NF.2), so it is a stretch row.
+    case 'benchmarks-zero-one': return /to make one whole\?$/.test(row.prompt) ? [] : all;
+    // 5.NF.4a needs a fraction: "12 beads are shared into 3 equal groups" is whole-number sharing.
+    case 'sets-unit-fractions': case 'sets-nonunit': return keep('5.NF.4a', /\d+\/\d+/.test(row.prompt));
     // spot-the-mistake: each claim is one rule. Adding or taking away like fractions is 4.NF.3a, a whole number times a fraction 4.NF.4b,
     // a fraction as a mixed number 4.NF.3b, "1/8 is bigger than 1/4" (same numerator) 3.NF.3d, and "2/3 = 4/6" 4.NF.1.
     case 'spot-the-mistake': {

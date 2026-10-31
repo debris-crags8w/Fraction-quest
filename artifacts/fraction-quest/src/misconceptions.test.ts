@@ -8,7 +8,7 @@ describe('wrong answers from real mistakes', () => {
   it('names the slip behind each wrong answer', () => {
     assert.deepEqual(misconceptionWrongs('What is 2/3 of 9 pencils?', '6 pencils'), ['3 pencils', '9 pencils', '18 pencils', '12 pencils']); // one group / the whole / × numerator / + denominator
     assert.deepEqual(misconceptionWrongs('A 2-liter jug is 1/4 full. How many milliliters are inside?', '500'), ['250', '1500', '2000', '8000']);
-    assert.deepEqual(misconceptionWrongs('Ana has 12 stickers. She gives away 1/4 of them. Then she gives away 1/3 of the rest. How many are left?', '6'), ['9', '5', '3']);
+    assert.deepEqual(misconceptionWrongs('Ana has 12 stickers. She gives away 1/4 of them. Then she gives away 1/3 of the rest. How many are left?', '6'), ['9', '5', '3', '8']); // first step only / 1/3 of the whole / given / second part of the whole
     assert.deepEqual(misconceptionWrongs('15 stickers are 5/6 of a pack. How many stickers are in the pack?', '18'), ['15', '90', '3', '33']);
     assert.deepEqual(misconceptionWrongs('Fill the blank: 1/2 = ?/8', '4'), ['7', '8', '1']);
   });

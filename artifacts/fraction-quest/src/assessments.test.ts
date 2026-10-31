@@ -156,4 +156,21 @@ describe('standard-tagged assessments', () => {
     assert.equal(forms, 48 * 30);
     assert.deepEqual(repeats.slice(0, 6), [], `${repeats.length} of ${forms} forms ask one question twice in other words`);
   });
+
+  it('never asks the same numbers with the same answer from two different lessons ("1/3 of 3/4" and "1/3 × 3/4 = ?")', () => {
+    const repeats: string[] = [];
+    let forms = 0;
+    for (const definition of getAssessmentDefinitions()) for (let seed = 1; seed <= 60; seed++) {
+      forms++;
+      const seen = new Map<string, string>();
+      for (const item of buildAssessmentItems(definition, seed)) {
+        const numbers = item.prompt.match(/\d+(?:\/\d+)?/g) ?? [];
+        if (numbers.length < 2) continue;
+        const key = `${[...numbers].sort().join(',')}|${item.problem.answer}`;
+        if (seen.has(key)) { repeats.push(`${definition.id} seed ${seed}: "${seen.get(key)}" / "${item.prompt}"`); break; }
+        seen.set(key, item.prompt);
+      }
+    }
+    assert.deepEqual(repeats.slice(0, 6), [], `${repeats.length} of ${forms} forms ask the same numbers and answer twice`);
+  });
 });

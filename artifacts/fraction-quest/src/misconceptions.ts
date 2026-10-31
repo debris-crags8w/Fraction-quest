@@ -36,7 +36,8 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   if ((m = /(\d+) \w+ are shared into (\d+) equal groups\. How many \w+ are in (one|\d+) groups?\?/.exec(p))) {
     const [n, b, k] = [N(m[1]), N(m[2]), m[3] === 'one' ? 1 : N(m[3])];
     const right = (n / b) * k;
-    return [right, [k > 1 ? ['justOneGroup', n / b] : ['leftPart', n - right], ['leftPart', n - right], ['whole', n], ['timesWhole', n * k]]];
+    // ... or the number of groups given as the answer ("12 beads in 6 groups" answered 6).
+    return [right, [k > 1 ? ['justOneGroup', n / b] : ['leftPart', n - right], ['leftPart', n - right], ['whole', n], ['timesWhole', n * k], ['groupsNotEach', b]]];
   }
   // Finding the whole: "15 stickers are 5/6 of a pack", "A piece of ribbon is 10 meters long. It is 5/6 of the whole ribbon",
   // "Tom read 8 pages. That is 2/3 of his book"
@@ -49,7 +50,8 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   if ((m = /has (\d+) \w+\. (?:She|He) gives (?:away )?(\d+)\/(\d+) of them[^.]*\. Then (?:she|he) gives (?:away )?(\d+)\/(\d+) of the rest/.exec(p))) {
     const [t, a, b, c, e] = m.slice(1).map(N);
     const rest = t - (t / b) * a; const right = rest - (rest / e) * c;
-    return [right, [['firstOnly', rest], ['ofRest', t - (t / b) * a - (t / e) * c], ['given', (t / b) * a], ['given', (rest / e) * c]]];
+    // ... or the second part taken from the whole, skipping the first step.
+    return [right, [['firstOnly', rest], ['ofRest', t - (t / b) * a - (t / e) * c], ['given', (t / b) * a], ['given', (rest / e) * c], ['skippedFirst', t - (t / e) * c]]];
   }
   // The same written with ×: "3/4 × 12 = ?" (the same slips as "3/4 of 12").
   if ((m = /^(\d+)\/(\d+) × (\d+) = \?$/.exec(p))) {

@@ -259,6 +259,7 @@ export const WHY = {
   wrongSideHalf: 'That is on the other side of half. Count the parts on the side asked for.',
   oneBack: 'That is too far from half. Move just one part from half.',
   nearer: 'That one is nearer. Look for the one farther away.',
+  moreThanZero: 'Some of it is shaded, so it is more than zero.',
   // Cutting and joining parts
   foldDoubles: 'Each fold in half doubles the parts. Count the shaded parts and all the parts.',
   countAfterCut: 'Each part is cut again, so there are more parts now. Count them all.',
