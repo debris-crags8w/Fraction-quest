@@ -3,7 +3,7 @@ import { unitFor, withUnits, withoutUnit } from './measure-units';
 import { misconceptionWrongs, preferMisconceptions, withoutOverOne } from './misconceptions';
 import { fractionMistakes } from './fraction-slips';
 import { MISSIONS, nameBars, problemPicture, withChoiceBars, type ModelSpec, type PracticeQuestion } from './game';
-import { G3_EQUIVALENTS_WIDE, answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
+import { G3_EQUIVALENTS_WIDE, answerValue, estimateHint, estimateWhy, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
 import { onlyTaught, partTaught, withTaughtParts } from './taught-parts';
 import { allEqual, circleCut, gridCut, type AreaCut } from './area-shapes';
@@ -39,6 +39,12 @@ const hash = (text: string) => [...text].reduce((h, c) => Math.imul(h ^ c.charCo
 
 const NAMES: Record<number, string> = { 2: 'halves', 3: 'thirds', 4: 'fourths', 5: 'fifths', 6: 'sixths', 7: 'sevenths', 8: 'eighths', 9: 'ninths', 10: 'tenths', 11: 'elevenths', 12: 'twelfths' };
 const name = (d: number) => NAMES[d] ?? `${d}ths`;
+/** Why n/d is near a benchmark, from the bar: a tiny part, about half the parts, or almost every part. `says` is how the
+    question put it ("is nearer", "is closest to"). */
+const benchmarkWhy = (n: number, d: number, near: string, says: string) => near === '0'
+  ? `${f(n, d)} is only ${n} of ${d} parts, a tiny amount. So it ${says} 0.`
+  : near === '1' ? `${f(n, d)} is only ${d - n} ${d - n === 1 ? 'part' : 'parts'} short of a whole bar. So it ${says} 1.`
+  : n * 2 === d ? `${f(n, d)} is exactly half of the bar. So it ${says} 1/2.` : `${n} of ${d} parts is close to half the bar. So ${f(n, d)} ${says} 1/2.`;
 const Name = (d: number) => name(d)[0].toUpperCase() + name(d).slice(1);
 const f = (n: number, d: number) => `${n}/${d}`;
 const bar = (n: number, d: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: n, denominator: d }], hideLabels: true });
@@ -286,14 +292,14 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
         const labels = { '0': 'Nearer 0', '1/2': 'Nearer 1/2', '1': 'Nearer 1' } as const;
         return { prompt: `Is ${f(n, d)} nearer ${low} or ${high}?`, right: labels[right as keyof typeof labels],
           wrong: [labels[(right === low ? high : low) as keyof typeof labels], upper ? 'Nearer 0' : 'Nearer 1'], extra: 'Exactly 1/2',
-          hint: 'Is it tiny, about half, or almost full?', retry: `${f(n, d)} is nearer ${right}.`, model: bar(n, d) };
+          hint: 'Is it tiny, about half, or almost full?', retry: benchmarkWhy(n, d, right, 'is nearer'), model: bar(n, d) };
       }
     }
     // Grade 3 parts with one clear nearest benchmark (1/4 sits halfway between 0 and 1/2).
     const n = r.pick(near); const right = nearest(n, d) as string;
     // Only the taught benchmarks (0, 1/2 and 1), not a made-up "2"; the fourth choice is the "can't tell" slip.
     return { prompt: `Is ${f(n, d)} closest to 0, 1/2 or 1?`, right, wrong: ['0', '1/2', '1'].filter((x) => x !== right) as [string, string], extra: "You can't tell",
-      hint: 'Is it tiny, about half, or almost full?', retry: `${f(n, d)} is closest to ${right}.`, model: bar(n, d) };
+      hint: 'Is it tiny, about half, or almost full?', retry: benchmarkWhy(n, d, right, 'is closest to'), model: bar(n, d) };
   },
   'fraction-magnitude': (r) => {
     const d = r.pick(G3_DENS); const n = d % 2 ? (d - 1) / 2 + r.int(0, 1) : d / 2 + (r.chance() ? 1 : -1);
@@ -308,7 +314,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       const more = t / b > (near === '1/2' ? 0.5 : near === '1' ? 1 : 0);
       if (r.chance()) {
         return { prompt: `Is ${f(t, b)} closest to 0, 1/2 or 1?`, right: near, wrong: ['0', '1/2', '1'].filter((x) => x !== near) as [string, string], extra: "You can't tell",
-          hint: 'Picture it on a line from 0 to 1. Is it tiny, about half, or almost full?', retry: `${f(t, b)} is closest to ${near}.`, model: bar(t, b) };
+          hint: 'Picture it on a line from 0 to 1. Is it tiny, about half, or almost full?', retry: benchmarkWhy(t, b, near, 'is closest to'), model: bar(t, b) };
       }
       const say = (word: 'more' | 'less') => `A little ${word} than ${near}`;
       return { prompt: `${f(t, b)} is near ${near}. Is it a little more or a little less?`, right: say(more ? 'more' : 'less'), wrong: [say(more ? 'less' : 'more'), `Exactly ${near}`], extra: "You can't tell",
@@ -406,7 +412,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       return fromSlips(`Join the small parts. Which fraction with a denominator of ${d} is the same as ${f(n * k, d * k)}?`, f(n, d), joinSlips(n, d, k),
         `Join every ${k} small parts into 1 part.`, `Every ${k} small parts make 1 part. ${n * k} small parts make ${n}, so ${f(n * k, d * k)} = ${f(n, d)}.`, bar(n * k, d * k));
     }
-    return { prompt: `Which is the same as ${f(n, d)}?`, right: f(n * k, d * k), wrong: [f(n, d * k), f(n * k, d)], hint: `Split every part into ${k}.`, retry: `Split every part into ${k}. Now ${n * k} of ${d * k} parts are shaded: ${f(n * k, d * k)}.`, model: bar(n, d) };
+    return { prompt: `Which is the same as ${f(n, d)}?`, right: f(n * k, d * k), wrong: [f(n, d * k), f(n * k, d)], hint: `Split every part into ${k}.`, retry: `With each part split into ${k}, ${n * k} of ${d * k} parts are shaded: ${f(n * k, d * k)}.`, model: bar(n, d) };
   },
   'build-equivalents': (r) => {
     const [n, d, k] = r.pick(equivalentsFor('build-equivalents'));
@@ -977,7 +983,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       const sign = value > 1 ? '>' : '<';
       // Bare signs: the four full comparisons ("2/3 − 1/2 < 1") are written from them (fourth-choice.ts).
       return { prompt: `Without finding the exact ${sub ? 'difference' : 'sum'}, compare ${expr} with 1: __ 1.`, right: sign, wrong: ['=', sign === '>' ? '<' : '>'],
-        hint: `Compare each part with 1/2. Two halves make 1.`, retry: sub ? `Both parts are less than 1, so taking one away leaves less than 1.` : value > 1 ? `${expr} is more than 1.` : `${expr} is less than 1.`,
+        hint: estimateHint(a, b, c, e, sub ? '−' : '+'), retry: estimateWhy(a, b, c, e, sub ? '−' : '+'),
         model: bars2([a, b], [c, e]) };
     }
   },
@@ -1081,17 +1087,18 @@ const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
       // The worksheet's other way to ask it: a whole number, written over 1.
       const wholes = r.int(2, 9);
       return { id: 'wider', prompt: `Write ${wholes} as a fraction with a denominator of 1.`, answer: f(wholes, 1), model: barRow(wholes, 1), modelRequired: true,
-        hint: 'The denominator 1 means each part is one whole.' };
+        hint: 'The denominator 1 means each part is one whole.', why: `Each whole is one part, so ${wholes} is ${f(wholes, 1)}.` };
     }
     if (r.int(0, 3) === 0) {
       const wholes = r.int(2, 9);
       return { id: 'wider', prompt: `Write ${wholes} whole bars as a fraction with a denominator of 1.`, answer: f(wholes, 1), model: barRow(wholes, 1), modelRequired: true,
-        hint: 'The denominator 1 means each part is one whole.' };
+        hint: 'The denominator 1 means each part is one whole.', why: `Each bar is one part, so ${wholes} bars are ${f(wholes, 1)}.` };
     }
     // A denominator of 1 too: 5/1 is 5 wholes. At most 5 wholes: the picture draws one empty bar per whole and a spare.
     const d = r.pick([1, 2, 3, 4, 6, 8]); const wholes = r.int(2, d >= 6 ? 4 : 5);
     return { id: 'wider', prompt: `How many wholes are ${f(wholes * d, d)}?`, answer: String(wholes), model: barRow(wholes * d, d), modelRequired: true,
-      hint: d === 1 ? 'The denominator 1 means each part is one whole.' : `${f(d, d)} makes one whole. Count groups of ${f(d, d)}.` };
+      hint: d === 1 ? 'The denominator 1 means each part is one whole.' : `${f(d, d)} makes one whole. Count groups of ${f(d, d)}.`,
+      why: d === 1 ? `Each part is one whole, so ${f(wholes, 1)} is ${wholes} wholes.` : `${wholes * d} ${name(d)} make ${wholes} groups of ${d}, so that is ${wholes} wholes.` };
   },
   'compare-decimals': (r) => {
     // The comparisons that catch the "longer number is bigger" mistake: tenths against hundredths (0.4 or 0.38),
@@ -1107,14 +1114,16 @@ const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
     const top = cut(a);
     return { id: 'wider', prompt: `Compare: ${left} __ ${right}.`, answer: a > b ? '>' : '<', form: 'symbol', model: barRow(top.numerator, top.denominator), modelRequired: true,
       task: { kind: 'copy', n: top.numerator, of: 'top bar' }, picture: { kind: 'bars', bars: [top, cut(b)] },
-      hint: `Write both in hundredths: ${left} is ${a} hundredths. How many hundredths is ${right}? Compare the counts, not how long the numbers look.` };
+      hint: `Write both in hundredths: ${left} is ${a} hundredths. How many hundredths is ${right}? Compare the counts, not how long the numbers look.`,
+      why: `${right} is ${b} hundredths. ${a} hundredths ${a === 1 ? 'is' : 'are'} ${a > b ? 'more' : 'less'} than ${b} hundredths.` };
   },
   'multiplication-scaling': (r) => {
     // A factor below 1, equal to 1 or above 1, with a whole it divides evenly.
     const b = r.pick([2, 3, 4, 5, 6] as const); const t = r.int(1, 2 * b - 1);
     const whole = r.pick([6, 8, 10, 12, 15, 16, 18, 20, 24, 30].filter((w) => w % b === 0));
     return { id: 'wider', prompt: `Without multiplying, compare ${f(t, b)} × ${whole} with ${whole}: __ ${whole}.`, answer: t < b ? '<' : t === b ? '=' : '>', form: 'symbol',
-      hint: 'A factor below 1 shrinks the amount. A factor of 1 keeps it the same. A factor above 1 grows it.' };
+      hint: 'A factor below 1 shrinks the amount. A factor of 1 keeps it the same. A factor above 1 grows it.',
+      why: t < b ? `${f(t, b)} is less than 1, so ${f(t, b)} × ${whole} is less than ${whole}.` : t === b ? `${f(t, b)} is the same as 1, so ${whole} stays the same.` : `${f(t, b)} is more than 1, so ${f(t, b)} × ${whole} is more than ${whole}.` };
   },
   'two-step-conversions': (r) => {
     // A mixed number of big units changed to small units, then some taken away or added. Answers stay under 1000.
@@ -1138,7 +1147,8 @@ const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
     return { id: 'wider', prompt: `A rectangular garden is ${wa} ${f(na, da)} meters by ${wb} ${f(1, db)} meters. What is its area?`, answer: mixedName(top, bottom),
       form: top % bottom ? 'mixed' : undefined, model: barRow(wa * da + na, da), modelRequired: true,
       picture: gardenModel({ whole: wa, numerator: na, denominator: da }, { whole: wb, numerator: 1, denominator: db }),
-      hint: 'Split the rectangle at the whole units. Find the area of each part, then add them.' };
+      hint: 'Split the rectangle at the whole units. Find the area of each part, then add them.',
+      why: `The 4 parts are ${wa * wb}, ${f(wa, db)}, ${f(na * wb, da)} and ${f(na, da * db)} square meters. Added, they make ${mixedName(top, bottom)}.` };
   },
   'unit-fraction-divided-whole': (r) => {
     // 24 small parts at most, so the bar stays readable.
@@ -1149,15 +1159,16 @@ const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
         hint: `Each 1/${part} is cut into ${people} shares. How many 1/${part} parts fill the pan?`,
         explain: `${part} parts fill the pan, and each one is cut into ${people} shares: ${part} × ${people} = ${result}.` };
     }
-    const why = `Check: ${people} × 1/${result} = 1/${part}.`;
+    const why = `Each 1/${part} is cut into ${people} shares, so ${part} × ${people} = ${result} shares fill the pan. Check: ${people} × 1/${result} = 1/${part}.`;
     return { id: 'wider', prompt: `${people} children share 1/${part} of a pan. 1/${part} ÷ ${people} = ?`, answer: f(1, result), denominator: result, model: barRow(1, part), modelRequired: true, why,
-      explain: `Split the 1/${part} part into ${people} equal parts. ${result} of those small parts fill the whole pan, so the answer is ${f(1, result)}. ${why}`,
+      explain: `Split the 1/${part} part into ${people} equal parts. ${result} of those small parts fill the whole pan, so the answer is ${f(1, result)}. Check: ${people} × 1/${result} = 1/${part}.`,
       hint: `Split the 1/${part} part into ${people} equal parts. How many of those small parts fill the whole pan?` };
   },
   'unit-fraction-multiples': (r) => {
     const bottom = r.pick([2, 3, 4, 5, 6, 8, 10, 12] as const); const groups = r.int(2, 9);
     return { id: 'wider', prompt: `Write ${groups} × 1/${bottom} as one fraction.`, answer: f(groups, bottom), model: barRow(groups, bottom), modelRequired: true, task: { kind: 'shade', n: groups },
-      hint: `Count ${groups} copies of 1/${bottom}. The denominator stays ${bottom}; add the numerators.` };
+      hint: `Count ${groups} copies of 1/${bottom}. The denominator stays ${bottom}; add the numerators.`,
+      why: `${groups} copies of 1/${bottom} are ${groups} ${name(bottom)}. That is ${f(groups, bottom)}.` };
   },
   'dimes-and-pennies': (r) => {
     // Any number of dimes and pennies under a dollar (the worksheet has twelve), asked the worksheet's three ways.
@@ -1167,11 +1178,13 @@ const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
     if (form === 1) {
       return { id: 'wider', prompt: `Write ${f(dimes, 10)} of a dollar in hundredths.`, answer: f(10 * dimes, 100), denominator: 100,
         picture: { kind: 'bars', bars: [{ numerator: dimes, denominator: 10 }], hideLabels: true },
-        hint: `${f(dimes, 10)} is ${dimes} ${dimes === 1 ? 'dime' : 'dimes'}. Each dime is 10 hundredths.` };
+        hint: `${f(dimes, 10)} is ${dimes} ${dimes === 1 ? 'dime' : 'dimes'}. Each dime is 10 hundredths.`,
+        why: `${dimes} × 10 = ${10 * dimes} hundredths, so it is ${f(10 * dimes, 100)}.` };
     }
     return { id: 'wider', prompt: form === 0 ? `${coins}. What part of a dollar is that?` : `${f(dimes, 10)} + ${f(pennies, 100)} of a dollar. How much is that in hundredths?`,
       answer: f(10 * dimes + pennies, 100), denominator: 100, picture: { kind: 'coins', dimes, pennies },
-      hint: `${dimes} ${dimes === 1 ? 'dime is' : 'dimes are'} ${10 * dimes} hundredths. Then add the ${pennies === 1 ? 'penny' : 'pennies'}.` };
+      hint: `${dimes} ${dimes === 1 ? 'dime is' : 'dimes are'} ${10 * dimes} hundredths. Then add the ${pennies === 1 ? 'penny' : 'pennies'}.`,
+      why: `Each penny is 1 hundredth. ${10 * dimes} + ${pennies} = ${10 * dimes + pennies} hundredths.` };
   },
   'party-portions': (r) => {
     const b = r.pick([3, 4, 5, 6, 8, 10] as const); const a = r.int(2, b - 1); const n = r.int(3, 8);
@@ -1181,10 +1194,12 @@ const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
     const model = { kind: 'bar' as const, n: 0, d: b, wholes: Math.ceil((n * a) / b) };
     if (r.chance() && (n * a) % b !== 0 && n * a > b) {
       return { id: 'wider', prompt: `${each} ${n} ${who}s. The total is between two whole numbers. What is the bigger one?`, answer: String(Math.ceil((n * a) / b)), model,
-        hint: `Count all the ${name(b)}: ${n} × ${a}. Then see how many wholes of ${b} ${name(b)} fit.` };
+        hint: `Count all the ${name(b)}: ${n} × ${a}. Then see how many wholes of ${b} ${name(b)} fit.`,
+        why: `${n} × ${a} = ${n * a} ${name(b)}. That is between ${Math.floor((n * a) / b)} and ${Math.ceil((n * a) / b)} wholes.` };
     }
     return { id: 'wider', prompt: `${each} ${n} ${who}s. How many ${unit}s in all?`, answer: f(n * a, b), denominator: b, model,
-      hint: `${n} groups of ${a} ${name(b)}. Multiply the numerator by ${n}. The part size stays ${name(b)}.` };
+      hint: `${n} groups of ${a} ${name(b)}. Multiply the numerator by ${n}. The part size stays ${name(b)}.`,
+      why: `${n} × ${a} = ${n * a} ${name(b)}, so the total is ${f(n * a, b)}.` };
   },
 };
 
@@ -1212,7 +1227,8 @@ for (const topic of MISSIONS.filter((item) => !(item.id in RECIPES))) {
     const problem = wider && r.chance() ? wider(r) : r.pick(pool);
     return {
       prompt: asChoicePrompt(problem.prompt), right: problem.answer, wrong: choiceDistractors(problem.answer),
-      hint: problem.hint, retry: problem.explain ?? (problem.why ? `${problem.hint} ${problem.why}` : problem.hint), model: problemPicture(problem),
+      // The right answer gives the row's reason, not its hint again (the child has just used the hint).
+      hint: problem.hint, retry: problem.explain ?? problem.why ?? problem.hint, model: problemPicture(problem),
     };
   };
 }

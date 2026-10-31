@@ -71,6 +71,31 @@ export function getReasonFeedback(check: BuildCheck, selected: number | null, mo
 const model = (n: number, d: number, kind: LearningModel['kind'] = 'bar', total?: number): LearningModel =>
   ({ n, d, kind, total, wholes: Math.max(1, Math.ceil(n / d)) });
 const f = (n: number, d: number) => `${n}/${d}`;
+
+/** Why a/b + c/e (or a/b − c/e) is more or less than 1, by benchmarks only: never the exact sum. Each part against 1/2,
+    or, when the parts are on both sides of 1/2, what the bigger part still needs to make 1. */
+export function estimateWhy(a: number, b: number, c: number, e: number, op: '+' | '−'): string {
+  if (op === '−') return `The difference is less than ${f(a, b)}, and ${f(a, b)} is less than 1.`;
+  const [x, y] = [a / b, c / e];
+  if ((x - 0.5) * (y - 0.5) >= 0) {
+    const more = x + y > 1;
+    const word = more ? 'more' : 'less';
+    if (x === 0.5 || y === 0.5) return `One part is 1/2 and the other is ${word} than 1/2. So the sum is ${word} than 1.`;
+    return `Both parts are ${word} than 1/2. So the sum is ${word} than 1/2 + 1/2, which is 1.`;
+  }
+  // One part over 1/2, one under: does the small part fill what the big part needs to make 1?
+  const [[bt, bb], [st, sb]] = x > y ? [[a, b], [c, e]] : [[c, e], [a, b]];
+  const word = x + y > 1 ? 'more' : 'less';
+  return `${f(bt, bb)} needs ${f(bb - bt, bb)} more to make 1. ${f(st, sb)} is ${word} than that, so the sum is ${word} than 1.`;
+}
+/** The hint for the same comparison: what to compare, never which way it goes. */
+export function estimateHint(a: number, b: number, c: number, e: number, op: '+' | '−'): string {
+  if (op === '−') return 'Is the first part more or less than 1? Taking some away makes it smaller.';
+  const [x, y] = [a / b, c / e];
+  if ((x - 0.5) * (y - 0.5) >= 0) return 'Compare each part with 1/2. Two halves make 1.';
+  const [bt, bb] = x > y ? [a, b] : [c, e];
+  return `How much does ${f(bt, bb)} need to make 1? Is the other part more or less than that?`;
+}
 const UNIT_NAMES: Record<number, string> = { 2: 'halves', 3: 'thirds', 4: 'fourths', 5: 'fifths', 6: 'sixths', 7: 'sevenths', 8: 'eighths', 9: 'ninths', 10: 'tenths', 12: 'twelfths', 15: 'fifteenths', 16: 'sixteenths' };
 /** Plural name for pieces of size 1/d, e.g. 3 → "thirds". */
 const unitName = (d: number) => UNIT_NAMES[d] ?? `${d}ths`;
@@ -1894,7 +1919,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const cups = 1 + i % 4; const bottom = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 8, 10][tr];
         // The story, then its division; the check after a right answer multiplies back.
         prompt = `How many 1/${bottom}-cup scoops fill ${cups} ${cups === 1 ? 'cup' : 'cups'}? ${cups} ÷ 1/${bottom} = ?`; answer = String(cups * bottom);
-        why = `Check: ${cups * bottom} × 1/${bottom} = ${cups}.`;
+        why = `One cup holds ${bottom} scoops of 1/${bottom} cup.${cups > 1 ? ` ${cups} × ${bottom} = ${cups * bottom} scoops.` : ''} Check: ${cups * bottom} × 1/${bottom} = ${cups}.`;
         hint = `How many ${bottom === 2 ? 'halves' : `1/${bottom} parts`} make one whole cup?${cups > 1 ? ` Then think about ${cups} cups.` : ''}`; break;
       }
       case 'measure': {
@@ -2002,7 +2027,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         if (b !== 100) why = `${f(t, b)} = ${f((t * 100) / b, 100)}, and ${(t * 100) / b} out of 100 is ${(t * 100) / b}%.`; break;
       }
       case 'percent-inverse': {
-        const percent = pick(PERCENTS);
+        // Half a turn of the list along: the lesson's rows (1, 4, 7, 10) are then never the percents the lesson before
+        // (fractions to percents, which walks the same list) has just asked, so the two lessons do not mirror each other.
+        const percent = PERCENTS[(i + variant + PERCENTS.length / 2) % PERCENTS.length];
         prompt = `Write ${percent}% as a fraction with a denominator of 100.`; answer = f(percent, 100); denominator = 100;
         hint = 'Percent means out of 100. What goes on top?';
         why = `${percent} goes on top and 100 goes on the bottom.`; break;
@@ -2077,7 +2104,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         rulerTask = { denominator: 4, wholes: 2, end };
         answer = mixedName(end, 4); form = answer.includes(' ') ? 'mixed' : undefined;
         prompt = `The blue ${object} starts at zero${end % 4 ? ' and ends at a tick with no number' : ''}. Use the ruler. How long is it in inches?`;
-        hint = `Count how many short spaces make 1 inch. Then count the spaces to the end of the ${object}.`;
+        hint = `Each inch is split into short spaces. Count them from 0 to the end of the ${object}.`;
         why = end < 4 ? `It covers ${some(end, 'small space', 'small spaces')}, and each is 1/4 inch.`
           : end === 4 ? '4 small spaces make 1 inch.' : `4 small spaces make 1 inch, and ${end - 4} more ${end - 4 === 1 ? 'makes' : 'make'} ${f(end - 4, 4)} inch.`; break;
       }
@@ -2266,9 +2293,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const operation = op === '+' ? 'sum' : 'difference';
         prompt = `Without finding the exact ${operation}, compare ${f(a, b)} ${op} ${f(c, e)} with 1: __ 1.`;
         answer = total < common ? '<' : '>'; form = 'symbol'; visual = model(a, b); modelRequired = true;
-        hint = op === '−' ? `${f(a, b)} is less than 1. Taking some away leaves even less.`
+        hint = op === '−' ? estimateHint(a, b, c, e, op)
           : `${f(a, b)} ${side(a, b)} and ${f(c, e)} ${side(c, e)}. Two halves make 1. So is the sum more or less than 1?`;
-        why = `Check: ${f(a, b)} ${op} ${f(c, e)} = ${mixedName(total, common)}, which is ${total < common ? 'less' : 'more'} than 1.`; break;
+        why = estimateWhy(a, b, c, e, op); break;
       }
       case 'fractional-area': {
         const examples: [number, number][] = [[1, 1], [1, 2], [2, 1], [2, 3], [3, 2], [1, 3], [2, 2], [3, 1], [1, 2], [2, 1], [3, 3], [2, 3]];
@@ -2310,8 +2337,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         // One kind of question: each redo takes the other half of the list, so back-to-back sheets share no row.
         const [unitDenominator, people] = PAN_SHARES[(i + 13 * variant) % PAN_SHARES.length]; const resultDenominator = unitDenominator * people;
         prompt = `${people} children share 1/${unitDenominator} of a pan. 1/${unitDenominator} ÷ ${people} = ?`;
-        why = `Check: ${people} × 1/${resultDenominator} = 1/${unitDenominator}.`;
-        explain = `Split the 1/${unitDenominator} part into ${people} equal parts. ${resultDenominator} of those small parts fill the whole pan, so the answer is ${f(1, resultDenominator)}. ${why}`;
+        why = `Each 1/${unitDenominator} is cut into ${people} shares, so ${unitDenominator} × ${people} = ${resultDenominator} shares fill the pan. Check: ${people} × 1/${resultDenominator} = 1/${unitDenominator}.`;
+        explain = `Split the 1/${unitDenominator} part into ${people} equal parts. ${resultDenominator} of those small parts fill the whole pan, so the answer is ${f(1, resultDenominator)}. Check: ${people} × 1/${resultDenominator} = 1/${unitDenominator}.`;
         answer = f(1, resultDenominator); denominator = resultDenominator; visual = model(1, unitDenominator); modelRequired = true;
         hint = `Split the 1/${unitDenominator} part into ${people} equal parts. How many of those small parts fill the whole pan?`; break;
       }
@@ -2532,7 +2559,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
             ? `1/${b} ${unit} of ${thing} is shared by ${people} friends. What fraction of a ${unit} does each get?`
             : `1/${b} ÷ ${people} = ?`;
           answer = f(1, b * people); visual = model(1, b);
-          why = `Check: ${people} × 1/${b * people} = 1/${b}.`;
+          why = `Each 1/${b} is cut into ${people} shares. ${b} × ${people} = ${b * people} shares fill one whole. Check: ${people} × 1/${b * people} = 1/${b}.`;
           hint = `Sharing: cut the 1/${b} into ${people} equal shares. How many of those shares fill one whole?`; break;
         }
         const [d, w] = pick([[4, 3], [3, 2], [2, 4], [6, 1], [5, 2], [4, 2], [3, 4], [8, 1], [2, 3], [6, 2], [4, 1], [3, 3]] as const);
@@ -2540,7 +2567,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           ? `How many 1/${d}-${unit} ${holders} ${w === 1 ? 'does' : 'do'} ${w} ${w === 1 ? unit : units} of ${thing} fill?`
           : `${w} ÷ 1/${d} = ?`;
         answer = String(w * d); visual = { kind: 'bar', n: 0, d: 1, wholes: w };
-        why = `Check: ${w * d} × 1/${d} = ${w}.`;
+        why = `${d} pieces of 1/${d} fit in one whole. ${w} × ${d} = ${w * d}. Check: ${w * d} × 1/${d} = ${w}.`;
         hint = `Fitting: how many 1/${d} pieces fit in one whole? Then count them in ${w}.`; break;
       }
       case 'coins': {
