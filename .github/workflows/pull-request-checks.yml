@@ -250,7 +250,7 @@ jobs:
     # Every screen must fit a phone (390 × 664, an iPhone in Safari) with no scrolling. These walks had no job: every
     # screen of every lesson (split over four shards, which run side by side), and every Unit challenge puzzle, every
     # Find my level question, every kind of Check-in question, daily practice, a New-questions round, Build it and the
-    # worksheet page, and the games (the Fraction Race with the robot and with two players, Fraction War and the Code challenge) (one more shard; its seven walks took 5.9 minutes locally with 2 workers, and the two game walks add about 5.5 minutes on one worker, so expect about 9). Locally each part's tests take
+    # worksheet page, and the games (the Fraction Race with the robot and with two players, Fraction War and the Code challenge) (one more shard; its nine walks took 7.4 minutes locally with 2 workers). Locally each part's tests take
     # 4.5 to 6 minutes (on CI expect 8 to 12, plus about 5 for setup), shorter than the all-lessons job, so a pull request
     # does not wait longer; the five parts cost about 75 more runner minutes per run. (The last part keeps its name, so a
     # required check named after it still matches.)
