@@ -2006,7 +2006,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         if (b !== 100) why = `${f(t, b)} = ${f((t * 100) / b, 100)}, and ${(t * 100) / b} out of 100 is ${(t * 100) / b}%.`; break;
       }
       case 'percent-inverse': {
-        const percent = pick(PERCENTS);
+        // Half a turn of the list along: the lesson's rows (1, 4, 7, 10) are then never the percents the lesson before
+        // (fractions to percents, which walks the same list) has just asked, so the two lessons do not mirror each other.
+        const percent = PERCENTS[(i + variant + PERCENTS.length / 2) % PERCENTS.length];
         prompt = `Write ${percent}% as a fraction with a denominator of 100.`; answer = f(percent, 100); denominator = 100;
         hint = 'Percent means out of 100. What goes on top?';
         why = `${percent} goes on top and 100 goes on the bottom.`; break;

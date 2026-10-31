@@ -7,7 +7,7 @@
    f. No dead built-in review question; no idea repeats one hint three times. */
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { MISSIONS } from './game';
+import { MISSIONS, type PracticeQuestion } from './game';
 import { SLIPS, worksheetWrongReason, wrongChoiceReason } from './wrong-answer';
 import { WHY } from './slip-reasons';
 import { generateQuestions } from './practice-bank';
@@ -186,5 +186,18 @@ describe('f. hints vary inside an idea', () => {
       if (hints.length >= 3 && new Set(hints).size === 1) same.push(`${m.id} idea ${i + 1}: ${hints[0]}`);
     });
     assert.deepEqual(same, []);
+  });
+});
+
+describe('the two percent lessons do not mirror each other', () => {
+  it('percent-to-fraction never asks the inverse of what fractions-to-percent just asked', () => {
+    const value = (text: string) => { const m = /(\d+)%|(\d+)\/(\d+)/.exec(text)!; return m[1] ? Number(m[1]) / 100 : Number(m[2]) / Number(m[3]); };
+    const answers = (qs: { choices: string[]; correctChoice: number }[]) => new Set(qs.map((q) => value(q.choices[q.correctChoice]).toFixed(4)));
+    const [earlier, later] = [mission('fractions-to-percent'), mission('percent-to-fraction')];
+    const mirrored = (qs: PracticeQuestion[], against: Set<string>) => qs.filter((q) => against.has(value(q.choices[q.correctChoice]).toFixed(4))).map((q) => `${q.prompt} => ${q.choices[q.correctChoice]}`);
+    // The lesson's own questions (same worksheet positions) against everything the lesson before asked; its checkpoint
+    // against the lesson before's last question and checkpoint.
+    assert.deepEqual(mirrored(later.questions, answers([...earlier.questions, ...lessonCheckpoint(earlier)])), []);
+    assert.deepEqual(mirrored(lessonCheckpoint(later), answers([earlier.questions.at(-1)!, ...lessonCheckpoint(earlier)])), []);
   });
 });
