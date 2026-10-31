@@ -440,7 +440,7 @@ export const LESSONS_C: Record<string, string> = {
   'fraction-recipes': 'c-flour',                    // "Let's bake for the racers with my recipe."
   'party-portions': 'c-dispenser',                  // "Every racer gets a drink. Is my jug big enough?"
   'add-unlike-fractions': 'c-pie',                  // chapter 10: "Pip's pie is cut a different way."
-  'subtract-unlike-fractions': 'b-donut',           // "I ate some. Oops. How much is left?"
+  'subtract-unlike-fractions': 'b-tray',            // "The team ate some of my sandwiches. How much is left?"
   'mixed-unlike-operations': 'c-sandwiches',       // "The picnic has whole sandwiches and parts of sandwiches."
   'estimate-fraction-operations': 'c-lunchbox',     // "About how much food is left?"
   'sets-nonunit': 'c-hopper',                       // chapter 11: "Some bolts already went into the machine!"

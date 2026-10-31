@@ -45,7 +45,6 @@ const PROP_WORDS: Record<string, string[]> = {
     pinned here, so a line that later names something has to list its words above instead. */
 const NAMES_NO_OBJECT: Record<string, string> = {
   'b-rods': 'Now I have more than one whole.',
-  'b-donut': 'I ate some. Oops.',
   'c-raygun': 'bigger, smaller or the same?',
   'd-snacks': 'Part goes, then part of what is left.',
 };

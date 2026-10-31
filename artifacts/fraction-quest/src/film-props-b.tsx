@@ -144,23 +144,6 @@ function EmptyJarsArt() {
   </>;
 }
 
-/** Chapter 10, lesson 3: "I ate some. Oops. How much is left?" A plate with a well-bitten donut and crumbs. */
-function DonutArt() {
-  return <>
-    <ellipse cx="100" cy="104" rx="76" ry="17" fill="rgb(0 0 0 / .22)" />
-    <ellipse cx="100" cy="97" rx="76" ry="19" fill={CREAM} {...outline} />
-    <ellipse cx="100" cy="97" rx="52" ry="11" fill="#F2E3B7" />
-    <path d="M56 74 A44 28 0 1 1 136 90 A8 8 0 0 0 121.5 94 A8 8 0 0 0 107 98 A8 8 0 0 0 92.4 101.6 A44 28 0 0 1 56 74 Z" fill="#E0A458" {...outline} />
-    <path d="M62 70 Q62 50 100 48 Q138 50 138 68 Q130 78 124 74 Q116 82 108 78 Q100 82 92 78 Q84 84 76 78 Q68 78 62 70 Z" fill="#FF8FB1" {...thin} />
-    <ellipse cx="100" cy="72" rx="13" ry="8" fill="#F2E3B7" stroke={INK} strokeWidth="2.5" />
-    <rect x="76" y="58" width="9" height="4" rx="2" fill={GOLD} transform="rotate(-25 80 60)" /><rect x="112" y="56" width="9" height="4" rx="2" fill={CYAN} transform="rotate(20 116 58)" />
-    <rect x="94" y="86" width="8" height="4" rx="2" fill="#fff" transform="rotate(10 98 88)" /><rect x="124" y="64" width="8" height="4" rx="2" fill={GOLD} transform="rotate(-15 128 66)" />
-    <g className="fq-fp-b-crumb">
-      {[[144, 98, 4], [154, 94, 3], [136, 102, 3], [160, 102, 4]].map(([x, y, r]) => <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#E0A458" stroke="#9A5B1C" strokeWidth="1.8" />)}
-    </g>
-  </>;
-}
-
 /** Lesson 7: "Robots count in tenths. Which boot has more charge?" A rocket boot plugged in to charge. */
 function BootArt() {
   return <>
@@ -321,7 +304,6 @@ export const PROPS_B: Record<string, PropDef> = {
   'b-labeler': { label: 'A little label maker pushing out a blank sticker label', art: LabelerArt, ledge: true },
   'b-jars': { label: 'Two full snack jars, and a third jar with only a few cookies in it', art: JarsArt, ledge: true },
   'b-emptyjars': { label: 'A full snack jar, and an empty jar tipped over with cookie crumbs spilling out', art: EmptyJarsArt, ledge: true },
-  'b-donut': { label: 'A plate with a donut that has big bites taken out of it, and a few crumbs', art: DonutArt },
   'b-boot': { label: 'A rocket boot plugged in to a yellow charger', art: BootArt, ledge: true },
   'b-screen': { label: 'A little screen on a stalk showing two decimals side by side', art: ScreenArt },
   'b-batteries': { label: 'A big battery with a screen that is a grid of little squares, and a spare battery', art: BatteriesArt, ledge: true },
