@@ -5,7 +5,7 @@ import test from 'node:test';
 import { MISSIONS, type Mission } from './game';
 import { LESSON_IDEAS } from './lesson-ideas';
 import { SECRETS, dailySecret, lanternCard, mysteryAnswer, mysteryOfTheWeek } from './riddles';
-import { CHAPTERS, EPILOGUE, STORY_PROBLEMS, STONE_PIECES, chapterEnd, chapterFor, endingAfterChapter, lessonComic, stoneQuestion, storyLessonTitle, thanksFor, withName, type Chapter } from './story';
+import { BOARD_CASES, CHAPTERS, EPILOGUE, STORY_PROBLEMS, STONE_PIECES, chapterEnd, chapterFor, endingAfterChapter, lessonCliff, lessonComic, stoneQuestion, storyLessonTitle, thanksFor, withName, type Chapter, type CharacterId } from './story';
 
 const lessonsIn = (unit: number) => MISSIONS.filter((mission) => mission.unit === unit);
 const plain = (text: string) => withName(text, null, 'everyday');
@@ -129,7 +129,7 @@ test('chapters 8, 9 and 12 thank the child differently after each lesson, and ea
   }
   // A chapter with a single line still thanks the same way every time.
   assert.equal(thanksFor(chapterFor(2)!, 0), chapterFor(2)!.thanks);
-  assert.equal(thanksFor(chapterFor(3)!, 1), chapterFor(3)!.thanks);
+  assert.notEqual(thanksFor(chapterFor(3)!, 0), thanksFor(chapterFor(3)!, 1), 'a jug and a plant are thanked differently');
 });
 
 test('chapter 12 lessons 4 to 11 and chapter 9 lessons 7 to 9 each carry a thread: a deadline, a missing piece or something at stake', () => {
@@ -429,7 +429,8 @@ test('the story matches its lessons: one missing number, one last line, a strap 
   assert.doesNotMatch(cliffAfter('add-tenths-hundredths'), /\bthe part\b/i);
   // D9: the picnic packs pie; the stage crew has one loaf; the lights have a reason to need rain; the stone glows whole only at the end.
   assert.match(plain(chapterFor(10)!.intro[0].text), /\bpie\b/);
-  assert.match(sceneBefore('fractional-sharing'), /one loaf/, 'the scene agrees with the cliff before it: one loaf first');
+  assert.match(sceneBefore('fractional-sharing'), /loaves/, 'the scene agrees with the cliff before it and the lesson: loaves');
+  assert.match(cliffAfter('two-step-conversions'), /loaves/);
   assert.doesNotMatch(`${sceneBefore('line-plot-totals')} ${plain(STORY_PROBLEMS['line-plot-totals']!.setup)}`, /lights need water/i);
   assert.doesNotMatch(plain(STORY_PROBLEMS['divide-fractions']!.result), /whole again/i);
 });
@@ -465,4 +466,101 @@ test('each chapter asks its own stone question, with plausible mix-ups and no em
 
 test('an after-ending secret does not move the stone out of its glass case', () => {
   for (const secret of SECRETS) assert.doesNotMatch(secret, /glass case[^.]*\bholds\b(?![^.]*stone)/i, secret);
+});
+
+/* ---------- rescore 4 (storyline S2 to S7): who is where, thanks that fit, no beat said twice ---------- */
+
+const missionById = (id: string) => MISSIONS.find((mission) => mission.id === id)!;
+const indexIn = (id: string) => lessonsIn(missionById(id).unit).indexOf(missionById(id));
+const sceneOf = (id: string) => plain(lessonComic(chapterFor(missionById(id).unit)!, missionById(id), indexIn(id))[0]!.text);
+const cliffOf = (id: string) => { const m = missionById(id); const c = chapterFor(m.unit)!; return plain(lessonCliff(c, indexIn(id), lessonsIn(m.unit).length)); };
+const thanksOf = (id: string) => plain(thanksFor(chapterFor(missionById(id).unit)!, indexIn(id)));
+
+/** Things that belong to one friend: the chapter friend never calls them "my" unless they are theirs. */
+const OWNED: Record<CharacterId, string[]> = {
+  bolt: ['boot', 'boots', 'boot meter', 'rocket boots', 'battery', 'batteries', 'machine', 'workshop', 'water wheel', 'parts box', 'robot'],
+  chomp: ['tower', 'den', 'snack jar', 'teeth', 'riddle', 'riddles'],
+  pip: ['pond', 'lily pad', 'pond party'],
+  tilly: ['race map', 'shell'],
+  bea: ['honey', 'honey jars', 'hive', 'flower bed', 'honey shop', 'garden'],
+};
+test('a friend never says "my" about another friend\'s thing (Chomp\'s "my boot meter" is Bolt\'s)', () => {
+  const bad: string[] = [];
+  for (const chapter of CHAPTERS) {
+    const said = [...chapter.scenes, ...chapter.asks, ...[chapter.thanks].flat(), chapter.done, chapter.intro[0].text,
+      ...lessonsIn(chapter.unit).map((mission) => STORY_PROBLEMS[mission.id]!.setup)].map(plain);
+    for (const [owner, things] of Object.entries(OWNED) as [CharacterId, string[]][]) {
+      if (owner === chapter.character) continue;
+      for (const line of said) for (const thing of things) {
+        if (new RegExp(`\\bmy (?:\\w+ )?${thing}\\b`, 'i').test(line)) bad.push(`ch${chapter.unit} (${chapter.character}) says "my ${thing}", which is ${owner}'s: "${line}"`);
+      }
+    }
+  }
+  assert.deepEqual(bad, []);
+});
+
+test('Bolt is hiding in chapter 8: he talks through his note, and never brings or does anything at the den', () => {
+  for (const mission of lessonsIn(8)) {
+    const problem = STORY_PROBLEMS[mission.id]!;
+    for (const text of [problem.setup, problem.prompt, problem.result]) {
+      assert.doesNotMatch(plain(text), /\bBolt (?:brought|brings|adds|picks|checks|puts|says|comes)\b/, `${mission.id}: "${text}"`);
+    }
+  }
+});
+
+test('a thanks line fits the result it sits above (no "fair share" after unequal pieces, no "where I am" after a jug)', () => {
+  const bad: string[] = [];
+  for (const chapter of CHAPTERS) lessonsIn(chapter.unit).slice(0, -1).forEach((mission, index) => {
+    const thanks = plain(thanksFor(chapter, index));
+    const problem = STORY_PROBLEMS[mission.id]!;
+    const told = plain(`${problem.prompt} ${problem.result}`);
+    if (/\bfair/i.test(thanks) && !/fair|equal|each|share/i.test(told)) bad.push(`${mission.id}: "${thanks}" after "${problem.result}"`);
+    if (/where I am/i.test(thanks) && !/halfway|way up|top|path/i.test(told)) bad.push(`${mission.id}: "${thanks}" after "${problem.result}"`);
+    if (/dial/i.test(thanks) && /dial/i.test(plain(problem.result))) bad.push(`${mission.id}: the dial is told twice: "${thanks}" and "${problem.result}"`);
+  });
+  assert.deepEqual(bad, []);
+});
+
+test('after a lesson the payoff tells each beat once, and the next checkpoint is not answered by it (ch14 dials)', () => {
+  // One payoff box: the thanks, the result and the cliff say "the dial turns" once between them.
+  const payoff = `${thanksOf('fractions-to-percent')} ${plain(STORY_PROBLEMS['fractions-to-percent']!.result)} ${cliffOf('fractions-to-percent')}`;
+  assert.ok((payoff.match(/dial (?:turns|turned)/gi) ?? []).length <= 1, payoff);
+  // A percent the next lesson's checkpoint asks about is not stated in the result just before it.
+  for (const chapter of CHAPTERS) {
+    const lessons = lessonsIn(chapter.unit);
+    lessons.slice(1).forEach((next, i) => {
+      const asked = next.questions.at(-1)!.prompt.match(/\d+%/g) ?? [];
+      const before = plain(STORY_PROBLEMS[lessons[i]!.id]!.result);
+      for (const percent of asked) assert.ok(!before.includes(percent), `${lessons[i]!.id} result "${before}" answers ${next.id}'s ${percent}`);
+    });
+  }
+});
+
+test('the boards and chapters 9, 10 and 13 do not repeat or blur a beat', () => {
+  // S4: chapter 8 already told why Bolt is sorry (the boots bumped the stone), so board 3 does not ask it again.
+  assert.doesNotMatch(BOARD_CASES[3]!.right, /why is he so sorry/i);
+  // S6: the picnic's first sum is not a basket; the cliff after it is the intro's basket (1/2 + 1/4).
+  assert.doesNotMatch(plain(STORY_PROBLEMS['add-related-fractions']!.result), /basket/i);
+  assert.match(cliffOf('add-related-fractions'), /1\/2 \+ 1\/4/);
+  for (const chapter of CHAPTERS) for (const panel of chapter.intro) assert.ok(panel.text.split(/\s+/).length <= 20, `ch${chapter.unit} intro: "${panel.text}"`);
+  // S7: one robot bolt on the race trail; the case is shut, not snapping shut again; who ate the sandwiches.
+  assert.ok(chapterFor(9)!.cliffs.filter((line) => /robot bolt/i.test(line)).length <= 1);
+  assert.doesNotMatch(chapterFor(13)!.cliffs.join(' '), /snapped shut/i);
+  assert.match(plain(STORY_PROBLEMS['subtract-unlike-fractions']!.prompt), /The team ate/);
+  assert.doesNotMatch(sceneOf('subtract-unlike-fractions'), /\bI ate\b/);
+  // S7: a scene is about the lesson's own problem (boot charge, Chomp's pie), not only the note.
+  assert.match(sceneOf('tenths-decimals'), /boot|charge/i);
+  assert.doesNotMatch(sceneOf('unit-fraction-multiples'), /riddle/i);
+  // L67: loaves are loaves, not "loaves, starting with one loaf"; the one loaf is the story problem's own.
+  assert.ok(!(/loaves/i.test(sceneOf('fractional-sharing')) && /one loaf/i.test(sceneOf('fractional-sharing'))), sceneOf('fractional-sharing'));
+});
+
+test('every mystery of the week asks a question it can answer, and no secret names an event the story never had', () => {
+  for (let week = 0; week < 12; week++) {
+    const day = new Date(Date.UTC(2026, 10, 2 + week * 7)).toISOString().slice(0, 10);
+    const ask = mysteryOfTheWeek(day);
+    assert.match(ask, /\?$/, ask);
+    assert.doesNotMatch(ask, /has clues/i, `${ask}: no clues are shown`);
+  }
+  for (const secret of SECRETS) assert.doesNotMatch(secret, /festival race/i, secret);
 });

@@ -18,6 +18,8 @@ const BAD: [RegExp, string][] = [
   [/\bmore halve\b|\band 1 halve\b/i, 'halve'],
   [new RegExp(`(?<![/\\d.])\\b(?:1|one) (?:part|piece|slice|jump|group|half|third|fourth|fifth|sixth|tenth|hundredth) are\\b`, 'i'), 'one with "are"'],
   [/\b(?:a|an) (?:eighth|eighths)s?\b(?<!an eighth)/i, 'a eighth'],
+  // "on a art print": "a" before a vowel sound ("a unit", "a one" and "a use" start with a "y" or "w" sound, so they stay).
+  [/(?<![\w'’-])a (?:[aei]|o(?!ne\b|nce\b)|u(?!ni|s[eu]|r[aeiou]|tensil))[a-z]/, 'a before a vowel'],
 ];
 const find = (text: string) => BAD.flatMap(([re, why]) => (re.test(text) ? [`${why}: ${text}`] : []));
 

@@ -16,7 +16,9 @@ export type PlacementItem = { unit: number; missionId: string; problem: Workshee
 /** A worksheet row the quiz can show: bars, number lines, sets and read-only areas, never a ruler, line plot, slider
     or coloring task. */
 const answerable = (problem: WorksheetProblem) => !problem.areaTask && !problem.rulerTask && !problem.linePlotTask && !problem.scaleTask
-  && !/use the ruler|line plot|slider|colou?r the/i.test(problem.prompt);
+  && !/use the ruler|line plot|slider|colou?r the/i.test(problem.prompt)
+  // The quiz's pictures can't be tapped: no "Tap each part", "Shade one friend's share" or "Color ...".
+  && !/(?:^|[.!?] )(?:Tap|Shade|Colou?r|Drag)\b/.test(problem.prompt);
 
 /** The rows the quiz can ask for a lesson: its answerable worksheet rows, or (for a ruler or line plot lesson with none) its
     own rows from placement-extras.ts, and its rows that ask two of the unit's standards at once (PLACEMENT_BLENDS). */
@@ -80,7 +82,9 @@ export function placementItems(unit: number, seed: number): PlacementItem[] {
 export type PlacementPicture = { kind: 'model'; model: NonNullable<WorksheetProblem['model']> } | { kind: 'area'; area: NonNullable<WorksheetProblem['area']> }
   | { kind: 'picture'; picture: NonNullable<WorksheetProblem['picture']> };
 export function placementPicture(problem: WorksheetProblem): PlacementPicture | null {
-  if (problem.model) return { kind: 'model', model: problem.model };
+  // A row the worksheet has the child shade ("How many meters long together?") carries its answer in the model: the quiz
+  // draws the bar as the worksheet first shows it, with nothing shaded.
+  if (problem.model) return { kind: 'model', model: problem.task?.kind === 'shade' ? { ...problem.model, n: 0 } : problem.model };
   if (problem.area) return { kind: 'area', area: problem.area };
   // A number line with a dot, hundredths grids, coins, pizzas: the row keeps its picture here, and the question needs it.
   if (problem.picture) return { kind: 'picture', picture: problem.picture };
