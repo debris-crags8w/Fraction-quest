@@ -550,7 +550,7 @@ const partCount = (p: ProofPicture): number | null => {
 
 /** Questions answered from the picture: shaded amounts, equal parts, counting parts, the dot on a line, rulers. */
 const PICTURE_RULES: Rule[] = [
-  { name: 'picture: what fraction is shaded', re: /^(?:What fraction (?:of (?:this bar model|the (?:circle|grid|tile|square|bar|hexagon)|this circle) )?is shaded\?(?: Each bar is one whole\.)?|One (?:part|slice) of this (?:bar|pizza) is shaded\..*|One part is shaded\. What fraction of the whole bar is it\?|The shaded part is 1 of the equal parts\. What fraction of the bar is shaded\?|All the slices are the same size\. What fraction of the pizza is the shaded slice\?|One triangle is colored\. What fraction of the square is it\?|What fraction of the square (?:is the shaded (?:triangle|small square)|do the 2 shaded triangles cover)\?|This \w+ is on a [\w ]+\. What fraction of the \w+ is colored\?|The baker’s round [\w’ -]+ is cut into equal slices\. The colored slices get frosting\. What fraction of the [\w’ -]+ is colored\?)$/,
+  { name: 'picture: what fraction is shaded', re: /^(?:What fraction (?:of (?:this bar model|the (?:circle|grid|tile|square|bar|hexagon)|this circle) )?is shaded\?(?: Each bar is one whole\.)?|One (?:part|slice) of this (?:bar|pizza) is shaded\..*|One part is shaded\. What fraction of the whole bar is it\?|The shaded part is 1 of the equal parts\. What fraction of the bar is shaded\?|All the slices are the same size\. What fraction of the pizza is the shaded slice\?|One triangle is colored\. What fraction of the square is it\?|What fraction of the square (?:is the shaded (?:triangle|small square)|do the 2 shaded triangles cover)\?|This \w+ is on an? [\w ]+\. What fraction of the \w+ is colored\?|The baker’s round [\w’ -]+ is cut into equal slices\. The colored slices get frosting\. What fraction of the [\w’ -]+ is colored\?)$/,
     solve: (_m, item) => { const p = (item.pictures ?? []).map(barValue).find((v) => v !== null);
       if (p === undefined || p === null) return 'no shaded picture to read'; return { value: p }; } },
   { name: 'picture: what fraction is not shaded', re: /^What fraction of the (?:circle|tile|square|bar|hexagon) is not shaded\?$/,
@@ -594,7 +594,7 @@ const PICTURE_RULES: Rule[] = [
       if (!piece.every((x) => near(x, piece[0]))) return `the ${kind}s are not all the same size`;
       const space = /one half/.test(item.prompt) ? 0.5 : pieceArea(pieces.find((x) => x.shape === 'square')!);
       return { value: space / piece[0] }; } },
-  { name: 'picture: color parts of a shape', re: /^(?:This (\w+) is on a [\w ]+|The baker’s (?:tray|round) [\w’ -]+ is cut into equal (?:strips|slices))\. Color (\d+) parts?\. What fraction of the (?:\1|[\w’ -]+) is colored\?$/,
+  { name: 'picture: color parts of a shape', re: /^(?:This (\w+) is on an? [\w ]+|The baker’s (?:tray|round) [\w’ -]+ is cut into equal (?:strips|slices))\. Color (\d+) parts?\. What fraction of the (?:\1|[\w’ -]+) is colored\?$/,
     solve: (m, item) => { const p = (item.pictures ?? []).find((x) => x.kind === 'area'); if (!p || p.kind !== 'area') return 'no shape';
       const areas = AREA_CUTS[p.cut].map(pieceArea);
       if (!areas.every((x) => near(x, areas[0]))) return 'the parts are not equal';

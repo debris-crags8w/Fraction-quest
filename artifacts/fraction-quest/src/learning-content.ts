@@ -704,6 +704,27 @@ const REASON_FITS: Record<string, ReasonFit> = {
     right: { like: 'Add same-size parts only', unlike: 'Make the parts match first' },
     wrong: {},
   },
+  // "Build 2/2" or "3/3" ends at one whole, not past it: there the line really does stop at one.
+  'number-line-beyond-one': {
+    kind: (check) => (check.target.n > check.target.d ? 'past' : 'upto'),
+    trueFor: { 'Keep jumping past one whole': ['past'], 'The jumps go on past 1': ['past'], 'The line stops at one': ['upto'] },
+    right: { past: 'Keep jumping past one whole', upto: 'Count every jump from 0' },
+    wrong: { upto: ['Count the ticks, not jumps', 'Start at the first tick'] },
+  },
+  // "Show 0.7 using tenths" (shared with tenths-decimals) has one place after the point, not two.
+  'hundredths-decimals': {
+    kind: (check) => (check.target.d === 100 ? 'hundredths' : check.target.d === 10 ? 'tenths' : null),
+    trueFor: { 'Two places after the point: hundredths': ['hundredths'] },
+    right: { tenths: 'Count the tenths or hundredths', hundredths: 'Two places after the point: hundredths' },
+    wrong: {},
+  },
+  // "Fill up to one whole" fits what is left of a whole ("+ ? = 1", "not painted") or n/n, not "Build 3/2" or "Build 1/4".
+  'compose-to-one': {
+    kind: (check) => (/\+ \? = 1\b|not painted|\bleft\b/.test(check.prompt) || check.target.n === check.target.d ? 'fill' : 'build'),
+    trueFor: { 'Fill up to one whole': ['fill'] },
+    right: { fill: 'Fill up to one whole', build: 'A whole is all its parts' },
+    wrong: {},
+  },
 };
 /** Every reason an item may be given in place of the lesson's own lists (the tests allow these too). */
 export const FITTED_REASONS = {
@@ -905,7 +926,7 @@ const LESSON_BUILDS: Record<string, (s: number) => LessonBuild> = {
   'simplify-fractions': (s) => { const [a, b, c] = at(EQUIV_PAIRS[4], s); return [`${(a * c) / b}/${c} = ?/${b}. Make it.`, a, b, `Divide the numerator and denominator by ${c / b}: ${(a * c) / b}/${c} = ${a}/${b}.`]; },
   'improper-fractions': (s) => { const d = at([2, 3, 4, 6], s); const n = d + 1 + (s % (d - 1 || 1)); return [`Make ${n}/${d}.`, n, d, `${d}/${d} is one whole. ${n - d} more ${n - d === 1 ? `${unitPiece(d)} goes` : `${unitWord(d)} go`} past it.`]; },
   'whole-numbers-as-fractions': (s) => { const d = at([2, 3, 4, 6, 8], s); const w = 1 + (Math.floor(s / 5) % 3); return [`Make ${w * d}/${d}.`, w * d, d, `${d}/${d} is one whole, so ${w * d}/${d} is ${w} ${w === 1 ? 'whole' : 'wholes'}.`]; },
-  'mixed-improper': (s) => { const d = at([2, 3, 4, 6, 8], s); const r = 1 + (s % (d - 1)); return [`Walk 1 ${r}/${d} miles, then 0/${d} mile more. Make the total.`, d + r, d, `1 whole is ${d}/${d}. Add ${r}/${d}: ${d + r}/${d}.`]; },
+  'mixed-improper': (s) => { const d = at([2, 3, 4, 6, 8], s); const r = 1 + (s % (d - 1)); return [`Walk 1 ${r}/${d} miles. Make the distance in ${unitName(d)}.`, d + r, d, `1 whole is ${d}/${d}. Add ${r}/${d}: ${d + r}/${d}.`]; },
   'add-mixed-numbers': (s) => { const d = at([3, 4, 5, 6, 8], s); const a = 1 + (s % (d - 1)); const b = 1 + ((s + 1) % (d - 1));
     return [`Walk 1 ${a}/${d} miles, then ${b}/${d} mile more. Make the total.`, d + a + b, d, `Add the parts: ${a} + ${b} = ${a + b}. Then add the whole: ${d + a + b}/${d}.`]; },
   'subtract-mixed-numbers': (s) => { const d = at([3, 4, 5, 6, 8], s); const b = 2 + (Math.floor(s / 5) % (d - 2 || 1)); const a = 1 + (Math.floor(s / 25) % (b - 1));
@@ -1951,7 +1972,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           const shape = cuts[(tr * 2 + Math.floor(tr / 3)) % cuts.length]; const shaded = 1 + (Math.floor(i / 3) % (shape.parts - 1));
           const setting = ['paper design', 'classroom poster', 'garden map', 'window panel', 'quilt square', 'tile pattern', 'greeting card', 'floor plan', 'art print', 'flag design', 'mosaic panel', 'shape puzzle'][i];
           // The child counts the parts in the picture: the words never say how many there are, or how many are colored.
-          prompt = `This ${shape.whole} is on a ${setting}. What fraction of the ${shape.whole} is colored?`;
+          prompt = `This ${shape.whole} is on ${/^[aeiou]/.test(setting) ? 'an' : 'a'} ${setting}. What fraction of the ${shape.whole} is colored?`;
           answer = f(shaded, shape.parts); area = { cut: shape.cut, shaded: Array.from({ length: shaded }, (_, k) => k) };
           hint = 'Count all the equal parts first. Then count the colored parts.';
           why = `${shape.parts} equal parts make the ${shape.whole}. ${shaded} of them ${shaded === 1 ? 'is' : 'are'} colored.`;
