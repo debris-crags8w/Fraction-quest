@@ -76,6 +76,7 @@ import {
   staleDraft,
   loadProgress,
   nameBars,
+  problemQuestion,
   courseCounts,
   MISSIONS,
   numberLineWholeCount,
@@ -4438,6 +4439,66 @@ describe('hints that say the answer in words', () => {
       }
     }
     assert.deepEqual([...leaks.entries()], []);
+  });
+});
+
+describe('hints that say a small answer as a word', () => {
+  /** "Three thirds make one whole meter" for 2/3 + 1/3 hands over the answer 1 as words, which the number guards miss.
+      An answer of one, two, ... twelve, or a half, said after "make", "is", "=" and so on, that the question does not say. */
+  const WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+  const saysInWords = (answer: string, hint: string, prompt: string) => {
+    const a = answer.trim().replace(/\s+[a-z]+$/i, '');
+    const word = /^\d+$/.test(a) && Number(a) < WORDS.length ? (a === '1' ? '(?:one|a) whole|one' : WORDS[Number(a)]) : a === '1/2' ? '(?:one |a )?half' : null;
+    if (!word) return false;
+    // Not a count of parts ("is two thirds") and not a question ("How many fourths make a whole?").
+    const said = new RegExp(`\\b(?:makes?|is|are|equals?|gives?|gets?|=) (?:${word})\\b(?! (?:of|more|less|than|part|piece|step|jump|group|copy|copies|[a-z]+ths?|halves|thirds|fourths)\\b|\\?)`, 'i');
+    // A question that already names the amount ("How many sixths past one whole is 7/6?") lets the hint name it too.
+    return said.test(hint) && !new RegExp(`\\b(?:${word})\\b`, 'i').test(prompt);
+  };
+  it('worksheets and questions never say the answer as a number word ("make one whole meter")', () => {
+    assert.ok(saysInWords('1', 'Three thirds make one whole meter.', 'A board is 2/3 meter. Another is 1/3 meter. How many meters in all?'), 'the guard catches the board hint');
+    const leaks = new Map<string, string>();
+    for (const mission of MISSIONS) {
+      for (let sheet = 0; sheet <= 40; sheet++) for (const problem of getWorksheet(mission.id, sheet)) {
+        if (saysInWords(problem.answer, problem.hint, problem.prompt)) leaks.set(`${mission.id} | ${problem.hint.replace(/\d+/g, '#')}`, `${problem.prompt} => ${problem.answer} | ${problem.hint}`);
+      }
+      const ids = mission.questions.map((q) => q.id);
+      for (const q of [...mission.questions, ...ideaPracticeQuestions(mission), ...lessonCheckpoint(mission), ...[1, 2, 3].flatMap((seed) => (hasGenerator(mission.id) ? generateQuestions(mission.id, ids, seed * 101, 12) : []))]) {
+        if (q.prompt && saysInWords(q.choices[q.correctChoice], q.hint, q.prompt)) leaks.set(`${q.id} | ${q.hint}`, `${q.prompt} => ${q.choices[q.correctChoice]} | ${q.hint}`);
+      }
+    }
+    assert.deepEqual([...leaks.entries()], []);
+  });
+});
+
+describe('estimate hints ask, they do not compare for the child', () => {
+  it('a "compare a + b with 1" hint asks about each part and 1/2, and never says which side it is on', () => {
+    const seen = new Set<string>();
+    for (let sheet = 0; sheet <= 40; sheet++) for (const problem of getWorksheet('estimate-fraction-operations', sheet)) {
+      if (!/^Without finding the exact sum, compare/.test(problem.prompt) || seen.has(problem.prompt)) continue;
+      seen.add(problem.prompt);
+      assert.doesNotMatch(problem.hint, /\bis (?:more|less) than 1\/2\b|1\/2 is 1\/2/, `${problem.prompt}: ${problem.hint}`);
+      assert.match(problem.hint, /more or less than 1\/2\?/, `${problem.prompt}: ${problem.hint}`);
+    }
+    assert.ok(seen.size >= 10, `${seen.size} estimate rows checked`);
+  });
+});
+
+describe('the right-answer line of a question made from a worksheet row', () => {
+  it('gives the why, without the hint\'s instructions or the answer said twice', () => {
+    const q = problemQuestion({ prompt: 'A 1-kilogram bag is 1/2 full. How many grams are in it?', answer: '500', hint: '1 kilogram is 1000 grams. Find half of 1000.',
+      why: '2 groups of 500 make 1000. So 1/2 kilogram is 500 grams.' } as Parameters<typeof problemQuestion>[0], 0);
+    assert.equal(q.retryFeedback, '2 groups of 500 make 1000. So 1/2 kilogram is 500 grams.');
+    // A why that does not say the answer names it first, once.
+    const r = problemQuestion({ prompt: 'Compare 3/4 __ 2/4.', answer: '>', hint: 'Both are fourths. Compare the numerators.', why: 'Both are fourths, and 3 is more than 2.' } as Parameters<typeof problemQuestion>[0], 0);
+    assert.equal(r.retryFeedback, 'The answer is >. Both are fourths, and 3 is more than 2.');
+  });
+  it('no idea practice right line repeats its hint and then "So the answer is"', () => {
+    const repeats: string[] = [];
+    for (const mission of MISSIONS) for (const q of ideaPracticeQuestions(mission)) {
+      if (q.hint && q.retryFeedback.startsWith(`${q.hint} So the answer is`)) repeats.push(`${q.id}: ${q.retryFeedback}`);
+    }
+    assert.deepEqual(repeats.slice(0, 5), []);
   });
 });
 

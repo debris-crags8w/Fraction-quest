@@ -2053,7 +2053,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         hint = b === target
           ? `${f(t, b)} is already in ${unitName(b)}. Write ${unitName(b)} with ${b === 10 ? 'one decimal place' : 'two decimal places'}.`
           : `Multiply top and bottom of ${f(t, b)} by ${target / b} to make ${target} on the bottom.`;
-        why = b === target ? `${f(t, b)} is ${t} out of ${b}. ${b === 10 ? '1 place' : '2 places'} after the point show ${unitName(b)}: ${answer}.`
+        why = b === target ? `${f(t, b)} is ${t} out of ${b}. ${b === 10 ? '1 place after the point shows' : '2 places after the point show'} ${unitName(b)}: ${answer}.`
           : `${f(t, b)} = ${f(t * (target / b), target)}, and that is ${answer}.`; break;
       }
       case 'whole-fraction': {
@@ -2203,7 +2203,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           { prompt: 'A bottle has 3/4 liter. How many milliliters is that?', answer: '750', hint: 'A liter is 1000 milliliters. Find 3 of 4 equal groups.', why: '4 groups of 250 make 1000. So 3/4 liter is 3 groups of 250: 750 milliliters.', numerator: 3, denominator: 4 },
           { prompt: 'A jug has 1/4 liter. You add 1/2 liter. How many liters now?', answer: '3/4', hint: 'Rename 1/2 as 2/4, then add.', why: '1/2 = 2/4. 1/4 + 2/4 = 3/4.', numerator: 3, denominator: 4 },
           { prompt: 'How many minutes are in 1/3 hour?', answer: '20', hint: 'An hour is 60 minutes. Split 60 into 3 equal groups.', why: '3 groups of 20 make 60. So 1/3 hour is 20 minutes.', numerator: 1, denominator: 3 },
-          { prompt: 'A board is 2/3 meter. Another is 1/3 meter. How many meters in all?', answer: '1', hint: 'Three thirds make one whole meter.', why: '2/3 + 1/3 = 3/3, and 3 thirds make 1 whole meter.', numerator: 3, denominator: 3 },
+          { prompt: 'A board is 2/3 meter. Another is 1/3 meter. How many meters in all?', answer: '1', hint: 'Both are thirds. Add the numerators. How many thirds make a whole?', why: '2/3 + 1/3 = 3/3, and 3 thirds make 1 whole meter.', numerator: 3, denominator: 3 },
           { prompt: 'How many hours are in 3/4 day?', answer: '18', hint: 'A day is 24 hours. Find 3 of 4 equal groups.', why: '4 groups of 6 make 24. So 3/4 day is 3 groups of 6: 18 hours.', numerator: 3, denominator: 4 },
           { prompt: 'How many hours are in 1/3 day?', answer: '8', hint: 'A day is 24 hours. Split 24 into 3 equal groups.', why: '3 groups of 8 make 24. So 1/3 day is 8 hours.', numerator: 1, denominator: 3 },
           { prompt: 'How many minutes are in 2/3 hour?', answer: '40', hint: 'An hour is 60 minutes. Find 2 of 3 equal groups.', why: '3 groups of 20 make 60. So 2/3 hour is 2 groups of 20: 40 minutes.', numerator: 2, denominator: 3 },
@@ -2288,7 +2288,6 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const decidable = examples.filter(([a, b, c, e, op]) => op === '−' || (a / b - 0.5) * (c / e - 0.5) >= 0);
         const [a, b, c, e, op] = decidable[(i + variant) % decidable.length]; const common = lcm(b, e);
         const total = a * (common / b) + (op === '+' ? 1 : -1) * c * (common / e);
-        const side = (x: number, y: number) => (x * 2 === y ? 'is 1/2' : x * 2 < y ? 'is less than 1/2' : 'is more than 1/2');
         if ((i === 3 || i === 8 || i === 11) && op === '+') {
           // Does a given answer make sense? Two are the add-the-tops-and-bottoms slip, one is right. (Not rows 1, 4, 7 and
           // 10: those become the lesson's tap questions.)
@@ -2305,7 +2304,9 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         prompt = `Without finding the exact ${operation}, compare ${f(a, b)} ${op} ${f(c, e)} with 1: __ 1.`;
         answer = total < common ? '<' : '>'; form = 'symbol'; visual = model(a, b); modelRequired = true;
         hint = op === '−' ? estimateHint(a, b, c, e, op)
-          : `${f(a, b)} ${side(a, b)} and ${f(c, e)} ${side(c, e)}. Two halves make 1. So is the sum more or less than 1?`;
+          // Comparing each part with 1/2 is the child's step: the hint asks it, never answers it.
+          : a * 2 === b || c * 2 === e ? `One part is 1/2. Is ${a * 2 === b ? f(c, e) : f(a, b)} more or less than 1/2? Two halves make 1.`
+          : `Is ${f(a, b)} more or less than 1/2? What about ${f(c, e)}? Two halves make 1.`;
         why = estimateWhy(a, b, c, e, op); break;
       }
       case 'fractional-area': {

@@ -174,7 +174,12 @@ const TABLE: [string, string, string, string][] = [
   ['Each bar is one whole. Which mixed number is shaded?', '1 and 2/3', '2/3', 'WHY.leftWholes'],
   ['Start with 5/8. Take away 2/8. How many eighths are left?', '3', '7', 'WHY.otherOpTake'],
   ['A cat eats 1/4 cup of food, then 2/4 cup more. How much in all?', '3/4 cup', '2/4 cup', 'WHY.oneAmount'],
-  ['Mia reads 2/8 of a book on Monday and 3/8 on Tuesday. How much is left to read? First, how much does she read in all?', '5/8', '3/8', 'WHY.oneAmount'],
+  // A pick that is the whole story's answer on a first-step question did both steps (3/8 is also Tuesday's amount, but it is
+  // what is left to read after both steps).
+  ['Mia reads 2/8 of a book on Monday and 3/8 on Tuesday. How much is left to read? First, how much does she read in all?', '5/8', '3/8', 'WHY.bothSteps'],
+  ['Mia reads 2/8 of a book on Monday and 3/8 on Tuesday. How much is left to read? First, how much does she read in all?', '5/8', '1/8', 'WHY.otherOpAdd'],
+  ['A jug has 4/6 liter. Sam drinks 1/6 liter, then adds 2/6 liter. How much is in the jug now? First, how much is left after Sam drinks?', '3/6 liter', '5/6 liter', 'WHY.bothSteps'],
+  ['A jug has 4/6 liter. Sam drinks 1/6 liter, then adds 2/6 liter. How much is in the jug now? First, how much is left after Sam drinks?', '3/6 liter', '7/6 liters', 'WHY.otherOpTake'],
   ['A ribbon is 5/6 meter long. Cut off 1/6 meter, then 2/6 meter. How much is left? First, how long is it after the first cut?', '4/6 meter', '2/6 meter', 'WHY.bothSteps'],
   ['For 1/2 + 1/3, what is 1/2 in sixths?', '3/6', '2/6', 'WHY.otherFraction'],
   ['For 1/2 + 1/3, what is 1/2 in sixths?', '3/6', '5/6', 'WHY.wholeSum'],
@@ -221,6 +226,16 @@ const TABLE: [string, string, string, string][] = [
   ['To find 2/3 of 12 cards, you make 3 equal groups. How many cards are in one group?', '4', '3', 'WHY.groupsNotEach'],
   ['To find 2/3 of 12 cards, you make 3 equal groups. How many cards are in one group?', '4', '12', 'WHY.allNotEach'],
   ['18 buttons are shared into 6 equal groups. How many buttons are in each group?', '3', '6', 'WHY.groupsNotEach'],
+  // Which sum makes the amount: too much, too little, exactly one whole, more than one whole.
+  ['Which adds up to 4/5?', '1/5 + 3/5', '1/5 + 2/5', 'WHY.sumLess'],
+  ['Which adds up to 4/5?', '1/5 + 3/5', '1/5 + 4/5', 'WHY.sumWhole'],
+  ['Which adds up to 4/5?', '1/5 + 3/5', '4/5 + 4/5', 'WHY.sumPastWhole'],
+  ['Which adds up to 7/10?', '1/10 + 6/10', '1/10 + 7/10', 'WHY.sumMore'],
+  // Leveling: a pick worth the biggest cup, written in the answer's own parts.
+  ['Three beakers hold 1/4, 1/4, 4/4 liter. Share the total equally. How many liters go in each?', '1/2 liter', '2/2 liter', 'WHY.oneCup'],
+  // A fair cut called unfair: the parts only look different.
+  ['Is this square cut into equal parts?', 'Yes, same-size parts', 'No, some parts are bigger', 'WHY.onlyLooksBigger'],
+  ['Is this pizza cut into sixths?', 'Yes, same-size parts', 'No, some parts are bigger', 'WHY.onlyLooksBigger'],
 ];
 
 describe('the exact reason for a wrong tap', () => {

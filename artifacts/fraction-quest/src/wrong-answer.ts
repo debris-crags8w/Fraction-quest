@@ -356,7 +356,19 @@ function comparisonReason(prompt: string, pick: string, right: string): string |
     // Unlike parts are not checked by adding numerators: say the parts are a different size (when the right sum uses one size).
     const bottoms = (text: string) => new Set([...text.matchAll(/\d+\/(\d+)/g)].map((m) => m[1]));
     const [mine, theirs] = [bottoms(pick), bottoms(right)];
-    return theirs.size === 1 && [...mine].some((d) => !theirs.has(d)) ? WHY.sumOtherSize : WHY.sumCheck;
+    if (theirs.size === 1 && [...mine].some((d) => !theirs.has(d))) return WHY.sumOtherSize;
+    // Same-size parts: too much, too little, or a whole (or more) when the amount is less than one whole.
+    const target = /adds up to (\d+)\/(\d+)\?$/.exec(p);
+    const parts = [...pick.matchAll(/(\d+)\/(\d+)/g)];
+    if (target && parts.length && parts.every((part) => part[2] === target[2])) {
+      const [top, bottom] = [Number(target[1]), Number(target[2])];
+      const sum = parts.reduce((total, part) => total + Number(part[1]), 0);
+      if (top < bottom && sum === bottom) return WHY.sumWhole;
+      if (top < bottom && sum > bottom) return WHY.sumPastWhole;
+      if (sum > top) return WHY.sumMore;
+      if (sum < top) return WHY.sumLess;
+    }
+    return WHY.sumCheck;
   }
   if (/between which two whole numbers/.test(p)) return WHY.betweenWholes;
   if (/which length has the most xs\?$/.test(p)) return WHY.mostXs;
@@ -431,6 +443,7 @@ function practiceReason(fullPrompt: string, pick: string, right: string): string
     if (/^yes, (?:because )?there are \d+ parts$/.test(k)) return WHY.countNotSize;
     if (/^no, there are \d+ parts$/.test(k)) return SLIPS.recountShaded;
     if (/^yes, \d+ equal parts$/.test(k)) return wrongCount || /^yes, \d+ equal parts$/i.test(right) ? SLIPS.recountShaded : WHY.lookAgainSize;
+    if (/^no, some parts are bigger$/.test(k) && /^yes/i.test(right)) return WHY.onlyLooksBigger;
     if (/same-size parts$|all the same size$|some parts are bigger$|parts are unequal$/.test(k)) return wrongCount ? WHY.countFirst : WHY.lookAgainSize;
   }
   if (/^(?:yes|no)\b/.test(k) && /\?$/.test(p)) {
@@ -527,6 +540,12 @@ function practiceReason(fullPrompt: string, pick: string, right: string): string
   if (/difference between the longest and shortest\?$|how much longer is the longest \w+ than the shortest\?$/.test(p) && pf && rf) return pf[1] !== rf[1] ? SLIPS.takeTops : pv > 1 ? WHY.addedLengths : WHY.wrongMark;
   if (/how much \w+ is in all (?:two|three|four)\?$/.test(p) && pf && rf) return pf[1] !== rf[1] ? WHY.addedBottoms : WHY.allAmounts;
   if (/how much \w+ is in all (?:two|three|four)\?$/.test(p) && Number.isInteger(pv)) return WHY.keepBottom;
+  // Leveling cups: a pick worth one cup as it is now, or the total, written in other parts ("2/2 liter" for the 4/4 cup).
+  if ((m = /^(?:three|six) [\w’ -]+ hold ((?:\d+\/\d+, )+\d+\/\d+) liter\. (?:plot them, then share|share) the total equally\./.exec(p)) && Number.isFinite(pv)) {
+    const cups = m[1].split(', ').map((cup) => answerValue(cup));
+    if (cups.some((cup) => near(cup, pv))) return WHY.oneCup;
+    if (near(cups.reduce((sum, cup) => sum + cup, 0), pv)) return WHY.total;
+  }
   if ((m = /^(\d+)\/(\d+) liters? of \w+ is shared equally by \d+ \w+\. how much goes in each \w+\?$/.exec(p)) && Number.isFinite(pv)) {
     const [t, b] = [Number(m[1]), Number(m[2])];
     return near(pv, t / b) ? WHY.total : Number.isInteger(pv) ? WHY.keepBottom : pf && pf[1] !== b ? WHY.sharePieces : WHY.allCups;
@@ -686,9 +705,15 @@ function practiceReason(fullPrompt: string, pick: string, right: string): string
   }
   if ((m = /has (\d+)\/(\d+) liter\. \w+ drinks (\d+)\/\d+ liter, then adds (\d+)\/\d+ liter\. how much is in the jug now\?(?: first, how much is left after \w+ drinks\?)?$/.exec(p)) && pf) {
     const [a, , x, y] = [m[1], m[2], m[3], m[4]].map(Number);
-    if (/first,/.test(p)) return pf[0] === a + x || pf[0] === a + x + y ? WHY.otherOpTake : pf[0] === x ? WHY.takenAmount : null;
+    // The whole story's answer (after both steps) comes first: 4/6 − 1/6 + 2/6 is also 4/6 + 1/6, but the child did take away.
+    if (/first,/.test(p)) return pf[0] === a - x + y ? WHY.bothSteps : pf[0] === a + x || pf[0] === a + x + y ? WHY.otherOpTake : pf[0] === x ? WHY.takenAmount : null;
     return pf[0] === a ? WHY.startAmount : pf[0] === a - x ? WHY.firstStepOnly : pf[0] === x ? WHY.takenAmount : pf[0] === a + y ? WHY.skippedFirst
       : pf[0] === a + x + y ? WHY.otherOpTake : pf[0] === a - x - y ? WHY.secondAdds : null;
+  }
+  // "How much is left to read? First, how much does she read in all?": what is left is the answer after both steps.
+  if ((m = /reads (\d+)\/(\d+) of a book on \w+ and (\d+)\/\d+ on \w+\. how much is left to read\? first, how much does she read in all\?$/.exec(p)) && pf) {
+    const [a, d, b] = [m[1], m[2], m[3]].map(Number);
+    if (pf[1] === d && pf[0] === d - a - b) return WHY.bothSteps;
   }
   if (/ ran \d+\/\d+ \w+ and then \d+\/\d+ \w+\. \w+ ran \d+\/\d+ \w+\. how much farther/.test(p) && pf && rf && pf[1] !== rf[1]) return WHY.sameBottom;
   const like = nums.length === 2 && nums[0][1] === nums[1][1] && !/\? = |= \?/.test(p.replace(/^.*?(\d+\/\d+ [+−-] \d+\/\d+ = \?)$/, ''));
