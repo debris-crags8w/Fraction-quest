@@ -192,7 +192,7 @@
 .fq-family-side-avatar { margin-top: 15px; color: var(--family-ink); background: #f1d278; }
 .fq-family-side-card.active-card h3 { margin: 9px 0 3px; }
 .fq-family-side-card.active-card > p:last-child { font-size: .77rem; }
-.fq-sync-saved { color: var(--family-teal); }.fq-sync-saving { color: #a47521; }.fq-sync-offline { color: #ac5042; }
+.fq-sync-saved { color: var(--family-teal); }.fq-sync-saving { color: #a47521; }.fq-sync-offline { color: #ac5042; }.fq-sync-busy { color: #a47521; }
 .fq-family-danger-card { border-color: #e7d2c7; background: #fff9f3; }
 .fq-family-danger-card .fq-family-overline { color: #a54f40; }
 .fq-family-privacy-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 5px 6px; color: var(--family-muted); font-size: .73rem; line-height: 1.5; }

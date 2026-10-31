@@ -1,6 +1,6 @@
 import type { FunState } from './lib/fun';
 import type { Progress } from './game';
-import { mergeFun, mergeProgress } from './progress-merge';
+import { mergeBundle } from './progress-merge';
 
 export type AccountBundle = { progress: Progress; fun: FunState };
 
@@ -93,7 +93,10 @@ export async function signOutSafely(
   clearDevice();
 }
 
-export type SaveStatus = 'saved' | 'saving' | 'offline';
+/** `busy`: the server is reachable, but another device kept saving first; the save is tried again shortly. */
+export type SaveStatus = 'saved' | 'saving' | 'offline' | 'busy';
+/** How long a save that met newer copies three times waits before it is tried again. */
+export const BUSY_RETRY_MS = 15_000;
 
 /** Coalesces rapid edits, but keeps a failed payload available for retry. */
 export function createProgressSaveQueue<T>(
@@ -130,12 +133,17 @@ export function createProgressSaveQueue<T>(
             reportStatus(pending ? 'saving' : 'saved');
             return true;
           },
-          () => {
+          (error: unknown) => {
             if (pending === null) {
               pending = next;
               persistence?.store(next);
             }
-            reportStatus('offline');
+            const busy = error instanceof ProgressConflictError;
+            reportStatus(busy ? 'busy' : 'offline');
+            if (busy && timer === null) {
+              timer = setTimeout(() => { timer = null; void flush(); }, BUSY_RETRY_MS);
+              (timer as { unref?: () => void }).unref?.();
+            }
             return false;
           },
         )
@@ -206,14 +214,15 @@ export function versionedProgressSave(
 ) {
   const adopt = (saved: ServerProgressCopy, mine: AccountBundle, cleared: boolean): AccountBundle => {
     const copy = clean(saved);
-    versions.write(saved.version);
     onSavedCopy({ ...copy, cleared });
-    return cleared ? copy : { progress: mergeProgress(copy.progress, mine.progress), fun: mergeFun(copy.fun, mine.fun) };
+    return cleared ? copy : mergeBundle(copy, mine);
   };
   return async (next: AccountBundle): Promise<void> => {
     let bundle = next;
+    // The saved copy's version is kept only once the merged copy is saved. Kept earlier, a save that then failed would
+    // leave the unmerged copy in the queue tagged with the new version, and its retry would erase the other device's work.
+    let version = versions.read();
     for (let attempt = 0; attempt < MAX_SAVE_TRIES; attempt += 1) {
-      let version = versions.read();
       if (version === null) {
         // This device does not know which copy it has: load the saved one and merge it in first.
         const saved = await api.load();
@@ -232,8 +241,14 @@ export function versionedProgressSave(
         const saved = conflictCopy(error);
         if (!saved) throw error;
         bundle = adopt(saved, bundle, saved.clearedSince);
+        version = saved.version;
       }
     }
-    throw new Error('Progress kept changing on another device; this save will be tried again.');
+    throw new ProgressConflictError();
   };
+}
+
+/** A save that met a newer copy on every try: it stays queued and is merged again on the next try (not "offline"). */
+export class ProgressConflictError extends Error {
+  constructor() { super('Progress kept changing on another device; this save will be tried again.'); }
 }

@@ -406,7 +406,7 @@ export default function FamilyControls({ unitTitles }: FamilyControlsProps) {
         <aside className="fq-family-side">
           <section className="fq-family-side-card active-card">
             <p className="fq-family-overline">Currently learning</p>
-            {account.activeProfile ? <><div className="fq-family-side-avatar">{account.activeProfile.displayName.slice(0, 1).toUpperCase()}</div><h3>{account.activeProfile.displayName}</h3><p>Progress sync <strong className={`fq-sync-${account.syncStatus}`}>{account.syncStatus === 'saved' ? 'Saved' : account.syncStatus === 'saving' ? 'Saving' : 'Offline'}</strong></p></> : <p>No active learner is selected.</p>}
+            {account.activeProfile ? <><div className="fq-family-side-avatar">{account.activeProfile.displayName.slice(0, 1).toUpperCase()}</div><h3>{account.activeProfile.displayName}</h3><p>Progress sync <strong className={`fq-sync-${account.syncStatus}`}>{account.syncStatus === 'saved' ? 'Saved' : account.syncStatus === 'saving' ? 'Saving' : account.syncStatus === 'busy' ? 'Another device saved first; trying again soon' : 'Offline'}</strong></p></> : <p>No active learner is selected.</p>}
           </section>
           <section className="fq-family-side-card">
             <p className="fq-family-overline">Your data</p>

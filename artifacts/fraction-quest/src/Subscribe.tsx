@@ -6,7 +6,7 @@ import { GrownUpGate } from './GrownUpGate';
 import { LearningListenButton } from './LearningText';
 import { LanternIcon } from './riddle-ui';
 import { MISSIONS } from './game';
-import { askShell, LISTED_PRICE, LISTED_YEARLY_PRICE, offerWords, perMonth, planChoices, subscribedBefore, useSubscription, yearlySaving, type Plan, type Subscription } from './lib/subscription';
+import { askSavedNote, askShell, LISTED_PRICE, LISTED_YEARLY_PRICE, offerWords, perMonth, planChoices, subscribedBefore, useSubscription, yearlySaving, type Plan, type Subscription } from './lib/subscription';
 import { appShell } from './lib/app-shell';
 import './subscribe.css';
 
@@ -22,8 +22,8 @@ const PRIVACY = 'Fraction Quest saves the account username and display name, lea
 
 type Step = 'ask' | 'gate' | 'paywall';
 
-export function SubscribeFlow({ subscription, lapsed, lessonsDone, piecesFound, onBack, onStorybook }: {
-  subscription: Subscription; lapsed: boolean; lessonsDone: number; piecesFound: number; onBack: () => void; onStorybook: () => void;
+export function SubscribeFlow({ subscription, lapsed, lessonsDone, piecesFound, levelQuizDone = false, onBack, onStorybook }: {
+  subscription: Subscription; lapsed: boolean; lessonsDone: number; piecesFound: number; /** The level quiz was taken (and placed the child). */ levelQuizDone?: boolean; onBack: () => void; onStorybook: () => void;
 }) {
   const [step, setStep] = useState<Step>('ask');
   if (step === 'gate') {
@@ -31,7 +31,7 @@ export function SubscribeFlow({ subscription, lapsed, lessonsDone, piecesFound, 
       reason="Subscriptions are for grown-ups. Please answer to continue." /></div>;
   }
   if (step === 'paywall') return <Paywall subscription={subscription} lapsed={lapsed} onClose={onBack} />;
-  return <AskGrownUp lapsed={lapsed} lessonsDone={lessonsDone} piecesFound={piecesFound} onGrownUp={() => setStep('gate')} onBack={onBack} onStorybook={onStorybook} />;
+  return <AskGrownUp lapsed={lapsed} lessonsDone={lessonsDone} piecesFound={piecesFound} levelQuizDone={levelQuizDone} onGrownUp={() => setStep('gate')} onBack={onBack} onStorybook={onStorybook} />;
 }
 
 /** In a plain browser: the first lesson is free, and the rest of the adventure is in the app. A grown-up passes the
@@ -97,8 +97,8 @@ function GetTheApp({ onClose, playedFirst }: { onClose: () => void; playedFirst:
   );
 }
 
-function AskGrownUp({ lapsed, lessonsDone, piecesFound, onGrownUp, onBack, onStorybook }: {
-  lapsed: boolean; lessonsDone: number; piecesFound: number; onGrownUp: () => void; onBack: () => void; onStorybook: () => void;
+function AskGrownUp({ lapsed, lessonsDone, piecesFound, levelQuizDone, onGrownUp, onBack, onStorybook }: {
+  lapsed: boolean; lessonsDone: number; piecesFound: number; levelQuizDone: boolean; onGrownUp: () => void; onBack: () => void; onStorybook: () => void;
 }) {
   const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
   const say = lapsed
@@ -115,7 +115,7 @@ function AskGrownUp({ lapsed, lessonsDone, piecesFound, onGrownUp, onBack, onSto
             : <>{lessonsDone > 0 ? 'You found the first clue! ' : ''}To find all 15 pieces of the Whole Stone, ask a <u>grown-up</u> to unlock Fraction Quest.</>}</p>
           <LearningListenButton text={say} label="Listen to Hoot" />
         </section>
-        <p className="fq-subscribe-note">{lapsed ? 'You can still read the Storybook and see your stone pieces.' : 'Your level quiz and everything you did so far are saved.'}</p>
+        <p className="fq-subscribe-note">{askSavedNote(lapsed, levelQuizDone)}</p>
         <div className="fq-subscribe-actions">
           <button className="fq-button fq-subscribe-go" onClick={onGrownUp} data-testid="button-get-grown-up">Get a grown-up</button>
           {lapsed
