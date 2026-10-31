@@ -253,7 +253,7 @@ export const WHY = {
   leftOf: 'Shorter means to the left of that length. Count only those Xs.',
   allAmounts: 'That is only some of the amounts. Add all of them.',
   overTotal: 'That is more than all the amounts together. Add each one once.',
-  underTotal: 'That is less than all the amounts together. Add each one again.',
+  underTotal: 'That is less than all the amounts together. Add every one of them.',
   keepBottom: 'You left out the denominator. The total is still in the same size parts.',
   // Half and one
   wrongSideHalf: 'That is on the other side of half. Count the parts on the side asked for.',
@@ -339,7 +339,7 @@ export const WHY = {
   partsAnySize: 'The parts do not have to be equal. They just have to add up.',
   blankCheck: 'Check it: the two numerators on the right must add up to the one on the left.',
   pastTarget: 'That makes too much. Find only the part that is missing.',
-  shortTarget: 'That is not enough yet. Find the whole part that is missing.',
+  shortTarget: 'That is not enough yet. Count on to the total again.',
   // A step to check again, when the slip is a miscount in one step
   renameCheck: 'Check the renaming. A renamed fraction must keep its size.',
   totalThenCompare: 'Find the first total. Then take away the other amount.',

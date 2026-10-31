@@ -1898,7 +1898,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         const cups = 1 + i % 4; const bottom = [2, 3, 4, 5, 6, 8, 3, 4, 5, 6, 8, 10][tr];
         // The story, then its division; the check after a right answer multiplies back.
         prompt = `How many 1/${bottom}-cup scoops fill ${cups} ${cups === 1 ? 'cup' : 'cups'}? ${cups} ÷ 1/${bottom} = ?`; answer = String(cups * bottom);
-        why = `One cup holds ${bottom} scoops of 1/${bottom} cup.${cups > 1 ? ` ${cups} × ${bottom} = ${cups * bottom} scoops.` : ''}`;
+        why = `One cup holds ${bottom} scoops of 1/${bottom} cup.${cups > 1 ? ` ${cups} × ${bottom} = ${cups * bottom} scoops.` : ''} Check: ${cups * bottom} × 1/${bottom} = ${cups}.`;
         hint = `How many ${bottom === 2 ? 'halves' : `1/${bottom} parts`} make one whole cup?${cups > 1 ? ` Then think about ${cups} cups.` : ''}`; break;
       }
       case 'measure': {
@@ -2081,7 +2081,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         rulerTask = { denominator: 4, wholes: 2, end };
         answer = mixedName(end, 4); form = answer.includes(' ') ? 'mixed' : undefined;
         prompt = `The blue ${object} starts at zero${end % 4 ? ' and ends at a tick with no number' : ''}. Use the ruler. How long is it in inches?`;
-        hint = `Count the short spaces from 0 to the end of the ${object}. Then see how many inches that is.`;
+        hint = `Each inch is split into short spaces. Count them from 0 to the end of the ${object}.`;
         why = end < 4 ? `It covers ${some(end, 'small space', 'small spaces')}, and each is 1/4 inch.`
           : end === 4 ? '4 small spaces make 1 inch.' : `4 small spaces make 1 inch, and ${end - 4} more ${end - 4 === 1 ? 'makes' : 'make'} ${f(end - 4, 4)} inch.`; break;
       }
@@ -2314,8 +2314,8 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
         // One kind of question: each redo takes the other half of the list, so back-to-back sheets share no row.
         const [unitDenominator, people] = PAN_SHARES[(i + 13 * variant) % PAN_SHARES.length]; const resultDenominator = unitDenominator * people;
         prompt = `${people} children share 1/${unitDenominator} of a pan. 1/${unitDenominator} ÷ ${people} = ?`;
-        why = `Each 1/${unitDenominator} is cut into ${people} shares, so ${unitDenominator} × ${people} = ${resultDenominator} shares fill the pan.`;
-        explain = `Split the 1/${unitDenominator} part into ${people} equal parts. ${resultDenominator} of those small parts fill the whole pan, so the answer is ${f(1, resultDenominator)}.`;
+        why = `Each 1/${unitDenominator} is cut into ${people} shares, so ${unitDenominator} × ${people} = ${resultDenominator} shares fill the pan. Check: ${people} × 1/${resultDenominator} = 1/${unitDenominator}.`;
+        explain = `Split the 1/${unitDenominator} part into ${people} equal parts. ${resultDenominator} of those small parts fill the whole pan, so the answer is ${f(1, resultDenominator)}. Check: ${people} × 1/${resultDenominator} = 1/${unitDenominator}.`;
         answer = f(1, resultDenominator); denominator = resultDenominator; visual = model(1, unitDenominator); modelRequired = true;
         hint = `Split the 1/${unitDenominator} part into ${people} equal parts. How many of those small parts fill the whole pan?`; break;
       }
@@ -2536,7 +2536,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
             ? `1/${b} ${unit} of ${thing} is shared by ${people} friends. What fraction of a ${unit} does each get?`
             : `1/${b} ÷ ${people} = ?`;
           answer = f(1, b * people); visual = model(1, b);
-          why = `Each 1/${b} is cut into ${people} shares. ${b} × ${people} = ${b * people} shares fill one whole, so one share is 1/${b * people}.`;
+          why = `Each 1/${b} is cut into ${people} shares. ${b} × ${people} = ${b * people} shares fill one whole. Check: ${people} × 1/${b * people} = 1/${b}.`;
           hint = `Sharing: cut the 1/${b} into ${people} equal shares. How many of those shares fill one whole?`; break;
         }
         const [d, w] = pick([[4, 3], [3, 2], [2, 4], [6, 1], [5, 2], [4, 2], [3, 4], [8, 1], [2, 3], [6, 2], [4, 1], [3, 3]] as const);
@@ -2544,7 +2544,7 @@ function getExtensionWorksheet(spec: { mode: ExtensionWorksheetMode; context: st
           ? `How many 1/${d}-${unit} ${holders} ${w === 1 ? 'does' : 'do'} ${w} ${w === 1 ? unit : units} of ${thing} fill?`
           : `${w} ÷ 1/${d} = ?`;
         answer = String(w * d); visual = { kind: 'bar', n: 0, d: 1, wholes: w };
-        why = `${d} pieces of 1/${d} fit in one whole. ${w} × ${d} = ${w * d}.`;
+        why = `${d} pieces of 1/${d} fit in one whole. ${w} × ${d} = ${w * d}. Check: ${w * d} × 1/${d} = ${w}.`;
         hint = `Fitting: how many 1/${d} pieces fit in one whole? Then count them in ${w}.`; break;
       }
       case 'coins': {

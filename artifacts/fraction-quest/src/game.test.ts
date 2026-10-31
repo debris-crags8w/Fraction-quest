@@ -4201,7 +4201,7 @@ describe('wrong-answer help', () => {
   it('says why a slip is wrong, for the slip behind the picked choice', () => {
     const why = (prompt: string, right: string, pick: string) => wrongChoiceReason(prompt, [right, pick], 0, 1);
     // Adding and taking away.
-    assert.equal(why('What is 1/3 + 1/6?', '3/6', '2/6'), WHY.keptOne);
+    assert.equal(why('What is 1/3 + 1/6?', '3/6', '2/6'), WHY.renameOther); // only 1/3 needs renaming (accuracy rescore 4, N5)
     assert.equal(why('What is 1/6 + 4/6?', '5/6', '4/6'), WHY.oneAmount);
     assert.equal(why('What is 5/6 − 2/6?', '3/6', '7/6'), WHY.otherOpTake);
     assert.equal(why('What is 5/6 − 2/6?', '3/6', '5/6'), WHY.startAmount);

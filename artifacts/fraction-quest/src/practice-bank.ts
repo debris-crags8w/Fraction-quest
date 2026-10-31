@@ -1158,9 +1158,9 @@ const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
         hint: `Each 1/${part} is cut into ${people} shares. How many 1/${part} parts fill the pan?`,
         explain: `${part} parts fill the pan, and each one is cut into ${people} shares: ${part} × ${people} = ${result}.` };
     }
-    const why = `Each 1/${part} is cut into ${people} shares, so ${part} × ${people} = ${result} shares fill the pan.`;
+    const why = `Each 1/${part} is cut into ${people} shares, so ${part} × ${people} = ${result} shares fill the pan. Check: ${people} × 1/${result} = 1/${part}.`;
     return { id: 'wider', prompt: `${people} children share 1/${part} of a pan. 1/${part} ÷ ${people} = ?`, answer: f(1, result), denominator: result, model: barRow(1, part), modelRequired: true, why,
-      explain: `Split the 1/${part} part into ${people} equal parts. ${result} of those small parts fill the whole pan, so the answer is ${f(1, result)}.`,
+      explain: `Split the 1/${part} part into ${people} equal parts. ${result} of those small parts fill the whole pan, so the answer is ${f(1, result)}. Check: ${people} × 1/${result} = 1/${part}.`,
       hint: `Split the 1/${part} part into ${people} equal parts. How many of those small parts fill the whole pan?` };
   },
   'unit-fraction-multiples': (r) => {
