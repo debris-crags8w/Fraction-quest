@@ -9,6 +9,7 @@ import { CHALLENGES, challengePuzzlesOfUnit } from './challenges';
 import { CHAPTERS, EPILOGUE, PROLOGUE, PROP_THEMES, STORY_PROBLEMS, WHOLE_STONE_OPENING, withName } from './story';
 import { SECRETS } from './riddles';
 import { END_SCENES, PROP_DEFS } from './film-props';
+import { labelIn } from './film-art';
 import { LESSON_INTROS } from './lesson-intros';
 import { lessonIdeas } from './lesson-ideas';
 import { LESSON_SCENES, type StepScene } from './teach-scenes';
@@ -160,7 +161,7 @@ export function allWrittenTexts({ sheets = 8, seeds = 10 } = {}): { where: strin
     for (const choice of c.choice) { add(`story chapter ${c.unit}`, choice.label); add(`story chapter ${c.unit}`, choice.detail); }
     for (const line of [...c.scenes, ...c.cliffs, c.cliff, c.clue, c.won, ...c.asks, ...(typeof c.thanks === 'string' ? [c.thanks] : c.thanks), c.done, c.card.title, c.card.blurb]) add(`story chapter ${c.unit}`, line);
   }
-  for (const def of Object.values(PROP_DEFS)) add('film label', def.label);
-  for (const end of Object.values(END_SCENES)) if (end && 'label' in end) add('film label', String((end as { label?: string }).label));
+  // Food props name the theme's food ("Three clear mugs of hot cocoa"), so every theme's name is proofread.
+  for (const def of [...Object.values(PROP_DEFS), ...Object.values(END_SCENES)]) if (def) for (const label of new Set(PROP_THEMES.map((theme) => labelIn(def.label, theme)))) add('film label', label);
   return texts;
 }

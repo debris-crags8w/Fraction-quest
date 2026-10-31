@@ -3,12 +3,12 @@
 
 import React from 'react';
 import { CREAM, delay, GOLD, INK, Ledge, outline, StonePiece, type EndDef, type PropDef } from './film-art';
+import { aFood, cakeLook, DrinkBadgeArt, drinkLook, foodWord, Steam, ToppingArt } from './film-food';
+import type { PropTheme } from './story';
 
 const thin = { ...outline, strokeWidth: 2.5 } as const;
 const GLASS = '#E4F6FF';
 const STEEL = '#C3CCD6';
-const LEMONADE = '#FFE066';
-const LEMONADE_TOP = '#FFF3A8';
 
 /* ---------- Chapter 12 · the stage ---------- */
 
@@ -29,28 +29,35 @@ function BoardsArt() {
   </>;
 }
 
-/** Three clear mugs of lemonade filled to different heights, and a lemonade jug tipped over them. */
+/** Three clear mugs of lemonade filled to different heights, and a lemonade jug tipped over them. A theme's drink
+    changes the colour, the badge on the jug (a lemon slice, a pumpkin, a marshmallow...) and, for a warm drink, adds steam. */
 const MUGS: { x: number; level: number }[] = [{ x: 26, level: 82 }, { x: 66, level: 74 }, { x: 106, level: 90 }];
-function CupsArt() {
+function CupsArt(theme: PropTheme = 'everyday') {
+  const drink = drinkLook(theme);
   return <>
     {MUGS.map(({ x, level }, i) => (
       <g key={x}>
         <path d={`M${x + 13} 78 q11 0 11 10 q0 10 -11 10`} fill="none" stroke={INK} strokeWidth="4.5" strokeLinecap="round" />
-        <path className={i === 1 ? 'fq-fp-d-rise' : undefined} d={`M${x - 11} ${level} h22 v${98 - level} q0 8 -8 8 h-6 q-8 0 -8 -8 Z`} fill={LEMONADE} />
-        <path d={`M${x - 11} ${level} h22`} stroke={LEMONADE_TOP} strokeWidth="3" strokeLinecap="round" />
+        <path className={i === 1 ? 'fq-fp-d-rise' : undefined} d={`M${x - 11} ${level} h22 v${98 - level} q0 8 -8 8 h-6 q-8 0 -8 -8 Z`} fill={drink.liquid} />
+        <path d={`M${x - 11} ${level} h22`} stroke={drink.top} strokeWidth="3" strokeLinecap="round" />
         <path d={`M${x - 13} 64 V98 q0 8 8 8 h10 q8 0 8 -8 V64`} fill={GLASS} fillOpacity=".3" {...outline} />
         <path d={`M${x - 7} ${level + 8} v${88 - level}`} stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".6" />
       </g>
     ))}
+    {drink.steam && <Steam xs={[22, 62, 102]} y={60} />}
     <g transform="translate(8 0) rotate(-12 160 106)"><g className="fq-fp-d-tip">
       <path d="M176 48 q13 0 13 14 q0 14 -11 16" fill="none" stroke={INK} strokeWidth="4.5" strokeLinecap="round" />
-      <path d="M147.5 66 h25 l2.5 32 q0 8 -8 8 h-14 q-8 0 -8 -8 Z" fill={LEMONADE} />
-      <circle cx="160" cy="84" r="7" fill="#FFF3A8" stroke="#E0B400" strokeWidth="2" /><path d="M160 77 v14 M153 84 h14" stroke="#E0B400" strokeWidth="1.5" />
+      <path d="M147.5 66 h25 l2.5 32 q0 8 -8 8 h-14 q-8 0 -8 -8 Z" fill={drink.liquid} />
+      <DrinkBadgeArt badge={drink.badge} x={160} y={84} />
       <path d="M146 40 l-9 -3 l3 11 M146 40 h28 l4 58 q0 8 -8 8 h-20 q-8 0 -8 -8 Z" fill={GLASS} fillOpacity=".3" {...outline} />
       <path d="M152 70 v24" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".6" />
     </g></g>
   </>;
 }
+const cupsLabel = (theme: PropTheme) => {
+  const name = foodWord(theme, 'drink');
+  return `Three clear mugs of ${name} and ${aFood(name)} jug tipped over them`;
+};
 
 /** A crate of nails with a few spilled; one nail drops onto the floor. */
 const NAILS: { x: number; t: number; h: number }[] = [{ x: 58, t: -10, h: 18 }, { x: 72, t: 6, h: 30 }, { x: 86, t: -4, h: 22 }, { x: 100, t: 12, h: 34 }, { x: 114, t: -8, h: 26 }, { x: 126, t: 4, h: 16 }];
@@ -105,15 +112,26 @@ function RopeArt() {
   </>;
 }
 
-/** A baking pan with only a small piece of cake left in it, and a fork. */
-function CakeArt() {
+/** A baking pan with only a small piece of cake left in it, and a fork: the theme's cake (its colours and topping), or a
+    slice of pie when the cake word is one. */
+function CakeArt(theme: PropTheme = 'everyday') {
+  const look = cakeLook(theme);
   return <>
     <path d="M36 62 H128 L144 84 H20 Z" fill="#8E9BAF" {...outline} />
     <path d="M20 84 H144 V101 q0 5 -5 5 H25 q-5 0 -5 -5 Z" fill={STEEL} {...outline} />
     <path d="M26 90 h112" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".6" />
-    <path d="M36 80 V64 q0 -6 6 -6 h22 q6 0 6 6 V80 Z" fill="#F3C77E" {...outline} />
-    <path d="M36 65 q0 -8 8 -8 h20 q8 0 8 8 q-3 6 -6 1 q-3 6 -6 0 q-3 6 -6 0 q-3 6 -6 0 q-3 6 -6 0 q-3 5 -6 -1 Z" fill="#FFB3C7" {...thin} />
-    <circle cx="54" cy="51" r="5.5" fill="#E63946" {...thin} /><path d="M54 46 q3 -6 7 -7" stroke="#3E9954" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+    {look.pie ? <>
+      <path d="M32 80 L76 80 L66 60 Z" fill={look.frosting} {...outline} />
+      <path d="M32 80 L76 80" stroke="#E0A458" strokeWidth="7" strokeLinecap="round" />
+      <path d="M32 80 L76 80" fill="none" stroke={INK} strokeWidth="2" opacity=".5" />
+      <ToppingArt kind={look.topping} x={56} y={70} r={5} fill={look.toppingFill} />
+    </> : <>
+      <path d="M36 80 V64 q0 -6 6 -6 h22 q6 0 6 6 V80 Z" fill={look.plain ? '#F3C77E' : look.sponge} {...outline} />
+      <path d="M36 65 q0 -8 8 -8 h20 q8 0 8 8 q-3 6 -6 1 q-3 6 -6 0 q-3 6 -6 0 q-3 6 -6 0 q-3 6 -6 0 q-3 5 -6 -1 Z" fill={look.plain ? '#FFB3C7' : look.frosting} {...thin} />
+      {look.plain
+        ? <><circle cx="54" cy="51" r="5.5" fill="#E63946" {...thin} /><path d="M54 46 q3 -6 7 -7" stroke="#3E9954" strokeWidth="2.5" fill="none" strokeLinecap="round" /></>
+        : <ToppingArt kind={look.topping} x={54} y={51} r={6} fill={look.toppingFill} />}
+    </>}
     <circle cx="84" cy="76" r="2.2" fill="#E8B15D" /><circle cx="97" cy="80" r="1.8" fill="#E8B15D" /><circle cx="76" cy="70" r="1.6" fill="#E8B15D" />
     <g className="fq-fp-d-in">
       <rect x="164" y="97" width="26" height="6" rx="3" fill={STEEL} {...thin} />
@@ -227,12 +245,12 @@ function DialArt() {
   </>;
 }
 
-/** A little treasure chest whose lid has just popped open, with light spilling out. */
+/** A little treasure chest with a round dial lock ("One dial is left"), whose lid has just popped open, with light spilling out. */
 function ChestArt() {
   return <>
     <rect x="44" y="62" width="112" height="44" rx="6" fill="#A8693A" {...outline} />
     <rect x="92" y="62" width="16" height="44" fill={GOLD} stroke={INK} strokeWidth="2.5" />
-    <circle cx="100" cy="82" r="6" fill={INK} /><path d="M100 82 l-3 10 h6 Z" fill={INK} />
+    <circle cx="100" cy="84" r="12" fill={STEEL} {...outline} /><circle cx="100" cy="84" r="5" fill="#8E9BAF" stroke={INK} strokeWidth="2" /><path d="M100 84 l6 -7" stroke={INK} strokeWidth="3" strokeLinecap="round" />
     {[[52, 70], [148, 70], [52, 98], [148, 98]].map(([x, y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="2.5" fill={GOLD} stroke={INK} strokeWidth="1.5" />)}
     <ellipse cx="100" cy="60" rx="46" ry="9" fill="#FFE066" />
     <g transform="rotate(-24 44 62)"><g className="fq-fp-d-lid">
@@ -281,18 +299,23 @@ function SnacksArt() {
   </>;
 }
 
-/** A glass measuring jug of lemonade, and a small scoop that dips in. */
-function JugArt() {
+/** A glass measuring jug of lemonade, and a small scoop that dips in. A theme's drink changes the colour, puts its badge
+    (a pumpkin, a marshmallow, an apple...) on the jug, and steams when it is warm. */
+function JugArt(theme: PropTheme = 'everyday') {
+  const drink = drinkLook(theme);
+  const plain = foodWord(theme, 'drink') === 'lemonade';
   return <>
     <path d="M114 40 q22 2 20 26 q-2 20 -14 24" fill="none" stroke={INK} strokeWidth="4.5" strokeLinecap="round" />
-    <path d="M56.5 58 H111.5 L108.2 96 q-1 10 -11 10 H71 q-10 0 -11 -10 Z" fill={LEMONADE} />
-    <path d="M56.5 58 H111.5" stroke={CREAM} strokeWidth="3" strokeLinecap="round" />
+    <path d="M56.5 58 H111.5 L108.2 96 q-1 10 -11 10 H71 q-10 0 -11 -10 Z" fill={drink.liquid} />
+    <path d="M56.5 58 H111.5" stroke={plain ? CREAM : drink.top} strokeWidth="3" strokeLinecap="round" />
+    {!plain && <DrinkBadgeArt badge={drink.badge} x={86} y={82} r={9} />}
+    {drink.steam && <Steam xs={[72, 96]} y={22} />}
     <path d="M44 26 l10 4 l-4 10 M54 30 H114 L108 96 q-1 10 -11 10 H71 q-10 0 -11 -10 Z" fill={GLASS} fillOpacity=".5" {...outline} />
     <path d="M64 64 v28" stroke="#fff" strokeWidth="3" strokeLinecap="round" opacity=".6" />
     <g className="fq-fp-d-drop">
       <rect x="172" y="84" width="26" height="6" rx="3" transform="rotate(-45 172 87)" fill={GOLD} {...thin} />
       <path d="M146 86 h30 q0 20 -15 20 q-15 0 -15 -20 Z" fill={GOLD} {...outline} />
-      <ellipse cx="161" cy="86" rx="15" ry="4" fill={LEMONADE} />
+      <ellipse cx="161" cy="86" rx="15" ry="4" fill={drink.liquid} />
     </g>
   </>;
 }
@@ -366,20 +389,20 @@ function FestivalEndArt() {
 
 export const PROPS_D: Record<string, PropDef> = {
   'd-boards': { label: 'Two wooden stage boards on sawhorses, end to end, with a hammer', art: BoardsArt, ledge: true },
-  'd-cups': { label: 'Three clear mugs of lemonade and a lemonade jug tipped over them', art: CupsArt, ledge: true },
+  'd-cups': { label: cupsLabel, art: CupsArt, ledge: true },
   'd-nails': { label: 'A wooden crate of shiny nails with a few spilled on the floor', art: NailsArt, ledge: true },
   'd-sandbag': { label: 'A sandbag hanging from a rope, with a little pile of sand beside it', art: SandbagArt, ledge: true },
   'd-rope': { label: 'A coil of rope with its snapped, frayed end lying out', art: RopeArt, ledge: true },
-  'd-cake': { label: 'A baking pan with a small piece of cake left in it, and a fork', art: CakeArt, ledge: true },
+  'd-cake': { label: (theme) => `A baking pan with a small piece of ${foodWord(theme, 'cake')} left in it, and a fork`, art: CakeArt, ledge: true },
   'd-paint': { label: 'An open pink paint can with drips, its lid leaning beside it, and a scoop', art: PaintArt, ledge: true },
   'd-clay': { label: 'A lump of clay and little cloth bags tied with red string', art: ClayArt, ledge: true },
   'd-plot': { label: 'A wooden garden plot with little green sprouts, and a bee flying in', art: PlotArt, ledge: true },
   'd-flowers': { label: 'A long wooden planter of tall flowers in different colors', art: FlowersArt, ledge: true },
   'd-dial': { label: 'A steel safe door with a big round dial and a green lamp', art: DialArt, ledge: true },
-  'd-chest': { label: 'A little treasure chest with its lid popped open and light shining out', art: ChestArt, ledge: true },
+  'd-chest': { label: 'A little treasure chest with a round dial lock, its lid popped open and light shining out', art: ChestArt, ledge: true },
   'd-scroll': { label: 'A riddle scroll with one wavy line circled in red, and a pencil with an eraser', art: ScrollArt },
   'd-snacks': { label: 'A big party bowl heaped with snacks, and a small plate beside it', art: SnacksArt, ledge: true },
-  'd-jug': { label: 'A glass measuring jug of lemonade, and a small scoop beside it', art: JugArt, ledge: true },
+  'd-jug': { label: (theme) => `A glass measuring jug of ${foodWord(theme, 'drink')}, and a small scoop beside it`, art: JugArt, ledge: true },
 };
 export const LESSONS_D: Record<string, string> = {
   'fractional-measure-addition': 'd-boards',      // ch 12: "Two boards go end to end. How long together?"
@@ -393,7 +416,7 @@ export const LESSONS_D: Record<string, string> = {
   'fractional-side-area': 'd-plot',               // ch 13: "A bee lands on one plot"
   'multiply-mixed-numbers': 'd-flowers',          // ch 13: Bea's flower bed
   'percent-to-fraction': 'd-dial',                // ch 14: a dial on the lock
-  'multi-step-fraction-stories': 'd-chest',       // ch 14: "Click! The case opens!"
+  'multi-step-fraction-stories': 'd-chest',       // ch 14: "One dial is left. It hides a puzzle"
   'spot-the-mistake': 'd-scroll',                 // ch 15: Chomp's riddle with a mistake in it
   'fraction-of-remainder': 'd-snacks',            // ch 15: Chomp's snacks, shared with friends
   'divide-fractions': 'd-jug',                    // ch 15: scoops of drink in a cup

@@ -3,6 +3,8 @@
 
 import React, { type ReactNode } from 'react';
 import { CREAM, delay, FlagPole, GOLD, INK, Ledge, outline, StonePiece, type EndDef, type PropDef } from './film-art';
+import { foodWord, JarSnack, snackKind } from './film-food';
+import type { PropTheme } from './story';
 
 function FlagArt() {
   return <>
@@ -19,13 +21,15 @@ const Cookie = ({ x, y, r = 14 }: { x: number; y: number; r?: number }) => <>
   <circle cx={x} cy={y} r={r} fill="#E0A458" stroke="#9A5B1C" strokeWidth="2.5" />
   <circle cx={x - r * .35} cy={y - r * .2} r="2.2" fill="#6B3A12" /><circle cx={x + r * .3} cy={y - r * .35} r="2.2" fill="#6B3A12" /><circle cx={x + r * .1} cy={y + r * .4} r="2.2" fill="#6B3A12" />
 </>;
-function JarArt() {
+/** "My {snack} jar": cookies, or the theme's candies or candy canes. */
+function JarArt(theme: PropTheme = 'everyday') {
+  const kind = snackKind(theme);
   return <>
     <path d="M66 38 h68 q8 0 8 9 v50 q0 9 -9 9 h-66 q-9 0 -9 -9 v-50 q0 -9 8 -9 Z" fill="#E4F6FF" fillOpacity=".92" {...outline} />
-    {COOKIES.map(([x, y]) => <Cookie key={x + '-' + y} x={x} y={y} />)}
+    {COOKIES.map(([x, y]) => kind === 'cookie' ? <Cookie key={x + '-' + y} x={x} y={y} /> : <JarSnack key={x + '-' + y} kind={kind} x={x} y={y} />)}
     <path d="M74 50 v38" stroke="#fff" strokeWidth="5" strokeLinecap="round" opacity=".75" />
     <rect x="62" y="24" width="76" height="16" rx="6" fill="#FF6B6B" {...outline} />
-    <g className="fq-fp-cookie"><Cookie x={166} y={92} /></g>
+    <g className="fq-fp-cookie">{kind === 'cookie' ? <Cookie x={166} y={92} /> : <JarSnack kind={kind} x={166} y={92} />}</g>
     <circle cx="150" cy="102" r="2" fill="#9A5B1C" /><circle cx="156" cy="104" r="1.6" fill="#9A5B1C" />
   </>;
 }
@@ -150,7 +154,10 @@ function StageEndArt() {
 
 export const SAMPLE_PROPS: Record<string, PropDef> = {
   flag: { label: 'A flag on a little hill', art: FlagArt },
-  jar: { label: 'A snack jar with cookies, and one cookie beside it', art: JarArt, ledge: true },
+  jar: { label: (theme) => {
+    const kind = snackKind(theme);
+    return kind === 'cookie' ? 'A snack jar with cookies, and one cookie beside it' : `A ${foodWord(theme, 'snack')} jar full of ${kind === 'candy' ? 'wrapped candies' : 'candy canes'}, and one beside it`;
+  }, art: JarArt, ledge: true },
   note: { label: 'A beep note from Bolt, with a magnifying glass', art: NoteArt },
   barrel: { label: 'A wooden rain barrel under a drainpipe, with water in it', art: BarrelArt, ledge: true },
   loaves: { label: 'A basket of fresh loaves', art: LoavesArt },

@@ -5,6 +5,8 @@
 
 import React from 'react';
 import { CREAM, delay, GOLD, INK, Ledge, outline, StonePiece, type EndDef, type PropDef } from './film-art';
+import { cakeLook, foodWord, SidePie, ToppingArt } from './film-food';
+import type { PropTheme } from './story';
 
 const RED = '#FF6B6B';
 const PINK = '#FF9EB5';
@@ -81,37 +83,59 @@ function SliceArt() {
   </>;
 }
 
-/** fraction-of-area: "The round cake is cut into slices... the coloured ones get frosting." A plain round sponge and a piping bag. */
-function PipingArt() {
+/** fraction-of-area: "The round cake is cut into slices... the coloured ones get frosting." A plain round sponge and a piping bag.
+    In a theme it is that theme's cake (its colours and topping), or a pie when the cake word is one. */
+const PipingBag = () => <g transform="translate(112 36)"><g className="fq-fp-a-bag"><g transform="rotate(55)">
+  <path d="M-5 -10 L5 -10 L19 -42 L-19 -42 Z" fill={TEAL} {...thin} />
+  <path d="M-19 -42 h38 l-7 -8 h-24 Z" fill="#37B4DB" {...thin} />
+  <path d="M-5 -10 L5 -10 L3 0 L-3 0 Z" fill={GOLD} {...thin} strokeWidth={2} />
+  <path d="M-6 -36 l5 22" {...SOFT} strokeWidth={3.5} />
+</g></g></g>;
+function PipingArt(theme: PropTheme = 'everyday') {
+  const look = cakeLook(theme);
+  if (look.pie) return <>
+    <ellipse cx="92" cy="108" rx="70" ry="9" fill="#fff" {...outline} />
+    <SidePie cx={92} cy={76} s={1.13} filling={look.frosting} topping={look.topping} toppingFill={look.toppingFill} />
+    <PipingBag />
+    <circle cx="164" cy="104" r="2.4" fill="#C98B4E" /><circle cx="172" cy="100" r="1.8" fill="#C98B4E" />
+  </>;
+  const sponge = look.plain ? '#F2C879' : look.sponge, top = look.plain ? '#FFE3A6' : look.frosting;
   return <>
     <ellipse cx="92" cy="108" rx="70" ry="9" fill="#fff" {...outline} />
-    <path d="M40 62 v34 q0 12 52 12 q52 0 52 -12 v-34 Z" fill="#F2C879" {...outline} />
-    <path d="M44 84 q48 12 96 0" stroke="#C98B4E" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-    <ellipse cx="92" cy="62" rx="52" ry="13" fill="#FFE3A6" {...outline} />
-    <ellipse cx="92" cy="58" rx="20" ry="8" fill={PINK} {...thin} />
-    <ellipse cx="92" cy="50" rx="14" ry="7" fill={PINK} {...thin} />
-    <ellipse cx="92" cy="43" rx="8" ry="6" fill={PINK} {...thin} />
-    <path d="M84 54 q4 -4 10 -3" {...SOFT} strokeWidth={2.5} />
-    <g transform="translate(112 36)"><g className="fq-fp-a-bag"><g transform="rotate(55)">
-      <path d="M-5 -10 L5 -10 L19 -42 L-19 -42 Z" fill={TEAL} {...thin} />
-      <path d="M-19 -42 h38 l-7 -8 h-24 Z" fill="#37B4DB" {...thin} />
-      <path d="M-5 -10 L5 -10 L3 0 L-3 0 Z" fill={GOLD} {...thin} strokeWidth={2} />
-      <path d="M-6 -36 l5 22" {...SOFT} strokeWidth={3.5} />
-    </g></g></g>
+    <path d="M40 62 v34 q0 12 52 12 q52 0 52 -12 v-34 Z" fill={sponge} {...outline} />
+    <path d="M44 84 q48 12 96 0" stroke={look.plain ? '#C98B4E' : look.edge} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+    <ellipse cx="92" cy="62" rx="52" ry="13" fill={top} {...outline} />
+    {look.plain ? <>
+      <ellipse cx="92" cy="58" rx="20" ry="8" fill={PINK} {...thin} />
+      <ellipse cx="92" cy="50" rx="14" ry="7" fill={PINK} {...thin} />
+      <ellipse cx="92" cy="43" rx="8" ry="6" fill={PINK} {...thin} />
+      <path d="M84 54 q4 -4 10 -3" {...SOFT} strokeWidth={2.5} />
+    </> : <ToppingArt kind={look.topping} x={92} y={54} r={9} fill={look.toppingFill} />}
+    <PipingBag />
     <circle cx="164" cy="104" r="2.4" fill="#C98B4E" /><circle cx="172" cy="100" r="1.8" fill="#C98B4E" />
   </>;
 }
+const pipingLabel = (theme: PropTheme) => {
+  const look = cakeLook(theme);
+  if (look.plain) return 'A round sponge cake and a piping bag of pink frosting';
+  return `A round ${foodWord(theme, 'cake')} and a piping bag of ${look.pie ? 'cream' : 'frosting'}`;
+};
 
-/** Chapter 1 ending: the festival cake, a stone piece in the crumbs, and Chomp's big muddy footprints. */
-function BakeryEndArt() {
+/** Chapter 1 ending: the festival cake (the theme's cake, or its pie), a stone piece in the crumbs, and Chomp's big muddy footprints. */
+function BakeryEndArt(theme: PropTheme = 'everyday') {
+  const look = cakeLook(theme);
+  const lower = look.plain ? PINK : look.sponge, drip = look.plain ? '#fff' : look.frosting;
+  const upper = look.plain ? CREAM : look.frosting, upperDrip = look.plain ? PINK : look.edge;
   return <>
     <Ledge />
-    <rect x="22" y="76" width="84" height="30" rx="9" fill={PINK} {...outline} />
-    <path d="M22 84 q4 12 9 0 q3 8 7 0 q6 14 11 0 q3 6 8 0 q5 10 10 0 q4 9 8 0 q4 11 8 0" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity=".9" />
-    <rect x="40" y="52" width="48" height="24" rx="8" fill={CREAM} {...outline} />
-    <path d="M42 60 q5 9 10 0 q4 6 8 0 q6 12 12 0 q4 8 9 0" fill="none" stroke={PINK} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="34" cy="96" r="2.6" fill="#fff" /><circle cx="52" cy="98" r="2.6" fill="#fff" /><circle cx="74" cy="95" r="2.6" fill="#fff" /><circle cx="94" cy="98" r="2.6" fill="#fff" />
-    <Cherry x={64} y={44} r={8} />
+    {look.pie ? <SidePie cx={64} cy={84} s={.95} filling={look.frosting} topping={look.topping} toppingFill={look.toppingFill} /> : <>
+      <rect x="22" y="76" width="84" height="30" rx="9" fill={lower} {...outline} />
+      <path d="M22 84 q4 12 9 0 q3 8 7 0 q6 14 11 0 q3 6 8 0 q5 10 10 0 q4 9 8 0 q4 11 8 0" fill="none" stroke={drip} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity=".9" />
+      <rect x="40" y="52" width="48" height="24" rx="8" fill={upper} {...outline} />
+      <path d="M42 60 q5 9 10 0 q4 6 8 0 q6 12 12 0 q4 8 9 0" fill="none" stroke={upperDrip} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="34" cy="96" r="2.6" fill="#fff" /><circle cx="52" cy="98" r="2.6" fill="#fff" /><circle cx="74" cy="95" r="2.6" fill="#fff" /><circle cx="94" cy="98" r="2.6" fill="#fff" />
+      {look.plain ? <Cherry x={64} y={44} r={8} /> : <ToppingArt kind={look.topping} x={64} y={44} r={8} fill={look.toppingFill} />}
+    </>}
     <g fill="#7A4A22"><ellipse cx="116" cy="114" rx="5" ry="3.4" transform="rotate(-18 116 114)" /><circle cx="122" cy="110" r="1.6" /><circle cx="125" cy="113" r="1.6" /><circle cx="124" cy="117" r="1.6" /></g>
     <circle cx="138" cy="104" r="2.4" fill="#E9A64A" /><circle cx="148" cy="106" r="1.8" fill="#E9A64A" /><circle cx="160" cy="104" r="2.4" fill="#E9A64A" /><circle cx="170" cy="105" r="1.8" fill="#E9A64A" />
     <StonePiece x={140} y={56} />
@@ -120,15 +144,21 @@ function BakeryEndArt() {
 
 /* ---------- Chapter 2 · Pip's pond party ---------- */
 
-/** compare-same-numerator: "Two cakes the same size." Two identical round cakes, one with strawberries and one with blueberries. */
-function TwoCakesArt() {
+/** compare-same-numerator: "Two cakes the same size." Two identical round cakes, one with strawberries and one with blueberries.
+    In a theme, two of that theme's cakes (or pies) with its topping. */
+function TwoCakesArt(theme: PropTheme = 'everyday') {
+  const look = cakeLook(theme);
   const cake = (cx: number, berry: string, dots: [number, number][], i: number) => (
     <g key={cx} className="fq-fp-a-hop" style={delay(i)}>
       <ellipse cx={cx} cy="104" rx="42" ry="7" fill="#fff" {...thin} />
-      <path d={`M${cx - 34} 66 v28 q0 9 34 9 q34 0 34 -9 v-28 Z`} fill="#F2C879" {...outline} />
-      <path d={`M${cx - 30} 82 q30 8 60 0`} stroke="#C98B4E" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      <ellipse cx={cx} cy="66" rx="34" ry="10" fill={CREAM} {...outline} />
-      {dots.map(([dx, dy]) => <circle key={`${dx}-${dy}`} cx={cx + dx} cy={66 + dy} r="5" fill={berry} {...thin} strokeWidth={2} />)}
+      {look.pie ? <SidePie cx={cx} cy={78} s={.74} filling={look.frosting} topping={look.topping} toppingFill={look.toppingFill} /> : <>
+        <path d={`M${cx - 34} 66 v28 q0 9 34 9 q34 0 34 -9 v-28 Z`} fill={look.plain ? '#F2C879' : look.sponge} {...outline} />
+        <path d={`M${cx - 30} 82 q30 8 60 0`} stroke={look.plain ? '#C98B4E' : look.edge} strokeWidth="2.5" fill="none" strokeLinecap="round" />
+        <ellipse cx={cx} cy="66" rx="34" ry="10" fill={look.plain ? CREAM : look.frosting} {...outline} />
+        {look.plain
+          ? dots.map(([dx, dy]) => <circle key={`${dx}-${dy}`} cx={cx + dx} cy={66 + dy} r="5" fill={berry} {...thin} strokeWidth={2} />)
+          : <ToppingArt kind={look.topping} x={cx} y={62} r={7} fill={look.toppingFill} />}
+      </>}
     </g>
   );
   return <>
@@ -136,6 +166,9 @@ function TwoCakesArt() {
     {cake(148, '#5B6CFF', [[-13, 0], [2, -4], [14, 1], [4, 4]], 1)}
   </>;
 }
+const twoCakesLabel = (theme: PropTheme) => cakeLook(theme).plain
+  ? 'Two round cakes of the same size, one with strawberries and one with blueberries'
+  : `Two round ${foodWord(theme, 'cakes')} of the same size`;
 
 /** Chapter 2 ending: Pip's snack bowl with two snack bars in it, and the stone piece beside it. */
 function PondEndArt() {
@@ -444,8 +477,8 @@ function HoneyEndArt() {
 export const PROPS_A: Record<string, PropDef> = {
   'a-tray': { label: 'A bakery tray of cookies in different shapes: a star, a heart, a round one and more', art: TrayArt },
   'a-slice': { label: 'One slice of layer cake on a plate, with a cherry on top', art: SliceArt },
-  'a-piping': { label: 'A round sponge cake and a piping bag of pink frosting', art: PipingArt },
-  'a-twocakes': { label: 'Two round cakes of the same size, one with strawberries and one with blueberries', art: TwoCakesArt, ledge: true },
+  'a-piping': { label: pipingLabel, art: PipingArt },
+  'a-twocakes': { label: twoCakesLabel, art: TwoCakesArt, ledge: true },
   'a-hike': { label: 'A hiker backpack, a walking stick, a water flask and an apple at a rest stop on the hill', art: HikeArt, ledge: true },
   'a-plank': { label: 'A rope bridge plank with a dropped apple bouncing on it', art: PlankApple },
   'a-house': { label: 'A cosy little frog house on the far bank, with a glowing window and a lantern', art: HouseArt, ledge: true },
@@ -472,7 +505,7 @@ export const LESSONS_A: Record<string, string> = {
   'missing-equivalent': 'a-torn',            // chapter 6: "a label got torn"
 };
 export const ENDS_A: Record<number, EndDef> = {
-  1: { art: BakeryEndArt, label: 'A festival cake, big muddy footprints and crumbs, and the stone piece shining in the crumbs' },
+  1: { art: BakeryEndArt, label: (theme) => `A festival ${foodWord(theme, 'cake')}, big muddy footprints and crumbs, and the stone piece shining in the crumbs` },
   2: { art: PondEndArt, label: 'A snack bowl with two snack bars in it, and the stone piece glowing beside it' },
   4: { art: BridgeEndArt, label: 'A rope bridge with loose planks and gaps, and the stone piece shining on the far cliff' },
   5: { art: TowerEndArt, label: 'A steady tower of treats, and the stone piece shining beside it' },
