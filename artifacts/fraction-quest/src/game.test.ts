@@ -3111,7 +3111,9 @@ describe('grown-ups report', () => {
     let fun = recordMinute(recordMinute(loadFun()));
     fun = recordCorrect(fun);
     const day = Object.keys(fun.activity ?? {})[0];
-    assert.deepEqual(fun.activity?.[day], { minutes: 2, answered: 1 });
+    const { devices, ...totals } = fun.activity?.[day] ?? { minutes: 0, answered: 0 };
+    assert.deepEqual(totals, { minutes: 2, answered: 1 });
+    assert.deepEqual(Object.values(devices ?? {}), [{ minutes: 2, answered: 1 }], 'this device\'s part, so two devices add up');
   });
 });
 
