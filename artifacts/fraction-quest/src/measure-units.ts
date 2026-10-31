@@ -41,6 +41,12 @@ export function withUnits(prompt: string, choices: string[]): string[] {
   return choices.map((choice, index) => `${choice.trim()} ${values[index]! > 0 && values[index]! <= 1 ? unit : plural(unit)}`);
 }
 
+/** A unit word ("liter" or "liters") said right for an amount: 1 or less is singular ("1/2 liter", "6/4 liters"). */
+export function unitFor(value: number, word: string): string {
+  const unit = SINGULAR.get(word.toLowerCase()) ?? word;
+  return value > 0 && value <= 1 ? unit : plural(unit);
+}
+
 /** "5/8 inch" → "5/8": the bare amount, for checking an answer against a key written without its unit. */
 export function withoutUnit(text: string): string {
   const match = /^(.+?) ([a-z]+)$/i.exec(text.trim());
