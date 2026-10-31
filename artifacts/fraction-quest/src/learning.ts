@@ -26,6 +26,8 @@ export type LearningRecord = {
   redosFinished?: number;
   /** Mistakes made during redos (same keys as `misconceptions`). Kept apart so first-try results never change. */
   redoMisconceptions?: Record<string, number>;
+  /** When this record last changed (updateLearning), so a unit reset on another device keeps work started after it. */
+  changedAt?: number;
 };
 export type RedoPart = 'worksheet' | 'builds';
 /** A second try at a finished lesson's worksheet or builds, with new numbers. It is kept apart from the lesson's own
@@ -41,8 +43,8 @@ export const emptyLearningRecord = (): LearningRecord => ({ checks: {}, workshee
 export function getLearningRecord(progress: Progress, id: string): LearningRecord {
   return progress.learning?.[id] ?? emptyLearningRecord();
 }
-export function updateLearning(progress: Progress, id: string, record: LearningRecord): Progress {
-  return { ...progress, learning: { ...progress.learning, [id]: record } };
+export function updateLearning(progress: Progress, id: string, record: LearningRecord, now = Date.now()): Progress {
+  return { ...progress, learning: { ...progress.learning, [id]: { ...record, changedAt: now } } };
 }
 
 /** Clear one unit's lesson evidence while preserving progress and practice from every other unit. With `at` (a grown-up's
@@ -79,6 +81,7 @@ export function resetUnitLearningProgress(progress: Progress, missionIds: Readon
     ...(progress.lessonSeen ? { lessonSeen: Object.fromEntries(Object.entries(progress.lessonSeen).filter(([id]) => !missionIds.has(id))) } : {}),
     challengeBest: Object.fromEntries(Object.entries(progress.challengeBest ?? {}).filter(([savedUnit]) => savedUnit !== String(unit))),
     ...(progress.challengeAttempts ? { challengeAttempts: Object.fromEntries(Object.entries(progress.challengeAttempts).filter(([savedUnit]) => savedUnit !== String(unit))) } : {}),
+    ...(progress.challengeAt ? { challengeAt: Object.fromEntries(Object.entries(progress.challengeAt).filter(([savedUnit]) => savedUnit !== String(unit))) } : {}),
     // The grown-up "why practice changed" notes for this unit's lessons go too; standards are shared with other units.
     ...(progress.adaptationLog ? { adaptationLog: progress.adaptationLog.filter((event) => !missionIds.has(event.missionId)) } : {}),
     ...(nextDailyPractice ? { dailyPractice: nextDailyPractice } : { dailyPractice: undefined }),

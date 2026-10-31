@@ -35,13 +35,45 @@ function lessonProgress(record: LearningRecord): number[] {
   return [record.completedAt ? 1 : 0, record.practiceDone ? 1 : 0, checked];
 }
 
-function betterLesson(saved: LearningRecord, here: LearningRecord): LearningRecord {
-  // Both finished: keep the first finish (its first-try answers are the ones the report counts).
-  if (saved.completedAt && here.completedAt) {
-    const first = saved.completedAt < here.completedAt ? saved : here;
-    const confirmedAt = Math.max(saved.confirmedAt ?? 0, here.confirmedAt ?? 0);
-    return confirmedAt ? { ...first, confirmedAt } : first;
+/** How far a redo got: which round, when it started, then whether it is finished and how many answers were checked. */
+function redoProgress(record: LearningRecord): number[] {
+  const redo = record.redo;
+  const checked = redo ? Object.values(redo.worksheet).filter((entry) => entry.checkedValue !== undefined).length
+    + Object.values(redo.checks).filter((check) => check.passed).length : 0;
+  return [record.redoRounds ?? 0, redo?.startedAt ?? 0, redo?.finishedAt ? 1 : 0, checked];
+}
+
+/** Both copies finished the lesson: the first finish is kept (its first-try answers are the ones the report counts), and
+    the redos come from the copy further along with them, so a redo in progress on one device is not lost when an idle
+    device with the same finished lesson saves. Miss and help counts only grow, so the larger of each is kept. */
+function bothFinished(saved: LearningRecord, here: LearningRecord): LearningRecord {
+  const first = saved.completedAt! < here.completedAt! ? saved : here;
+  const other = first === saved ? here : saved;
+  const a = redoProgress(first);
+  const b = redoProgress(other);
+  let redoFrom = first;
+  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) { redoFrom = a[i] > b[i] ? first : other; break; }
+  const merged: LearningRecord = { ...first };
+  delete merged.redo;
+  if (redoFrom.redo) merged.redo = redoFrom.redo;
+  const rounds = Math.max(first.redoRounds ?? 0, other.redoRounds ?? 0);
+  if (rounds) merged.redoRounds = rounds;
+  const finished = Math.max(first.redosFinished ?? 0, other.redosFinished ?? 0);
+  if (finished) merged.redosFinished = finished;
+  const misses = mergeNumbers(first.redoMisconceptions, other.redoMisconceptions);
+  if (misses) merged.redoMisconceptions = misses;
+  if (saved.completedAt === here.completedAt) {
+    // The same finish on both copies: what was counted since (help, misses) only grows.
+    merged.helpUses = Math.max(first.helpUses, other.helpUses);
+    merged.misconceptions = mergeNumbers(first.misconceptions, other.misconceptions) ?? {};
   }
+  const confirmedAt = Math.max(saved.confirmedAt ?? 0, here.confirmedAt ?? 0);
+  if (confirmedAt) merged.confirmedAt = confirmedAt;
+  return merged;
+}
+
+function betterLesson(saved: LearningRecord, here: LearningRecord): LearningRecord {
+  if (saved.completedAt && here.completedAt) return bothFinished(saved, here);
   if (saved.completedAt || here.completedAt) return saved.completedAt ? saved : here;
   const a = lessonProgress(saved);
   const b = lessonProgress(here);
@@ -58,26 +90,46 @@ function betterLesson(saved: LearningRecord, here: LearningRecord): LearningReco
       added = true;
     }
   }
-  return added ? { ...winner, worksheet } : winner;
+  const changedAt = Math.max(saved.changedAt ?? 0, here.changedAt ?? 0);
+  const result = added ? { ...winner, worksheet } : winner;
+  return changedAt > (result.changedAt ?? 0) ? { ...result, changedAt } : result;
 }
 
 const UNIT_LESSONS = new Map<number, string[]>();
 for (const mission of MISSIONS) UNIT_LESSONS.set(mission.unit, [...(UNIT_LESSONS.get(mission.unit) ?? []), mission.id]);
 
+/** Work on a lesson from after a reset at `at`: finished after it, or not finished and last changed after it. */
+function newerThan(record: LearningRecord | undefined, at: number): boolean {
+  if (!record) return false;
+  return record.completedAt ? record.completedAt > at : (record.changedAt ?? 0) > at;
+}
+
 /** The lessons of each unit reset on the other copy that this copy has not seen reset yet, and when. Lessons this copy
-    finished after the reset are not included: that is newer work. */
+    worked on after the reset are not included: that is newer work. */
 function unseenResets(copy: Progress, resets: Record<string, number>): { unit: number; at: number; lessons: Set<string> }[] {
   return Object.entries(resets)
     .filter(([unit, at]) => (copy.unitResets?.[unit] ?? 0) < at)
     .map(([unit, at]) => ({
       unit: Number(unit), at,
-      lessons: new Set((UNIT_LESSONS.get(Number(unit)) ?? []).filter((id) => !((copy.learning?.[id]?.completedAt ?? 0) > at))),
+      lessons: new Set((UNIT_LESSONS.get(Number(unit)) ?? []).filter((id) => !newerThan(copy.learning?.[id], at))),
     }));
 }
 
-/** A copy with every unit reset it has not seen applied (as if it had been on this device when the grown-up reset it). */
+/** A copy with every unit reset it has not seen applied (as if it had been on this device when the grown-up reset it).
+    The unit's challenge scored after the reset, and daily practice begun after it, are newer work and stay. */
 function withResets(copy: Progress, resets: Record<string, number>): Progress {
-  return unseenResets(copy, resets).reduce((next, reset) => resetUnitLearningProgress(next, reset.lessons, reset.unit), copy);
+  return unseenResets(copy, resets).reduce((next, reset) => {
+    const cleared = resetUnitLearningProgress(next, reset.lessons, reset.unit);
+    const unit = String(reset.unit);
+    const kept: Partial<Progress> = {};
+    if ((next.challengeAt?.[unit] ?? 0) > reset.at) {
+      if (next.challengeBest?.[unit] !== undefined) kept.challengeBest = { ...cleared.challengeBest, [unit]: next.challengeBest[unit] };
+      if (next.challengeAttempts?.[unit] !== undefined) kept.challengeAttempts = { ...cleared.challengeAttempts, [unit]: next.challengeAttempts[unit] };
+      kept.challengeAt = { ...cleared.challengeAt, [unit]: next.challengeAt![unit] };
+    }
+    if (next.dailyPractice && next.dailyPractice.startedAt > reset.at) kept.dailyPractice = next.dailyPractice;
+    return { ...cleared, ...kept };
+  }, copy);
 }
 
 /** A review further along (more steps passed) is kept. */
@@ -124,6 +176,7 @@ export function mergeProgress(savedCopy: Progress, hereCopy: Progress): Progress
     learning: mergeBy(saved.learning, here.learning, betterLesson),
     challengeBest: mergeNumbers(saved.challengeBest, here.challengeBest),
     challengeAttempts: mergeNumbers(saved.challengeAttempts, here.challengeAttempts),
+    challengeAt: mergeNumbers(saved.challengeAt, here.challengeAt),
     adaptiveStandards: mergeBy(saved.adaptiveStandards, here.adaptiveStandards, later((state) => state.lastUpdatedAt)),
     lessonSeen: mergeBy(saved.lessonSeen, here.lessonSeen, later((seen) => seen.at)),
     adaptationLog: mergeList(saved.adaptationLog, here.adaptationLog, (event) => `${event.at}:${event.missionId}:${event.standard}`, (event) => event.at, 120),
