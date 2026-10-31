@@ -132,6 +132,9 @@ export function wrongChoiceReason(prompt: string, choices: string[], correct: nu
   // The practice questions' own picks (yes/no reasons, counts, renaming, stories in steps, units and money).
   const practiced = practiceReason(prompt, pick, right);
   if (practiced) return practiced;
+  // No known slip: the step of the question to check again.
+  const step = stepReason(prompt, pick, right);
+  if (step) return step;
   // A line plot count with no known slip behind it: count again.
   return /line plot.*how many/.test(p) && /^\d+$/.test(pick) ? WHY.countMarks : null;
 }
@@ -223,7 +226,7 @@ function specificReason(fullPrompt: string, right: string, pick: string): string
     return pt === have ? WHY.sameAgain : pt + have > pb ? WHY.addedWhole : pt + have < pb ? WHY.notYetWhole : null;
   }
   if (several) return WHY.sameBottom;
-  const missing = /^(?:Fill the blank: )?(\d+)\/(\d+) \+ \? = 1\b/.exec(prompt);
+  const missing = /^(?:Fill the blank: |Complete )?(\d+)\/(\d+) \+ \? = 1\b/.exec(prompt);
   if (missing) {
     const [a, b] = [Number(missing[1]), Number(missing[2])];
     if (pb !== b) return WHY.sameBottom;
@@ -282,7 +285,7 @@ function meaningReason(p: string, pick: string, right: string): string | null {
   if (/\bsays multiplying always\b/.test(p)) return /^yes\b/i.test(pick) ? WHY.tryUnderOne : /^no\b/i.test(pick) ? WHY.tryOverOne : null;
   // "3 × 1/3 = ?", "What is 3 groups of 2/3?" answered with the one fraction that is in the question: one group only.
   const groups = /^(?:(\d+) × (\d+\/\d+) = \?|what is (\d+) groups? of (\d+\/\d+)\?)$/.exec(p);
-  if (groups && pick === (groups[2] ?? groups[4])) return WHY.oneGroup;
+  if (groups && pick === (groups[2] ?? groups[4])) return WHY.justOneGroup;
   // "Which is the same as 3 × 2/5?": the small parts counted wrong, or a different size of part.
   const same = /^which is the same as (\d+) × (\d+)\/(\d+)\?$/.exec(p);
   const units = /^(\d+) × 1\/(\d+)$/.exec(pick);
@@ -347,6 +350,8 @@ function comparisonReason(prompt: string, pick: string, right: string): string |
     if (isDecimal(small) && isDecimal(big) && small.split('.')[1].length < big.split('.')[1].length) return WHY.moreDigits;
     return WHY.signWay;
   }
+  // "Which sum makes one whole?": a sum of same-size parts that does not fill the whole (no fraction is named to match).
+  if (/^which sum makes one whole\?$/.test(p) && / \+ /.test(pick) && new Set([...pick.matchAll(/\d+\/(\d+)/g)].map((x) => x[1])).size === 1) return WHY.notOneWhole;
   if (/^which (?:sum|adds up)/.test(p) && / \+ /.test(pick)) {
     // Unlike parts are not checked by adding numerators: say the parts are a different size (when the right sum uses one size).
     const bottoms = (text: string) => new Set([...text.matchAll(/\d+\/(\d+)/g)].map((m) => m[1]));
@@ -505,7 +510,8 @@ function practiceReason(fullPrompt: string, pick: string, right: string): string
   // Line plots.
   if (/^which length is the same as 1 inch\?$/.test(p)) return WHY.allPartsWhole;
   if (/which tick shows its length\?$|where does its x go\?$/.test(p)) return /no tick/.test(k) ? WHY.allPartsWhole : WHY.tickAtLength;
-  if (/how many xs go on the line plot\?$|how many xs stack at \d+\/\d+\?$/.test(p)) return WHY.oneXEach;
+  if (/how many xs go on the line plot\?$/.test(p)) return WHY.oneXEvery;
+  if (/how many xs stack at \d+\/\d+\?$/.test(p)) return WHY.oneXEach;
   if (/which of these ticks gets no x\?$/.test(p)) return WHY.noX;
   if (/x is farthest from 0\?$/.test(p)) return nums.some(([t, b]) => near(t / b, pv)) ? WHY.farthestRight : WHY.notInList;
   if (/how many \w+ are shorter than \d+\/\d+ inch\?$/.test(p)) return WHY.leftOf;
@@ -626,7 +632,7 @@ function practiceReason(fullPrompt: string, pick: string, right: string): string
   if (/how many rows and columns do you cut\?$/.test(p)) return WHY.rowsBottoms;
   if ((m = /has (\d+) rows and (\d+) columns\. shade (\d+) rows? and (\d+) columns?\. how many boxes are in the overlap\?$/.exec(p)) && Number.isFinite(pv)) {
     const [r, c, x, y] = [m[1], m[2], m[3], m[4]].map(Number);
-    return near(pv, r * c) ? WHY.wholeGrid : near(pv, r * c - x * y) ? WHY.notColored : near(pv, x + y) ? WHY.addedSides : null;
+    return near(pv, r * c) ? WHY.wholeGrid : near(pv, r * c - x * y) ? WHY.outsideOverlap : near(pv, x + y) ? WHY.addedSides : null;
   }
   if ((m = /^(\d+)\/(\d+) × (\d+)\/(\d+) = \?$/.exec(prompt)) && pf && pf[1] === Number(m[2]) + Number(m[4])) return WHY.bottomsToo;
   if (/^which fraction covers the same amount as 1\/2\?$/.test(p)) return WHY.halfOfBottom;
@@ -721,6 +727,71 @@ function practiceReason(fullPrompt: string, pick: string, right: string): string
     if (pf[1] === rf[1] && pf[0] === rf[1] - rf[0]) return asked ? WHY.otherParts : WHY.notShadedCount;
     if (pf[0] === rf[0] && pf[1] === rf[1] - rf[0]) return WHY.partToPart;
     return pf[1] === rf[1] ? SLIPS.recountShaded : SLIPS.recountParts;
+  }
+  return null;
+}
+
+/** A wrong pick no rule above names, on a question with a known way to work it: other ways to make an amount, a missing
+    part, percents, and the one step to check again (renaming, multiplying the numerator, sharing into groups, fitting).
+    Each sentence is true whatever was picked and has no digit, so none says the answer. Null for any other question. */
+function stepReason(fullPrompt: string, pick: string, right: string): string | null {
+  const prompt = fullPrompt.replace(REVIEW_LABEL, '');
+  const p = prompt.toLowerCase();
+  const k = pick.toLowerCase();
+  let m: RegExpExecArray | null;
+  // "2/8 + 3/8 makes 5/8. Which is another way to make 5/8?"
+  if ((m = /which is another way to make (\d+)\/(\d+)\?$/.exec(p)) && / \+ /.test(pick)) {
+    const parts = fractionsIn(pick); const [t, b] = [Number(m[1]), Number(m[2])];
+    if (parts.some(([, d]) => d !== b)) return WHY.sumOtherSize;
+    const sum = parts.reduce((total, [x]) => total + x, 0);
+    return sum > t ? WHY.sumTooBig : sum < t ? WHY.sumTooSmall : null;
+  }
+  if (/a way to break apart \d+\/\d+\?$/.test(p) && /^no\b/.test(k)) return /split/.test(k) ? WHY.sameBottom : /equal/.test(k) ? WHY.partsAnySize : null;
+  const [pv, rv] = [answerValue(pick), answerValue(right)];
+  if (!Number.isFinite(pv) || !Number.isFinite(rv)) return null;
+  const pf = asFraction(pick); const rf = asFraction(right);
+  // A pick whose parts are another size than the answer's, where the size does not change: say that, not the step.
+  const otherSize = !!pf && !!rf && pf[1] !== rf[1];
+  const nums = fractionsIn(prompt);
+  if (/^fill the blank: \d+\/(\d+) = \d+\/\1 \+ \?\/\1$/.test(p)) return WHY.blankCheck;
+  // "Complete 1/5 + ? = 3/5.": too much, or not enough yet.
+  if ((m = /^(?:fill the blank: |complete )?(\d+)\/(\d+) \+ \? = (\d+)\/\2\.?$/.exec(p)) && pf) {
+    if (pf[1] !== Number(m[2])) return WHY.sameBottom;
+    const left = Number(m[3]) - Number(m[1]);
+    return pf[0] > left ? WHY.pastTarget : pf[0] < left ? WHY.shortTarget : null;
+  }
+  // Percents: the count is the number before the sign, out of a hundred.
+  if ((m = /(\d+)% of them are [a-z]+\. what fraction/.exec(p)) && pf) return pf[0] === 100 - Number(m[1]) ? WHY.complement : WHY.percentCount;
+  if (/(?:which fraction is the same as \d+%\?|^write \d+% as a fraction)/.test(p) && pf) return pf[1] !== 100 ? WHY.percent100 : WHY.percentCount;
+  if (/ ran \d+\/(\d+) \w+ and then \d+\/\1 \w+\. \w+ ran \d+\/\1 \w+\. how much farther/.test(p)) return WHY.totalThenCompare;
+  // Equivalent fractions: the same factor top and bottom.
+  if (/with a denominator of \d+ is at the same spot\?$|^this bar shows \d+\/\d+\. fill the missing numerator|^fill the missing (?:numerator|denominator)/.test(p)) return WHY.sameFactor;
+  // Groups of a fraction, and a fraction of a fraction.
+  if (/^(?:write )?\d+ × \d+\/\d+(?: = \?| as one fraction\.)$|^a recipe uses \d+\/\d+ cup of \w+\. you make \d+ batches/.test(p)) return otherSize ? WHY.sameBottom : WHY.timesTopCheck;
+  if (/^(?:what is )?\d+\/\d+ (?:×|of) \d+\/\d+(?: = \?|\?)$/.test(p)) return WHY.timesAcross;
+  if (/how long is \d+\/\d+ of it\?$|how many \w+ are in \d+\/\d+ of the \w+\?$|^what is \d+\/\d+ of \d+ \w+\?$|^\d+\/\d+ × \d+ = \?$/.test(p)) return WHY.groupsCheck;
+  if (/gives \d+\/\d+ of them .*of the rest/.test(p)) return WHY.twoStepsLeft;
+  if (/(?:are|is) \d+\/\d+ of [a-z']+ \w+\. how many|it is \d+\/\d+ of the whole \w+\. how many|that is \d+\/\d+ of (?:his|her) \w+\. how many/.test(p)) return WHY.onePartThenWhole;
+  // Sharing and fitting.
+  if (/how many 1\/\d+-cup scoops fill \d+ cups?\?/.test(p)) return WHY.piecesEveryWhole;
+  if (/how many \d+\/\d+ cup scoops fill \d+\/\d+ cup\?$|^\d+\/\d+ ÷ \d+\/\d+ = \?$/.test(p)) return WHY.fitCount;
+  if (/^\d+ loaves are shared fairly by \d+ friends\. how much does each friend get\?$/.test(p)) return WHY.loafCount;
+  if (/^(?:write )?\d+ ÷ \d+(?: = \?| as a fraction\.)$/.test(p)) return WHY.dividendTop;
+  // Decimals, tenths and hundredths, wholes.
+  if (/^write \d*\.\d+ as a fraction\.$/.test(p)) return WHY.digitsTop;
+  if (/^change \d+\/10 into hundredths\.$|^write \d+\/10 of a dollar in hundredths\.$/.test(p)) return WHY.tenthHundredths;
+  if (/^\d+\/10 \+ \d+\/100(?: = \?| of a dollar\. how much is that in hundredths\?)$/.test(p)) return WHY.tenthsFirst;
+  if (/^write \d+ \d+\/\d+ as a single fraction\.$/.test(p)) return WHY.wholesToParts;
+  if (/^how many wholes are \d+\/\d+\?$/.test(p)) return WHY.groupsOfBottom;
+  // Adding and taking away two amounts: renaming (unlike parts), trading a whole, or the numerators again.
+  const mixed = /\d+ \d+\/\d+/.test(p);
+  const minus = /−|take away|how much is left|how much farther/.test(p);
+  const plus = /\+|together|in all|more\b/.test(p);
+  if (nums.length === 2 && (plus || minus) && /^\d+(?: \d+)?\/\d+$/.test(pick.replace(/ [a-z]+$/, '').trim())) {
+    if (nums[0][1] !== nums[1][1]) return WHY.renameCheck;
+    if (otherSize) return WHY.sameBottom;
+    if (mixed && minus) return WHY.tradeWhole;
+    return minus && !plus ? WHY.takeTopsAgain : plus && !minus ? WHY.addTopsAgain : null;
   }
   return null;
 }

@@ -44,7 +44,8 @@ function addOrSubtract(x: Amount, y: Amount, add: boolean): Found {
     [add ? 'otherOpAdd' : 'otherOpTake', [add ? xs - ys : xs + ys, L]], // the other operation
     // Straight across (with one denominator, taking away is "the smaller from the bigger").
     [add ? 'acrossAdd' : b === d ? 'smallerFromBigger' : 'acrossTake', add ? over(a + c, b + d) : over(Math.abs(a - c), Math.abs(b - d) || b)],
-    [b === d ? 'sameBottom' : 'keptOne', over(add ? a + c : Math.abs(a - c), Math.max(b, d))], // kept one denominator
+    // Kept one denominator: "rename both" unless one already uses the shared denominator.
+    [b === d ? 'sameBottom' : L === b || L === d ? 'renameOther' : 'keptOne', over(add ? a + c : Math.abs(a - c), Math.max(b, d))],
     ['renamedOne', over(add ? a * (L / b) + c : Math.abs(a * (L / b) - c), L)], // renamed only the first fraction
     ['renamedOne', over(add ? a + c * (L / d) : Math.abs(a - c * (L / d)), L)], // renamed only the second
     [add ? 'oneAmount' : 'startAmount', x], [add ? 'oneAmount' : 'takenAmount', y], // left one part out
@@ -80,12 +81,12 @@ function timesOrShare(p: string): Found | null {
   // both parts multiplied, added, the bottom multiplied, one batch, upside down, the tops multiplied and the bottoms added.
   if ((m = /^(?:Write )?(\d+) × (\d+)\/(\d+)(?: = \?| as one fraction\.)$|^A recipe uses (\d+)\/(\d+) cup of \w+\. (?:You make (\d+) batches\. How much \w+ do you need|How much \w+ do (\d+) batches need)\?$/.exec(p))) {
     const [n, a, b] = m[1] ? [N(m[1]), N(m[2]), N(m[3])] : [N(m[6] ?? m[7]), N(m[4]), N(m[5])];
-    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['groupsToTop', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]], ['onlyTop', [n * a, b + n]]] };
+    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['groupsToTop', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['justOneGroup', [a, b]], ['upsideDown', [b, n * a]], ['onlyTop', [n * a, b + n]]] };
   }
   // "What is 2 groups of 3/8?", "A frog jumps 3/8 each time. Where is it after 2 jumps?": the same slips as 2 × 3/8.
   if ((m = /^What is (\d+) groups? of (\d+)\/(\d+)\?$|^A frog jumps (\d+)\/(\d+) each time\. Where is it after (\d+) jumps\?$/.exec(p))) {
     const [n, a, b] = m[1] ? [N(m[1]), N(m[2]), N(m[3])] : [N(m[6]), N(m[4]), N(m[5])];
-    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['groupsToTop', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]]] };
+    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['groupsToTop', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['justOneGroup', [a, b]], ['upsideDown', [b, n * a]]] };
   }
   // "3/4 × 1/2", "What is 1/3 of 1/3?": added across, kept one denominator, added the tops, added the bottoms, crossed, upside down.
   if ((m = /^(?:What is )?(\d+)\/(\d+) (?:×|of) (\d+)\/(\d+)(?: = \?|\?)$/.exec(p))) {
@@ -131,7 +132,7 @@ function timesOrShare(p: string): Found | null {
   // Equal portions: "Each runner drinks 5/6 liter. 3 runners. How much in all?" has the slips of 3 × 5/6.
   if ((m = /^Each \w+ (?:drinks|eats|gets|uses) (\d+)\/(\d+)(?: (?!of )\w+)?(?: of [\w ]+)?\. (\d+) \w+\. How (?:much|many \w+) in all\?$/.exec(p))) {
     const [a, b, n] = m.slice(1).map(N);
-    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['groupsToTop', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['oneGroup', [a, b]], ['upsideDown', [b, n * a]]] };
+    return { right: (n * a) / b, slips: [['onlyTop', [n * a, n * b]], ['groupsToTop', [n + a, b]], ['timesBottomOnly', [a, n * b]], ['justOneGroup', [a, b]], ['upsideDown', [b, n * a]]] };
   }
   // "2/3 ÷ 1/6 = ?": the tops multiplied, how many fit in one whole, the top or the bottom, multiplied instead.
   if ((m = /^(\d+)\/(\d+) ÷ (\d+)\/(\d+) = \?$/.exec(p))) {
@@ -312,6 +313,8 @@ function found(prompt: string, right: Amount | null, answerText?: string): Found
   if ((m = /^A jug is (\d+\/\d+) full\. You pour out (\d+\/\d+)\. How much is left\?$|^(\d+\/\d+) = (\d+\/\d+) \+ what\?$/.exec(p))) {
     const [x, y] = m.slice(1).filter(Boolean); p = `${x} − ${y} = ?`;
   }
+  // "7/10 = 5/10 + what?" shows a + sign: adding the two is not "the other sign", it is adding instead of finding the missing part.
+  const missingPart = /^\d+\/\d+ = \d+\/\d+ \+ what\?$/.test(prompt.replace(/^Quick review · [^:]+: /, ''));
   // "Mia reads 2/5 of a book on Monday and 1/5 on Tuesday. How much is left to read?", "… garden … still empty?"
   if ((m = /(\d+\/\d+) of a book on \w+ and (\d+\/\d+) on \w+\. How much is left to read\?$|^(\d+\/\d+) of a garden is planted\. Then (\d+\/\d+) more is planted\. How much is still empty\?$/.exec(p))) {
     const [x, y] = m.slice(1).filter(Boolean).map((t) => amount(t)!);
@@ -337,8 +340,9 @@ function found(prompt: string, right: Amount | null, answerText?: string): Found
   const said = /^\w+ says (.+) = ([\d /]+)\. What is the right answer\?$/.exec(p);
   if (said) p = `${said[1]} = ?`;
   m = /^(?:What is )?((?:\d+ )?\d+\/\d+) ([+−]) ((?:\d+ )?\d+\/\d+)(?: = \?|\?)$/.exec(p);
-  const result = m ? addOrSubtract(amount(m[1])!, amount(m[3])!, m[2] === '+') : timesOrShare(p);
-  if (!result) return null;
+  const worked = m ? addOrSubtract(amount(m[1])!, amount(m[3])!, m[2] === '+') : timesOrShare(p);
+  if (!worked) return null;
+  const result: Found = missingPart ? { ...worked, slips: worked.slips.map(([why, slip]): Slip => [why === 'otherOpTake' ? 'addedMissing' : why, slip]) } : worked;
   const claimed = said && amount(said[2]);
   return claimed ? { ...result, slips: [['samSlip', claimed], ...result.slips] } : result;
 }

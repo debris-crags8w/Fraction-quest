@@ -703,7 +703,7 @@ const curriculum: MissionSeed[] = [
       practice('Which is just a little less than 1/2?', ['3/8', '1/8', '7/8'], 0, bars({ numerator: 1, denominator: 2, named: true }, { numerator: 3, denominator: 8, named: true }, { numerator: 1, denominator: 8, named: true }, { numerator: 7, denominator: 8, named: true }), 'Half of 8 is 4. Which numerator is just under 4?', '3/8 is just under half.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fraction is a little more than 1/2?', ['3/8', '5/8', '1/6'], 1, bars({ numerator: 5, denominator: 8 }, { numerator: 1, denominator: 2 }), 'Half of 8 is 4. Which is a bit more?', '5/8 is just over half. The others are under.', bars({ numerator: 1, denominator: 2 })),
       practice('Which fraction is closest to 1?', ['7/8', '2/8', '3/8'], 0, bars({ numerator: 7, denominator: 8 }, { numerator: 2, denominator: 8 }, { numerator: 3, denominator: 8 }), 'Which numerator is closest to 8?', '7/8 is just 1 part away from one whole.', bars({ numerator: 1, denominator: 2 })),
-      practice('Four 1/8 parts make what?', ['Exactly 1/2', 'Exactly 1/4', 'One whole', '4 wholes'], 0, bars({ numerator: 4, denominator: 8 }), 'How many eighths make half of 8 eighths?', '4/8 is the same as 1/2.', bars({ numerator: 2, denominator: 4 })),
+      practice('Four 1/8 parts make what?', ['Exactly 1/2', 'Exactly 1/4', 'One whole', '4 wholes'], 0, bars({ numerator: 4, denominator: 8 }), 'How many eighths make half of 8 eighths?', '4 of the 8 eighths is half the bar. So 4/8 is the same as 1/2.', bars({ numerator: 2, denominator: 4 })),
     ],
     ideaQuestions: [
       practice('A path is 5/8 of a mile. Is that closest to 0, 1/2 or 1 mile?', ['1/2 mile', '0 miles', '1 mile', '5 miles'], 0, bars({ numerator: 5, denominator: 8 }), 'Half of 8 is 4. Is 5 closest to 0, to 4 or to 8?', '5 is 1 part from 4, so 5/8 of a mile is closest to 1/2 mile.', bars({ numerator: 1, denominator: 2 }), { authoredChoices: true }),
@@ -856,9 +856,9 @@ const curriculum: MissionSeed[] = [
       model: bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }),
     },
     questions: [
-      practice('Which fraction covers the same amount as 1/2?', ['2/4', '1/4', '3/4'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Cut the half into 2 equal parts. How many fourths is that?', '2/4 covers the same as 1/2.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which fraction covers the same amount as 1/2?', ['2/4', '1/4', '3/4'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4 }), 'Cut the half into 2 equal parts. How many fourths is that?', 'Cutting the half into 2 equal parts makes 2 fourths. So 2/4 covers the same as 1/2.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 2/3?', ['4/6', '3/6', '2/6'], 0, bars({ numerator: 2, denominator: 3 }, { numerator: 4, denominator: 6 }), 'Cut each third into 2 parts.', 'Each third became 2 sixths, so 2 thirds is 4 sixths: 2/3 = 4/6.', bars({ numerator: 1, denominator: 2 })),
-      practice('Which is the same as 3/4?', ['6/8', '3/8', '4/8'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'Cut each fourth into 2 parts.', '3/4 and 6/8 are the same amount.', bars({ numerator: 1, denominator: 2 })),
+      practice('Which is the same as 3/4?', ['6/8', '3/8', '4/8'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 6, denominator: 8 }), 'Cut each fourth into 2 parts.', 'Cutting each fourth into 2 turns 3 fourths into 6 eighths. So 3/4 and 6/8 are the same amount.', bars({ numerator: 1, denominator: 2 })),
       practice('Fold a strip in half. Shade one half. Now fold it in half again. What fraction is shaded now?', ['2/4', '1/4', '1/3'], 0, bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 4, untilAnswered: true }), 'Folding again cuts each half into 2 equal parts. How many fourths are shaded?', 'The second fold cuts the shaded half into 2 fourths. 2 of the 4 parts are shaded: 2/4.', bars({ numerator: 1, denominator: 2 })),
       practice('Which is the same as 1/3?', ['2/6', '1/6', '3/1'], 0, bars({ numerator: 1, denominator: 3 }, { numerator: 2, denominator: 6 }), 'Cut each third into 2 equal parts. Count the shaded parts now.', 'Each third became 2 sixths, so 1 third is 2 sixths: 1/3 = 2/6.', bars({ numerator: 1, denominator: 2 })),
     ],
@@ -1954,7 +1954,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('How many hundredths is 0.9?', ['90', '9', '900', '10'], 0, grids(hundredthsGrid(0)),
         'Each column is one tenth: 10 hundredths.', '0.9 is 9 tenths. 9 columns of 10 squares is 90 hundredths.', grids(hundredthsGrid(90)), { authoredChoices: true }),
       practice('How many hundredths is 0.08?', ['8', '80', '92', '0'], 0, grids(hundredthsGrid(0)),
-        'The 0 right after the point means 0 tenths. The 8 counts hundredths.', '0.08 is 0 tenths and 8 hundredths: 8 single squares.', grids(hundredthsGrid(8)), { authoredChoices: true }),
+        'The first place after the point counts tenths. The next place counts hundredths.', '0.08 is 0 tenths and 8 hundredths: 8 single squares.', grids(hundredthsGrid(8)), { authoredChoices: true }),
       practice('Which decimal does this grid show?', ['0.45', '4.5', '0.55', '45'], 0, grids(hundredthsGrid(45)),
         'Count the full columns for tenths. Then count the single squares for hundredths.', '4 full columns and 5 single squares: 45 hundredths, or 0.45.', grids(hundredthsGrid(45)), { authoredChoices: true }),
       // Idea 3: only compare parts of the same whole.

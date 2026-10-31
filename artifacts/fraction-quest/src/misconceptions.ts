@@ -36,7 +36,7 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   if ((m = /(\d+) \w+ are shared into (\d+) equal groups\. How many \w+ are in (one|\d+) groups?\?/.exec(p))) {
     const [n, b, k] = [N(m[1]), N(m[2]), m[3] === 'one' ? 1 : N(m[3])];
     const right = (n / b) * k;
-    return [right, [k > 1 ? ['oneGroup', n / b] : ['leftPart', n - right], ['leftPart', n - right], ['whole', n], ['timesWhole', n * k]]];
+    return [right, [k > 1 ? ['justOneGroup', n / b] : ['leftPart', n - right], ['leftPart', n - right], ['whole', n], ['timesWhole', n * k]]];
   }
   // Finding the whole: "15 stickers are 5/6 of a pack", "A piece of ribbon is 10 meters long. It is 5/6 of the whole ribbon",
   // "Tom read 8 pages. That is 2/3 of his book"

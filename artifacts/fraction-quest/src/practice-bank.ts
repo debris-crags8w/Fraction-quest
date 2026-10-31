@@ -2,7 +2,7 @@ import { fourthChoice, noBeforeYes, orderedWithSigns, withSignComparisons } from
 import { withUnits } from './measure-units';
 import { preferMisconceptions, withoutOverOne } from './misconceptions';
 import { MISSIONS, nameBars, problemPicture, withChoiceBars, type ModelSpec, type PracticeQuestion } from './game';
-import { G3_EQUIVALENTS_WIDE, answerValue, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
+import { G3_EQUIVALENTS_WIDE, answerValue, estimateHint, estimateWhy, asChoicePrompt, choiceDistractors, distractorCandidates, equivalentsFor, getWorksheet, gradeFits, parseAnswer } from './learning-content';
 import { standardsForMission } from './standard-catalog';
 import { onlyTaught, partTaught, withTaughtParts } from './taught-parts';
 import { allEqual, circleCut, gridCut, type AreaCut } from './area-shapes';
@@ -38,6 +38,12 @@ const hash = (text: string) => [...text].reduce((h, c) => Math.imul(h ^ c.charCo
 
 const NAMES: Record<number, string> = { 2: 'halves', 3: 'thirds', 4: 'fourths', 5: 'fifths', 6: 'sixths', 7: 'sevenths', 8: 'eighths', 9: 'ninths', 10: 'tenths', 11: 'elevenths', 12: 'twelfths' };
 const name = (d: number) => NAMES[d] ?? `${d}ths`;
+/** Why n/d is near a benchmark, from the bar: a tiny part, about half the parts, or almost every part. `says` is how the
+    question put it ("is nearer", "is closest to"). */
+const benchmarkWhy = (n: number, d: number, near: string, says: string) => near === '0'
+  ? `${f(n, d)} is only ${n} of ${d} parts, a tiny amount. So it ${says} 0.`
+  : near === '1' ? `${f(n, d)} is only ${d - n} ${d - n === 1 ? 'part' : 'parts'} short of a whole bar. So it ${says} 1.`
+  : n * 2 === d ? `${f(n, d)} is exactly half of the bar. So it ${says} 1/2.` : `${n} of ${d} parts is close to half the bar. So ${f(n, d)} ${says} 1/2.`;
 const Name = (d: number) => name(d)[0].toUpperCase() + name(d).slice(1);
 const f = (n: number, d: number) => `${n}/${d}`;
 const bar = (n: number, d: number): ModelSpec => ({ kind: 'bars', bars: [{ numerator: n, denominator: d }], hideLabels: true });
@@ -285,14 +291,14 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
         const labels = { '0': 'Nearer 0', '1/2': 'Nearer 1/2', '1': 'Nearer 1' } as const;
         return { prompt: `Is ${f(n, d)} nearer ${low} or ${high}?`, right: labels[right as keyof typeof labels],
           wrong: [labels[(right === low ? high : low) as keyof typeof labels], upper ? 'Nearer 0' : 'Nearer 1'], extra: 'Exactly 1/2',
-          hint: 'Is it tiny, about half, or almost full?', retry: `${f(n, d)} is nearer ${right}.`, model: bar(n, d) };
+          hint: 'Is it tiny, about half, or almost full?', retry: benchmarkWhy(n, d, right, 'is nearer'), model: bar(n, d) };
       }
     }
     // Grade 3 parts with one clear nearest benchmark (1/4 sits halfway between 0 and 1/2).
     const n = r.pick(near); const right = nearest(n, d) as string;
     // Only the taught benchmarks (0, 1/2 and 1), not a made-up "2"; the fourth choice is the "can't tell" slip.
     return { prompt: `Is ${f(n, d)} closest to 0, 1/2 or 1?`, right, wrong: ['0', '1/2', '1'].filter((x) => x !== right) as [string, string], extra: "You can't tell",
-      hint: 'Is it tiny, about half, or almost full?', retry: `${f(n, d)} is closest to ${right}.`, model: bar(n, d) };
+      hint: 'Is it tiny, about half, or almost full?', retry: benchmarkWhy(n, d, right, 'is closest to'), model: bar(n, d) };
   },
   'fraction-magnitude': (r) => {
     const d = r.pick(G3_DENS); const n = d % 2 ? (d - 1) / 2 + r.int(0, 1) : d / 2 + (r.chance() ? 1 : -1);
@@ -307,7 +313,7 @@ const RECIPES: Record<string, (r: Rng) => Item> = {
       const more = t / b > (near === '1/2' ? 0.5 : near === '1' ? 1 : 0);
       if (r.chance()) {
         return { prompt: `Is ${f(t, b)} closest to 0, 1/2 or 1?`, right: near, wrong: ['0', '1/2', '1'].filter((x) => x !== near) as [string, string], extra: "You can't tell",
-          hint: 'Picture it on a line from 0 to 1. Is it tiny, about half, or almost full?', retry: `${f(t, b)} is closest to ${near}.`, model: bar(t, b) };
+          hint: 'Picture it on a line from 0 to 1. Is it tiny, about half, or almost full?', retry: benchmarkWhy(t, b, near, 'is closest to'), model: bar(t, b) };
       }
       const say = (word: 'more' | 'less') => `A little ${word} than ${near}`;
       return { prompt: `${f(t, b)} is near ${near}. Is it a little more or a little less?`, right: say(more ? 'more' : 'less'), wrong: [say(more ? 'less' : 'more'), `Exactly ${near}`], extra: "You can't tell",
@@ -976,7 +982,7 @@ const LATER_RECIPES: Record<string, (r: Rng) => Item> = {
       const sign = value > 1 ? '>' : '<';
       // Bare signs: the four full comparisons ("2/3 − 1/2 < 1") are written from them (fourth-choice.ts).
       return { prompt: `Without finding the exact ${sub ? 'difference' : 'sum'}, compare ${expr} with 1: __ 1.`, right: sign, wrong: ['=', sign === '>' ? '<' : '>'],
-        hint: `Compare each part with 1/2. Two halves make 1.`, retry: sub ? `Both parts are less than 1, so taking one away leaves less than 1.` : value > 1 ? `${expr} is more than 1.` : `${expr} is less than 1.`,
+        hint: estimateHint(a, b, c, e, sub ? '−' : '+'), retry: estimateWhy(a, b, c, e, sub ? '−' : '+'),
         model: bars2([a, b], [c, e]) };
     }
   },
@@ -1152,9 +1158,9 @@ const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
         hint: `Each 1/${part} is cut into ${people} shares. How many 1/${part} parts fill the pan?`,
         explain: `${part} parts fill the pan, and each one is cut into ${people} shares: ${part} × ${people} = ${result}.` };
     }
-    const why = `Check: ${people} × 1/${result} = 1/${part}.`;
+    const why = `Each 1/${part} is cut into ${people} shares, so ${part} × ${people} = ${result} shares fill the pan.`;
     return { id: 'wider', prompt: `${people} children share 1/${part} of a pan. 1/${part} ÷ ${people} = ?`, answer: f(1, result), denominator: result, model: barRow(1, part), modelRequired: true, why,
-      explain: `Split the 1/${part} part into ${people} equal parts. ${result} of those small parts fill the whole pan, so the answer is ${f(1, result)}. ${why}`,
+      explain: `Split the 1/${part} part into ${people} equal parts. ${result} of those small parts fill the whole pan, so the answer is ${f(1, result)}.`,
       hint: `Split the 1/${part} part into ${people} equal parts. How many of those small parts fill the whole pan?` };
   },
   'unit-fraction-multiples': (r) => {

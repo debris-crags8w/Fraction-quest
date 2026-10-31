@@ -8,9 +8,12 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { MISSIONS } from './game';
-import { SLIPS, wrongChoiceReason } from './wrong-answer';
+import { SLIPS, worksheetWrongReason, wrongChoiceReason } from './wrong-answer';
 import { WHY } from './slip-reasons';
 import { generateQuestions } from './practice-bank';
+import { getWorksheet } from './learning-content';
+import { lessonCheckpoint } from './checkpoint';
+import { ideaPracticeQuestions } from './lesson-ideas';
 
 const why = (prompt: string, right: string, pick: string) => wrongChoiceReason(prompt, [right, pick], 0, 1);
 const mission = (id: string) => MISSIONS.find((m) => m.id === id)!;
@@ -85,5 +88,92 @@ describe('c. Practice-more wrong picks are named', () => {
     assert.notEqual(why(p, '12/8', '13/8'), WHY.allAmounts);
     assert.notEqual(why(p, '12/8', '12/9'), WHY.allAmounts);
     assert.ok(why(p, '12/8', '13/8') && why(p, '12/8', '12/9'));
+  });
+});
+
+const sheets = (id: string) => [0, 1, 2, 3, 4].flatMap((v) => getWorksheet(id, v));
+describe('d. reasons, not checks; estimates by benchmarks', () => {
+  it('no worksheet why is a bare "Check: …"', () => {
+    const bad = MISSIONS.flatMap((m) => sheets(m.id).filter((r) => /^Check:/.test((r.why ?? '').trim())).map((r) => `${m.id}: ${r.why}`));
+    assert.deepEqual([...new Set(bad)].slice(0, 6), []);
+  });
+  it('estimate whys never work out the exact sum or difference', () => {
+    const rows = sheets('estimate-fraction-operations').filter((r) => /^Without finding/.test(r.prompt));
+    assert.ok(rows.length > 10);
+    for (const r of rows) {
+      assert.doesNotMatch(r.why ?? '', /\d+\/\d+ [+−] \d+\/\d+ =/, r.why);
+      assert.match(r.why ?? '', /1\/2|less than 1|more than 1/, r.why);
+    }
+  });
+  it('estimate checkpoint and Practice-more right answers give a reason, and a difference gets no "two halves" hint', () => {
+    const m = mission('estimate-fraction-operations');
+    const qs = [...lessonCheckpoint(m), ...[1, 2, 3, 4, 5].flatMap((s) => generateQuestions(m.id, m.questions.map((q) => q.id), s * 131, 12))]
+      .filter((q) => /^Without finding/.test(q.prompt));
+    assert.ok(qs.length > 5);
+    for (const q of qs) {
+      assert.doesNotMatch(q.retryFeedback, /^[\d/ +−]+ is (?:less|more) than 1\.$/, q.retryFeedback);
+      if (/difference/.test(q.prompt)) assert.doesNotMatch(q.hint, /halves/, q.hint);
+    }
+  });
+});
+
+describe('d. no misleading reasons, no bare right answers', () => {
+  it('3 × 1/3 picked as 1/3: the groups come from the whole number, not a numerator', () => {
+    for (const [p, r, k] of [['3 × 1/3 = ?', '3/3', '1/3'], ['What is 3 groups of 2/3?', '6/3', '2/3']]) {
+      const reason = why(p, r, k);
+      assert.ok(reason); assert.doesNotMatch(reason!, /numerator/);
+    }
+  });
+  it('"7/10 = 5/10 + what?" picked as 12/10 is not told to look at a sign that is +', () => {
+    const reason = why('7/10 = 5/10 + what?', '2/10', '12/10');
+    assert.ok(reason); assert.doesNotMatch(reason!, /sign|takes away/);
+  });
+  it('the boxes outside an overlap are not "the part not colored"', () => {
+    assert.equal(why('A square has 2 rows and 6 columns. Shade 1 row and 5 columns. How many boxes are in the overlap?', '5', '7'), WHY.outsideOverlap);
+  });
+  it('no right answer only restates the answer', () => {
+    const bare = /^[\d/ +−×]+ is (less|more|greater) than [\d/]+\.$|^[\d/]+ is (nearer|closest to|closer to) [\d/]+\.$|^[\d/]+ (covers|is) the same (amount )?as [\d/]+\.$|^[\d/]+ and [\d/]+ are the same amount\.$/;
+    const bad = MISSIONS.flatMap((m) => [...lessonCheckpoint(m), ...ideaPracticeQuestions(m).filter((q) => q.prompt)]
+      .filter((q) => bare.test(q.retryFeedback.trim())).map((q) => `${m.id}: ${q.prompt} -> ${q.retryFeedback}`));
+    assert.deepEqual(bad, []);
+  });
+});
+
+describe('accuracy rescore 4: N4 and N5 reasons', () => {
+  const whole = ['1/4 + 1/4', '2/5 + 1/5', '1/3 + 2/3', '1/3 + 3/3'];
+  it('N4: a same-size sum that is not one whole is told so, not "a different size"', () => {
+    for (const pick of [0, 1, 3]) {
+      const reason = ask('Which sum makes one whole?', whole, 2, pick);
+      assert.ok(reason); assert.notEqual(reason, WHY.sumOtherSize);
+    }
+    assert.equal(ask('Which sum makes one whole?', whole, 2, 0), WHY.notOneWhole);
+  });
+  it('N5: "How many Xs go on the line plot?" asks for every X, not one length', () => {
+    const reason = ask('Ribbons are 1/4, 2/4, 3/4 and 4/4 inch long. How many Xs go on the line plot?', ['3', '1', '4', '5'], 2, 3);
+    assert.equal(reason, WHY.oneXEvery);
+  });
+  it('N5: when one fraction already has the shared denominator, only the other is renamed', () => {
+    assert.equal(why('2/4 + 14/16 = ?', '22/16', '16/16'), WHY.renameOther);
+    assert.equal(why('1/3 + 1/4 = ?', '7/12', '2/4'), WHY.keptOne);
+  });
+});
+
+describe('e. idea picks and worksheet slips are named', () => {
+  it('every wrong pick on a lesson or idea question has a reason', () => {
+    const none: string[] = [];
+    for (const m of MISSIONS) for (const q of [...m.questions, ...(m.ideaQuestions ?? [])]) q.choices.forEach((c, i) => {
+      if (i !== q.correctChoice && !wrongChoiceReason(q.prompt, q.choices, q.correctChoice, i)) none.push(`${q.id}: ${q.prompt} | ${c}`);
+    });
+    assert.deepEqual(none, []);
+  });
+  it('more than 70% of the likely worksheet slips are named', () => {
+    let [all, hit] = [0, 0];
+    for (const m of MISSIONS) for (let v = 0; v < 3; v++) for (const r of getWorksheet(m.id, v)) {
+      const f = /^(\d+)\/(\d+)$/.exec(r.answer); const picks: string[] = [];
+      if (f) { const [a, b] = [+f[1], +f[2]]; if (a !== b) picks.push(`${b}/${a}`); picks.push(`${a + 1}/${b}`); if (a > 1) picks.push(`${a - 1}/${b}`); }
+      else if (/^\d+$/.test(r.answer)) { const n = +r.answer; picks.push(String(n + 1)); if (n > 1) picks.push(String(n - 1)); }
+      for (const p of picks) { all++; if (worksheetWrongReason(r.prompt, r.answer, p)) hit++; }
+    }
+    assert.ok(hit / all > 0.7, `${(100 * hit / all).toFixed(1)}%`);
   });
 });
