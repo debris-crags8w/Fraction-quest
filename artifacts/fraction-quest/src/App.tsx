@@ -1984,6 +1984,7 @@ function Game() {
             persistProgress({
               ...progress,
               challengeAttempts: { ...progress.challengeAttempts, [key]: (progress.challengeAttempts?.[key] ?? 0) + 1 },
+              challengeAt: { ...progress.challengeAt, [key]: Date.now() },
               ...(score > (progress.challengeBest?.[key] ?? -1) ? { challengeBest: { ...progress.challengeBest, [key]: score } } : {}),
             });
           }} />
@@ -2174,7 +2175,7 @@ function Game() {
             {resetAllConfirm ? (
               <>
                 <h2 id="reset-title">Reset all learner progress?</h2>
-                <p id="reset-description">{account.user ? `This clears ${account.activeProfile?.displayName ?? 'this learner'}’s progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on every device.` : 'This clears progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} The time limit, breaks and display settings stay. This cannot be undone.</p>
+                <p id="reset-description">{account.user ? `This clears ${account.activeProfile?.displayName ?? 'this learner'}’s progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on every device.` : 'This clears progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} The time limit, breaks and display settings stay. Today’s minutes still count toward the time limit. This cannot be undone.</p>
                 {resetError && <p className="fq-parent-wrong" role="alert" data-testid="text-reset-error">{resetError}</p>}
                 <div className="fq-modal-actions">
                   <button className="fq-button ghost" onClick={() => setResetAllConfirm(false)} data-testid="button-back-to-unit-reset">Back to unit reset</button>

@@ -10,3 +10,17 @@ describe('the privacy page', () => {
     for (const placeholder of ['[contact email]', '[legal name]', '[country]']) assert.ok(html.includes(placeholder), placeholder);
   });
 });
+
+/* Rescore 5 (value): the legal pages send grown-ups to a place in the app; that place must have that name. */
+describe('the legal pages\' directions into the app', () => {
+  const settings = readFileSync(new URL('./ParentView.tsx', import.meta.url), 'utf8');
+  const rows = [...settings.matchAll(/<SettingsRow title="([^"]+)"/g)].map((match) => match[1]);
+  for (const page of ['privacy.html', 'terms.html']) {
+    it(`${page} names a real Grown-ups settings row`, () => {
+      const html = readFileSync(new URL(`../public/${page}`, import.meta.url), 'utf8');
+      const places = [...html.matchAll(/Grown-ups › ([^<]+)</g)].map((match) => match[1].trim());
+      assert.ok(places.length > 0);
+      for (const place of places) assert.ok(rows.includes(place), `"${place}" is not one of: ${rows.join(', ')}`);
+    });
+  }
+});

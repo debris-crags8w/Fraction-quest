@@ -285,6 +285,8 @@ test('a one-sentence hint fades to a few words naming the step', () => {
   assert.equal(hintNudge('Count the copies of 1/6.'), 'Count the copies.');
   assert.equal(hintNudge('Change 2/10 into hundredths first.'), 'Change to hundredths first.');
   assert.equal(hintNudge('Look at the numerator.'), 'Look at the numerator.', 'four words is already a nudge');
+  // equal-parts idea 2's last practice: a ten-word, one-sentence hint.
+  assert.equal(hintNudge('Give one piece to each friend, then go around again.'), 'Hand out one at a time.');
 });
 
 test('divide-fractions idea 1 runs easiest first: 1/2 in eighths or sixths before renaming 5/6 in twelfths', () => {
