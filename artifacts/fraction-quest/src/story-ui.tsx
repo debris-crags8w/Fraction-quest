@@ -148,13 +148,15 @@ export function ChapterBanner({ chapter, unitTitle, done, total, state, teaser, 
   state: 'current' | 'reached' | 'locked'; teaser?: string; onRead: () => void;
 }) {
   const theme = useStoryTheme();
+  const locked = state === 'locked';
   return (
     <div className={`fq-chapter-banner is-${state}`} data-testid={`chapter-banner-${chapter.unit}`}>
       <div className="fq-chapter-banner-head">
-        <span className="fq-chapter-banner-art"><StoryCharacter id={chapter.character} size={72} happy={done === total} /></span>
+        {/* A locked chapter shows only its number: its title, friend and face could give the mystery away. */}
+        <span className="fq-chapter-banner-art">{locked ? <LockKeyhole size={30} color="#3A3852" aria-hidden="true" /> : <StoryCharacter id={chapter.character} size={72} happy={done === total} />}</span>
         <div>
-          <span className="fq-chapter-banner-kicker">Chapter {chapter.unit} · with {CHARACTERS[chapter.character].name}</span>
-          <h3 id={`unit-${chapter.unit}`}>{chapter.title}</h3>
+          {!locked && <span className="fq-chapter-banner-kicker">Chapter {chapter.unit} · with {CHARACTERS[chapter.character].name}</span>}
+          <h3 id={`unit-${chapter.unit}`}>{locked ? `Chapter ${chapter.unit}` : chapter.title}</h3>
           <p>{unitTitle} · <span aria-label={`${done} of ${total} lessons mastered`}>{done} of {total} lessons</span></p>
         </div>
       </div>
@@ -251,7 +253,8 @@ export function StorybookView({ tab, chapters, completedUnits, prologueSeen, foc
                   <li key={chapter.unit}>
                     <div className="fq-storybook-row is-locked" data-testid={`storybook-chapter-${chapter.unit}`}>
                       <span className="fq-storybook-num">{chapter.unit}</span>
-                      <span><strong>{chapter.title}</strong></span>
+                      {/* Not reached yet: its number only, so the title cannot spoil the mystery. */}
+                      <span><strong>Chapter {chapter.unit}</strong><small>Not open yet</small></span>
                       <LockKeyhole size={16} aria-label="Locked" />
                     </div>
                   </li>
@@ -449,7 +452,7 @@ export function StoryCard({ chapter, unlocked, fresh = false, compact = false, o
       <span className="fq-story-card-copy">
         {fresh && <small>New card</small>}
         <strong>{unlocked ? chapter.card.title : `Chapter ${chapter.unit}`}</strong>
-        {!compact && <span><MathText text={unlocked ? withName(chapter.card.blurb, null, theme) : `Finish “${chapter.title}” to unlock this card.`} /></span>}
+        {!compact && <span><MathText text={unlocked ? withName(chapter.card.blurb, null, theme) : `Finish chapter ${chapter.unit} to unlock this card.`} /></span>}
         {unlocked && onRead && (
           <button type="button" className="fq-story-card-read" onClick={onRead} data-testid={`button-read-chapter-${chapter.unit}`}>
             <BookOpen size={15} aria-hidden="true" /> Read chapter {chapter.unit} again

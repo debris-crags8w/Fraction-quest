@@ -250,3 +250,8 @@ test('in story mode the chapter friend gives the hint; with the story off it sta
   assert.equal(hintLead('bolt'), 'Bolt’s idea:');
   assert.equal(hintLead(undefined), 'Try this idea:');
 });
+
+test('no chapter title gives the mystery away: a title a child sees on the map never says who did it or owned up', () => {
+  // A reached chapter shows its title (chapter 11 is reached when board 3 asks who left the sorry note); a locked one shows only its number.
+  for (const chapter of CHAPTERS) assert.doesNotMatch(chapter.title, /owns? up|owned up|confess|crack|did it|blame|sorry|truth|culprit|guilty/i, `chapter ${chapter.unit}: "${chapter.title}"`);
+});
