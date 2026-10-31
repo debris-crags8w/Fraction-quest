@@ -234,7 +234,7 @@ export const IDEAS: Record<string, LessonIdea[]> = {
       terms: [{ term: 'the product against the amount', pattern: /\bproducts?\b|(?:more|less) than (?:[2-9]|\d{2,})(?![\d/])/i }],
       learn: [
         example('bigger-or-smaller', 'The product'),
-        { text: 'Less than 1 means less. More than 1 means more. Equal to 1 stays the same.', scene: scenes('bigger-or-smaller').steps[2]! },
+        { text: 'Less than 1 makes it less. More than 1 makes it more. 3/3 is 1, so 3/3 × 9 = 9.', scene: scenes('bigger-or-smaller').steps[2]! },
         { text: 'Part of a copy is less. More than a copy is more.', scene: scenes('bigger-or-smaller').why },
       ],
       practice: [{ question: 'bigger-or-smaller-q2' }, { question: 'bigger-or-smaller-q1' }, { question: 'bigger-or-smaller-q4' }],
