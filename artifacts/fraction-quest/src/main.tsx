@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 
 import App from './App';
 import { inExpoShell } from './lib/native-shell';
+import { deviceId } from './lib/fun';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 import './fonts.css';
@@ -10,6 +11,9 @@ import './theme-pop.css';
 import './season.css';
 import './story.css';
 import './answer-tiles.css';
+
+// This device's id is made once, at start, so later play only reads it (per-device day counts in lib/fun.ts).
+deviceId();
 
 // Inside the app (iPhone and Android) the page needs no room for a browser toolbar (see theme-pop.css).
 if (inExpoShell()) document.documentElement.classList.add('fq-in-app');

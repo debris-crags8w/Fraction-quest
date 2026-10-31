@@ -64,10 +64,10 @@ import { PieFraction, TickLabel } from './fraction-ui';
 import { getWorksheet } from './learning-content';
 import { getLearningRecord, hasLearningGate, lessonSteps, learningSummary, requiredBuildChecks, resetUnitLearningProgress, worksheetCount, startRedo, updateLearning, type LearningRecord, type RedoPart } from './learning';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
-import { trackEvent } from './lib/analytics';
 import { legalUrl } from './lib/legal';
 import { clearOilNotice, DAILY_GOAL, loadFun, SPARE_OIL_MAX, playCue, playHaptic, recordCodeLevel, recordCorrect, recordFractionWords, recordIntro, recordMinute, recordRace, recordSeasonLesson, recordStory, recordSprint, recordWorksheetCorrect, replaceFun, resetFun, resetMissionGameProgress, shownStreak, setBreakPreferences, setDisplayPreferences, setFunStorageEnabled, setSound, setTimeLimit, addMinutesToday, timeToday, today, type FunState } from './lib/fun';
 import { TimeUp } from './time-up';
+import { GrownUpGate } from './GrownUpGate';
 import { summarizeCodeProgress } from './code-progress';
 import { CODE_LEVEL_COUNT } from './code-quest';
 import { ModelTag, SetSvg, WholeBracket } from './models';
@@ -95,7 +95,7 @@ import { GardenPlan } from './GardenPlan';
 import { applyPlacement } from './placement';
 import { AccountGate, useAccount, useAccountSync } from './account';
 import type { SavedCopyNotice } from './account-flow';
-import { mergeFun, mergeProgress } from './progress-merge';
+import { mergeBundle } from './progress-merge';
 import LoginPage from './LoginPage';
 import { getRouterBasePath } from './app-routing';
 import { applyAdaptiveDailyPracticeUpdate, createDailyPractice, dailyPracticeDay, recordDailyPracticeStart } from './daily-practice';
@@ -493,7 +493,7 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
   const account = useAccount();
   const [signingOut, setSigningOut] = useState(false);
   const syncLabel = account.user
-    ? account.syncStatus === 'saving' ? 'Saving…' : account.syncStatus === 'offline' ? 'Not synced' : 'Saved'
+    ? account.syncStatus === 'saving' ? 'Saving…' : account.syncStatus === 'offline' ? 'Not synced' : account.syncStatus === 'busy' ? 'Syncing soon' : 'Saved'
     : 'On this device';
   return (
     <>
@@ -543,7 +543,7 @@ function Topbar({ progress, onReset, onHome, menu }: { progress: Progress; onRes
             </StatTip>
             <span className="fq-account-name">
               <strong>{account.activeProfile?.displayName ?? 'Guest learner'}</strong>
-              <small className={account.syncStatus === 'saving' ? 'sync-saving' : account.syncStatus === 'offline' ? 'sync-offline' : ''} aria-live="polite">{syncLabel}</small>
+              <small className={account.syncStatus === 'saving' || account.syncStatus === 'busy' ? 'sync-saving' : account.syncStatus === 'offline' ? 'sync-offline' : ''} aria-live="polite">{syncLabel}</small>
             </span>
             {account.user
               ? <button className="fq-hint-button fq-account-signin" disabled={signingOut} onClick={async () => { setSigningOut(true); await account.signOut(); setSigningOut(false); }} data-testid="button-sign-out">{signingOut ? 'Saving…' : 'Sign out'}</button>
@@ -1019,7 +1019,6 @@ function PlayView({
 
   const skipOptionalReview = () => {
     if (!question?.isOptionalReview) return;
-    if (isQuickReview) trackEvent('quick_review_skipped');
     if (question.reviewMissionId) onReviewDeferred(question.reviewMissionId);
     if (isQuickReview && isLastQuestion) {
       onFinishReview?.();
@@ -1421,6 +1420,10 @@ function Game() {
   const [pendingRetention, setPendingRetention] = useState<string | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetAllConfirm, setResetAllConfirm] = useState(false);
+  /** The grown-up check shown before the reset dialog (from every place that opens it). */
+  const [resetGate, setResetGate] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetError, setResetError] = useState('');
   const [resetUnit, setResetUnit] = useState(1);
   const [saveError, setSaveError] = useState(false);
   const [fun, setFun] = useState<FunState>(() => account.initialFun ?? loadFun());
@@ -1444,7 +1447,7 @@ function Game() {
   const onSavedCopy = useCallback((notice: SavedCopyNotice) => {
     const merge = (mine: { progress: Progress; fun: FunState }) => (notice.cleared
       ? { progress: notice.progress, fun: notice.fun }
-      : { progress: mergeProgress(notice.progress, mine.progress), fun: mergeFun(notice.fun, mine.fun) });
+      : mergeBundle(notice, mine));
     const kept = originalModuleTestProgress.current;
     if (kept) {
       // A developer test is on screen: merge into the progress it gives back when it ends.
@@ -1468,7 +1471,8 @@ function Game() {
   const openResetDialog = () => {
     if (moduleTestActive) { returnToMap(); return; }
     setResetAllConfirm(false);
-    setResetOpen(true);
+    setResetError('');
+    setResetGate(true);
   };
 
   // The next story comic reads itself aloud as it opens: fetch its voice while the map is showing, so it starts at
@@ -1672,7 +1676,6 @@ function Game() {
     setPendingRetention(null);
     const reviewQuestions = getDueSkillReviewQuestions(progress);
     if (reviewQuestions.length === 0) return;
-    trackEvent('quick_review_started');
     setView({ type: 'review', questionIndex: 0, reviewQuestions });
   };
 
@@ -1719,9 +1722,21 @@ function Game() {
     if (breakIntervalMinutes > 0) setBreakReason('lesson-part');
   };
 
-  const resetProgress = () => {
+  const resetProgress = async () => {
+    if (account.user) {
+      // An account is cleared on the server, so its reset version moves and no other device merges old lessons back.
+      setResetBusy(true);
+      setResetError('');
+      try {
+        await account.clearActiveProfileProgress({ keepSettings: true });
+      } catch {
+        setResetError('Nothing was cleared. Resetting needs the internet. Check the connection and try again.');
+        setResetBusy(false);
+      }
+      return;
+    }
     persistProgress(resetSavedProgress());
-    setFun(resetFun());
+    setFun(resetFun(fun));
     setCombo(0);
     setView({ type: 'map' });
     setResetOpen(false);
@@ -1729,7 +1744,7 @@ function Game() {
 
   const resetSelectedUnit = () => {
     const missionIds = new Set(MISSIONS.filter((mission) => mission.unit === resetUnit).map((mission) => mission.id));
-    persistProgress(resetUnitLearningProgress(progress, missionIds, resetUnit));
+    persistProgress(resetUnitLearningProgress(progress, missionIds, resetUnit, Date.now()));
     setFun(resetMissionGameProgress(fun, missionIds));
     setCombo(0);
     setView({ type: 'map' });
@@ -1798,7 +1813,6 @@ function Game() {
       setView({ type: 'retention', missionId: pendingRetention, startedAt: Date.now(), nextView });
       setPendingRetention(null);
     } else {
-      if (nextView.type === 'review-complete') trackEvent('quick_review_completed');
       setView(nextView);
     }
   };
@@ -1844,6 +1858,14 @@ function Game() {
   useEffect(() => {
     if (reminderTap && view.type === 'map' && !moduleTestActive && !timeUsedUp && takeReminderTap()) startDailyPractice();
   });
+  if (resetGate) {
+    return (
+      <FunContext.Provider value={{ fun, setFun }}>
+        <div className="fq-app"><GrownUpGate onPass={() => { setResetGate(false); setResetOpen(true); }} onBack={() => setResetGate(false)} backLabel="Back"
+          reason="Resetting clears a learner’s work. Please answer to continue." /></div>
+      </FunContext.Provider>
+    );
+  }
   if (showTimeUp) {
     return (
       <FunContext.Provider value={{ fun, setFun }}>
@@ -1888,7 +1910,7 @@ function Game() {
       {view.type === 'subscribe' && !subscription && <WebAppOnlyFlow playedFirst={progress.completedMissionIds.includes(MISSIONS[0].id)} onBack={() => setView({ type: 'map' })} />}
       {view.type === 'subscribe' && subscription && (
         <SubscribeFlow subscription={subscription} lapsed={subscribedBefore()} lessonsDone={progress.completedMissionIds.length}
-          piecesFound={completedStoryUnits(progress).size} onBack={() => setView({ type: 'map' })} onStorybook={() => setView({ type: 'storybook', tab: 'story' })} />
+          piecesFound={completedStoryUnits(progress).size} levelQuizDone={!!progress.placement} onBack={() => setView({ type: 'map' })} onStorybook={() => setView({ type: 'storybook', tab: 'story' })} />
       )}
       {view.type === 'placement' && <PlacementQuiz unitTitles={UNIT_TITLES} onExit={returnToMap} onDone={(passed) => { persistProgress(applyPlacement(progress, passed)); returnToMap(); }} />}
       {view.type === 'race' && (
@@ -2070,7 +2092,6 @@ function Game() {
         const latest = updated ?? progress;
         const record = getLearningRecord(latest, view.missionId);
         persistProgress(record.confirmedAt && record.confirmedAt >= view.startedAt ? completeSkillReview(latest, view.missionId) : deferSkillReview(latest, view.missionId));
-        if (view.nextView.type === 'review-complete') trackEvent('quick_review_completed');
         setView(view.nextView);
       }} />}
       {view.type === 'reward' && activeMission && (
@@ -2153,11 +2174,12 @@ function Game() {
             {resetAllConfirm ? (
               <>
                 <h2 id="reset-title">Reset all learner progress?</h2>
-                <p id="reset-description">{account.user ? `This clears ${account.activeProfile?.displayName ?? 'this learner'}’s progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on every device.` : 'This clears progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} This cannot be undone.</p>
+                <p id="reset-description">{account.user ? `This clears ${account.activeProfile?.displayName ?? 'this learner'}’s progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on every device.` : 'This clears progress, lesson answers, learning evidence, daily-practice work, stars, XP, streaks and saved skill reviews on this device.'} The time limit, breaks and display settings stay. This cannot be undone.</p>
+                {resetError && <p className="fq-parent-wrong" role="alert" data-testid="text-reset-error">{resetError}</p>}
                 <div className="fq-modal-actions">
                   <button className="fq-button ghost" onClick={() => setResetAllConfirm(false)} data-testid="button-back-to-unit-reset">Back to unit reset</button>
                   <button className="fq-button ghost" onClick={() => setResetOpen(false)} data-testid="button-cancel-reset">Keep exploring</button>
-                  <button className="fq-button" onClick={resetProgress} data-testid="button-confirm-reset">Reset all units and activity</button>
+                  <button className="fq-button" onClick={() => void resetProgress()} disabled={resetBusy} data-testid="button-confirm-reset">Reset all units and activity</button>
                 </div>
               </>
             ) : (

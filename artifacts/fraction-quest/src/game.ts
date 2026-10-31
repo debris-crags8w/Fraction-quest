@@ -188,6 +188,8 @@ export type Progress = {
   assessmentDraft?: AssessmentDraft;
   /** Completed checks are saved with the rest of progress and never change lesson unlocks. */
   assessments?: AssessmentAttempt[];
+  /** When a grown-up last reset each unit (unit → time), so a merge with an older copy keeps the unit cleared. */
+  unitResets?: Record<string, number>;
 };
 
 export type AdaptiveStatus = 'not-yet' | 'developing' | 'mastered';
@@ -2765,6 +2767,17 @@ export function loadProgress(): Progress {
 }
 
 /** Saved progress (from this device or the server) with anything malformed or out of date dropped. */
+/** Unit reset times from saved data: known units, real times. */
+function cleanUnitResets(value: unknown): Record<string, number> | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const out: Record<string, number> = {};
+  for (const [rawUnit, at] of Object.entries(value as Record<string, unknown>)) {
+    const unit = Number(rawUnit);
+    if (Number.isInteger(unit) && unit >= 1 && unit <= UNIT_COUNT && typeof at === 'number' && Number.isFinite(at) && at > 0) out[String(unit)] = at;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 export function cleanProgress(parsed: unknown): Progress {
   try {
     if (!parsed || typeof parsed !== 'object') return EMPTY_PROGRESS;
@@ -3000,6 +3013,7 @@ export function cleanProgress(parsed: unknown): Progress {
           ...(whole(raw.firstTry, GROWN_UP_PRACTICE_COUNT) ? { firstTry: raw.firstTry } : {}) });
       }
     }
+    const unitResets = cleanUnitResets(value.unitResets);
     return {
       completedMissionIds: [...completed],
       starsByMission,
@@ -3016,6 +3030,7 @@ export function cleanProgress(parsed: unknown): Progress {
         && typeof value.placement.at === 'number' && Number.isFinite(value.placement.at) ? { placement: { unit: value.placement.unit, at: value.placement.at } } : {}),
       ...(grownUpPicks.length ? { grownUpPicks } : {}),
       ...(assessmentDraft ? { assessmentDraft } : {}),
+      ...(unitResets ? { unitResets } : {}),
     };
   } catch {
     return EMPTY_PROGRESS;

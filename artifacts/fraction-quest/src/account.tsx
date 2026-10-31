@@ -23,7 +23,7 @@ const GUEST_KEY = 'fraction-quest-guest';
 const activeProfileKey = (userId: number) => `fraction-quest-active-profile:${userId}`;
 const accountScope = (userId: number, profileId: number) => `account-${userId}-profile-${profileId}`;
 
-export type SyncStatus = 'saved' | 'saving' | 'offline';
+export type SyncStatus = SaveStatus;
 type AccountValue = {
   user: User | null;
   profiles: LearnerProfile[];
@@ -35,7 +35,9 @@ type AccountValue = {
   initialFun: FunState | null;
   selectProfile: (profileId: number) => Promise<void>;
   refreshProfiles: (preferProfileId?: number) => Promise<void>;
-  clearActiveProfileProgress: () => Promise<void>;
+  /** Clears this learner's saved copy on the server (its reset version moves, so no device merges old work back).
+      `keepSettings`: the grown-up's time limit, breaks and display settings stay. */
+  clearActiveProfileProgress: (options?: { keepSettings?: boolean }) => Promise<void>;
   /** Permanently delete the account and everything saved with it (asks for the password again). */
   deleteAccount: (password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -360,15 +362,16 @@ export function AccountGate({ renderLogin, renderLoading, children }: {
     }
   }, [state]);
 
-  const clearActiveProfileProgress = useCallback(async () => {
+  const clearActiveProfileProgress = useCallback(async (options?: { keepSettings?: boolean }) => {
     if (state.kind !== 'ready') return;
+    const before = loadFun();
     await deleteLearnerProgress(state.profileId);
     const scope = accountScope(state.user.id, state.profileId);
     // Clearing moved the saved copy to a new version; the empty save below loads it first.
     clearScopedLearnerStorage(scope);
     setLearnerStorageScope(scope);
     saveProgress(EMPTY_PROGRESS);
-    const fun = resetFun();
+    const fun = options?.keepSettings ? resetFun(before) : resetFun({ ...before, timeLimit: undefined, breakPreferences: undefined, displayPreferences: undefined, preferredLearningVoiceId: undefined, settingsAt: undefined });
     const bundle = { progress: resetProgress(), fun };
     // Persist an empty snapshot as well, so clearing is stable across another device.
     const queue = queueFor(state.user.id, state.profileId);

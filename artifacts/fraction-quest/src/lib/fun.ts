@@ -33,6 +33,11 @@ export type FunState = {
   sound: boolean;
   /** Per-day activity for the grown-ups' report: minutes active and correct answers (last 35 days). */
   activity?: Record<string, DayActivity>;
+  /** XP earned on each device (by deviceId()) since devices were counted, so two devices' XP add up in a merge. The rest
+      of `xp` was earned before that. */
+  xpByDevice?: Record<string, number>;
+  /** When a grown-up last changed each setting on any device, so the newer choice is kept when two copies merge. */
+  settingsAt?: SettingsAt;
   /** Fraction Race: best time (seconds) to 10 right answers, and the fastest robot beaten (1–3), per lesson. */
   raceBest?: Record<string, number>;
   robotBeaten?: Record<string, number>;
@@ -78,7 +83,27 @@ export type IntroKind = 'builder' | 'line';
 export type IntroStage = 'watched' | true;
 export type StoryState = { prologueSeen?: boolean; /** The finale has played once, by itself, after the last stone piece. */ epilogueSeen?: boolean; choices?: Record<string, 0 | 1>; /** Suspect board guesses: board number → suspect id. */ guesses?: Record<string, string> };
 const SUSPECT_IDS = ['chomp', 'pip', 'tilly', 'bolt', 'bea'];
-export type DayActivity = { minutes: number; answered: number };
+/** A day's totals, and (since devices were counted) each device's own part of them. Totals can include an older part
+    not counted by device. Two devices' parts add up when copies merge (progress-merge.ts). */
+export type DayActivity = { minutes: number; answered: number; devices?: Record<string, DayCount> };
+export type DayCount = { minutes: number; answered: number };
+export type SettingsAt = { timeLimit?: number; breaks?: number; display?: number };
+const DEVICE_KEY = 'fraction-quest-device';
+const DEVICE_RE = /^[a-z0-9-]{1,40}$/;
+const MAX_DEVICES = 12;
+let thisDevice: string | null = null;
+/** This device's id (made once and kept on the device, the same for every learner on it). */
+export function deviceId(): string {
+  if (thisDevice) return thisDevice;
+  let id: string | null = null;
+  try { id = window.localStorage.getItem(DEVICE_KEY); } catch { /* no storage */ }
+  if (!id || !DEVICE_RE.test(id)) {
+    id = `d-${Math.random().toString(36).slice(2, 12) || 'here'}`;
+    try { window.localStorage.setItem(DEVICE_KEY, id); } catch { /* this tab only */ }
+  }
+  thisDevice = id;
+  return id;
+}
 const KEEP_DAYS = 35;
 
 function cleanBreakPreferences(value: unknown): BreakPreferences {
@@ -148,17 +173,57 @@ function cleanActivity(value: unknown, now = new Date()): Record<string, DayActi
   const out: Record<string, DayActivity> = {};
   for (const [day, raw] of Object.entries(value as Record<string, unknown>)) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day < today(oldest) || !raw || typeof raw !== 'object') continue;
-    const { minutes, answered } = raw as Partial<DayActivity>;
+    const { minutes, answered, devices } = raw as Partial<DayActivity>;
     const count = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.min(1440, Math.floor(n))) : 0);
-    out[day] = { minutes: count(minutes), answered: count(answered) };
+    const entry: DayActivity = { minutes: count(minutes), answered: count(answered) };
+    if (devices && typeof devices === 'object') {
+      const kept: Record<string, DayCount> = {};
+      for (const [id, part] of Object.entries(devices).slice(0, MAX_DEVICES)) {
+        if (!DEVICE_RE.test(id) || !part || typeof part !== 'object') continue;
+        kept[id] = { minutes: count((part as Partial<DayCount>).minutes), answered: count((part as Partial<DayCount>).answered) };
+      }
+      if (Object.keys(kept).length) {
+        entry.devices = kept;
+        // A total is never less than its devices' parts.
+        const parts = Object.values(kept);
+        entry.minutes = Math.max(entry.minutes, parts.reduce((sum, part) => sum + part.minutes, 0));
+        entry.answered = Math.max(entry.answered, parts.reduce((sum, part) => sum + part.answered, 0));
+      }
+    }
+    out[day] = entry;
   }
   return out;
 }
-const bump = (state: FunState, key: keyof DayActivity): Record<string, DayActivity> => {
-  const activity = cleanActivity(state.activity); const day = today();
+/** One more minute or right answer today, on the total and on this device's part. */
+const bump = (state: FunState, key: keyof DayCount): Record<string, DayActivity> => {
+  const activity = cleanActivity(state.activity); const day = today(); const me = deviceId();
   const current = activity[day] ?? { minutes: 0, answered: 0 };
-  return { ...activity, [day]: { ...current, [key]: current[key] + 1 } };
+  const mine = current.devices?.[me] ?? { minutes: 0, answered: 0 };
+  return { ...activity, [day]: { ...current, [key]: current[key] + 1, devices: { ...current.devices, [me]: { ...mine, [key]: mine[key] + 1 } } } };
 };
+function cleanXpByDevice(value: unknown): Record<string, number> | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const out: Record<string, number> = {};
+  for (const [id, n] of Object.entries(value as Record<string, unknown>).slice(0, MAX_DEVICES)) {
+    if (DEVICE_RE.test(id) && typeof n === 'number' && Number.isFinite(n) && n > 0) out[id] = Math.floor(n);
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+function cleanSettingsAt(value: unknown): SettingsAt | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const out: SettingsAt = {};
+  for (const key of ['timeLimit', 'breaks', 'display'] as const) {
+    const at = (value as Record<string, unknown>)[key];
+    if (typeof at === 'number' && Number.isFinite(at) && at > 0) out[key] = at;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+/** XP earned on this device goes on its own count too. */
+const addXp = (value: unknown, xp: number): Record<string, number> => {
+  const counts = cleanXpByDevice(value) ?? {}; const me = deviceId();
+  return { ...counts, [me]: (counts[me] ?? 0) + xp };
+};
+const stamp = (state: FunState, key: keyof SettingsAt): SettingsAt => ({ ...state.settingsAt, [key]: Date.now() });
 
 let funStorageEnabled = true;
 
@@ -298,6 +363,8 @@ export function loadFun(): FunState {
       fractionWordsSeen: parsed.fractionWordsSeen === true ? true as const : undefined,
       ...cleanOil(parsed),
       activity: cleanActivity(parsed.activity),
+      xpByDevice: cleanXpByDevice(parsed.xpByDevice),
+      settingsAt: cleanSettingsAt(parsed.settingsAt),
       ...cleanGames(parsed),
     };
     const opened = applySpareOil(saved);
@@ -370,7 +437,7 @@ export function recordCorrect(state: FunState): FunState {
   const oil = current.spareOil ?? 0;
   const earned = newDay && dayStreak % SPARE_OIL_EVERY === 0 && oil < SPARE_OIL_MAX;
   return saveFun({
-    ...current, xp: current.xp + 10, answeredToday: current.answeredToday + 1, dayStreak, lastActiveDay: today(), activity: bump(current, 'answered'),
+    ...current, xp: current.xp + 10, xpByDevice: addXp(current.xpByDevice, 10), answeredToday: current.answeredToday + 1, dayStreak, lastActiveDay: today(), activity: bump(current, 'answered'),
     ...(earned ? { spareOil: oil + 1, oilNotice: { kind: 'earned', streak: dayStreak } as OilNotice } : {}),
   });
 }
@@ -398,18 +465,18 @@ export function setSound(state: FunState, sound: boolean): FunState {
 
 /** Save adult-configured reminders without touching lesson, reward, or game progress. */
 export function setBreakPreferences(state: FunState, preferences: BreakPreferences): FunState {
-  return saveFun({ ...state, breakPreferences: cleanBreakPreferences(preferences) });
+  return saveFun({ ...state, breakPreferences: cleanBreakPreferences(preferences), settingsAt: stamp(state, 'breaks') });
 }
 
 /** A grown-up sets the daily limit (today's added minutes stay). */
 export function setTimeLimit(state: FunState, minutes: TimeLimitMinutes): FunState {
-  return saveFun({ ...state, timeLimit: cleanTimeLimit({ ...state.timeLimit, minutes }) });
+  return saveFun({ ...state, timeLimit: cleanTimeLimit({ ...state.timeLimit, minutes }), settingsAt: stamp(state, 'timeLimit') });
 }
 
 /** A grown-up gives ten more minutes, for today only. */
 export function addMinutesToday(state: FunState, minutes = ADD_MINUTES): FunState {
   const current = cleanTimeLimit(state.timeLimit);
-  return saveFun({ ...state, timeLimit: { ...current, extra: { day: today(), minutes: (current.extra?.minutes ?? 0) + minutes } } });
+  return saveFun({ ...state, timeLimit: { ...current, extra: { day: today(), minutes: (current.extra?.minutes ?? 0) + minutes } }, settingsAt: stamp(state, 'timeLimit') });
 }
 
 /** Today's active minutes against the limit (with any added minutes), or null when there is no limit. */
@@ -423,7 +490,7 @@ export function timeToday(state: FunState, now = new Date()): { used: number; al
 }
 
 export function setDisplayPreferences(state: FunState, preferences: DisplayPreferences): FunState {
-  return saveFun({ ...state, displayPreferences: cleanDisplayPreferences(preferences) });
+  return saveFun({ ...state, displayPreferences: cleanDisplayPreferences(preferences), settingsAt: stamp(state, 'display') });
 }
 
 /** Remember the Words screen was read (or skipped): it won't open by itself again. The Helper still has it. */
@@ -461,8 +528,19 @@ export function setLearningVoicePreference(state: FunState, preferredLearningVoi
   return preference ? saveFun({ ...state, preferredLearningVoiceId: preference }) : state;
 }
 
-export function resetFun(): FunState {
-  return saveFun({ ...fresh(), sound: loadFun().sound });
+/** Clear points, streaks and activity. A grown-up's settings (time limit, breaks, display, read-aloud voice) and this
+    device's sound switch stay: resetting progress is not a way around the time limit. */
+export function resetFun(current: FunState = loadFun()): FunState {
+  const kept: Partial<FunState> = {
+    sound: current.sound,
+    timeLimit: current.timeLimit ? cleanTimeLimit(current.timeLimit) : undefined,
+    breakPreferences: cleanBreakPreferences(current.breakPreferences),
+    displayPreferences: cleanDisplayPreferences(current.displayPreferences),
+    preferredLearningVoiceId: cleanLearningVoicePreference(current.preferredLearningVoiceId),
+    settingsAt: cleanSettingsAt(current.settingsAt),
+  };
+  for (const key of Object.keys(kept) as (keyof FunState)[]) if (kept[key] === undefined) delete kept[key];
+  return saveFun({ ...fresh(), ...kept });
 }
 
 /** Clear per-lesson game results for a unit without changing global rewards or family preferences. */
@@ -554,6 +632,8 @@ export function cleanFun(saved: Partial<FunState>): FunState {
     ...cleanOil(saved),
     sound: loadFun().sound,
     activity: cleanActivity(saved.activity),
+    xpByDevice: cleanXpByDevice(saved.xpByDevice),
+    settingsAt: cleanSettingsAt(saved.settingsAt),
     ...cleanGames(saved),
   };
 }

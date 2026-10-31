@@ -45,8 +45,10 @@ export function updateLearning(progress: Progress, id: string, record: LearningR
   return { ...progress, learning: { ...progress.learning, [id]: record } };
 }
 
-/** Clear one unit's lesson evidence while preserving progress and practice from every other unit. */
-export function resetUnitLearningProgress(progress: Progress, missionIds: ReadonlySet<string>, unit: number): Progress {
+/** Clear one unit's lesson evidence while preserving progress and practice from every other unit. With `at` (a grown-up's
+    reset), the time is kept in `unitResets`, so a merge with an older copy from another device does not bring the
+    unit's work back (progress-merge.ts). */
+export function resetUnitLearningProgress(progress: Progress, missionIds: ReadonlySet<string>, unit: number, at?: number): Progress {
   const learning = Object.fromEntries(Object.entries(progress.learning ?? {}).filter(([id]) => !missionIds.has(id)));
   const starsByMission = Object.fromEntries(Object.entries(progress.starsByMission).filter(([id]) => !missionIds.has(id)));
   const dailyPractice = progress.dailyPractice;
@@ -80,6 +82,7 @@ export function resetUnitLearningProgress(progress: Progress, missionIds: Readon
     // The grown-up "why practice changed" notes for this unit's lessons go too; standards are shared with other units.
     ...(progress.adaptationLog ? { adaptationLog: progress.adaptationLog.filter((event) => !missionIds.has(event.missionId)) } : {}),
     ...(nextDailyPractice ? { dailyPractice: nextDailyPractice } : { dailyPractice: undefined }),
+    ...(at !== undefined ? { unitResets: { ...progress.unitResets, [String(unit)]: Math.max(at, progress.unitResets?.[String(unit)] ?? 0) } } : {}),
   };
 }
 
