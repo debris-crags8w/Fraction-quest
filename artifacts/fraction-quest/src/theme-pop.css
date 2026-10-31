@@ -2402,3 +2402,86 @@ h1 .fq-mfrac, h2 .fq-mfrac, h3 .fq-mfrac { font-size: 0.72em; }
   .fq-challenge-card .fq-answer-choice { min-height: 44px; padding: 4px 12px; font-size: 1rem; border-bottom-width: 4px; }
   .fq-challenge-card .fq-answer-choices.two-up { grid-template-columns: 1fr 1fr; }
 }
+/* The race on a phone (rescore 5): a compact track and lane, answers two by two, so the answers are in reach without scrolling
+   (the race shrinks its pictures when they are still too tall). The turbo banner floats over the lane instead of pushing it down. */
+.fq-race-lane { position: relative; }
+.fq-race-turbo { position: absolute; top: -10px; left: 12px; right: 12px; z-index: 2; }
+@media (max-width: 560px) {
+  .fq-race-app .fq-race { gap: 8px; padding-top: 8px; padding-bottom: 8px; }
+  .fq-race-app .fq-race-top .fq-icon-button { width: 38px; height: 38px; }
+  .fq-race-app .fq-race-clock { padding: 4px 10px; }
+  .fq-race-app .fq-race-track { gap: 4px; }
+  .fq-race-app .fq-race-row { grid-template-columns: 60px 1fr; }
+  .fq-race-app .fq-race-road { height: 30px; border-radius: 10px; }
+  .fq-race-app .fq-race-car { top: 2px; width: 26px; height: 26px; border-radius: 8px; }
+  .fq-race-app .fq-race-car svg { width: 18px; height: 18px; }
+  .fq-race-app .fq-race-flag { top: 6px; }
+  .fq-race-app .fq-race-lane { gap: 6px; padding: 10px 12px; border-radius: 16px; }
+  .fq-race-app .fq-race-lane-name { font-size: 0.9rem; }
+  .fq-race-app .fq-race-lane .fq-response-sequence { margin: 0; font-size: 0.78rem; }
+  .fq-race-app .fq-race-q { font-size: 1.05rem; line-height: 1.3; }
+  .fq-race-app .fq-race-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .fq-race-app .fq-race-choices button { min-height: 46px; padding: 6px 8px; gap: 6px; font-size: 1rem; }
+  .fq-race-app .fq-race-choices button > span[aria-hidden] { width: 24px; height: 24px; }
+  .fq-race-app .fq-race-duo { gap: 8px; }
+  .fq-race-app .fq-race.duo .fq-race-lane { gap: 4px; padding: 8px 10px; }
+  .fq-race-app .fq-race.duo .fq-race-q { font-size: 0.95rem; }
+  .fq-race-app .fq-race.duo .fq-race-choices button { min-height: 42px; }
+}
+/* The Code challenge on a phone (rescore 5): a level's goal, robot, program, blocks and Run on one screen. The levels row above
+   already ticks each passed level, so the goal card leaves out its passed-levels count here. */
+@media (max-width: 560px) {
+  .fq-code { gap: 8px; }
+  .fq-code-goal, .fq-code-stage, .fq-code-editor { padding: 10px 12px; border-radius: 16px; }
+  .fq-code-goal h2 { margin: 2px 0 4px; font-size: 1.1rem; line-height: 1.3; }
+  .fq-code-tip { font-size: 0.86rem; line-height: 1.35; }
+  .fq-code-goal .fq-code-mission-progress { display: none; }
+  .fq-code-world { min-height: 48px; }
+  .fq-code-bar { height: 40px; }
+  .fq-code-editor { gap: 8px; }
+  .fq-code-program { gap: 4px; }
+  .fq-code-block { padding: 5px 8px; font-size: 0.92rem; }
+  .fq-code-block-row { gap: 6px; }
+  .fq-code-num button { width: 26px; height: 26px; }
+  .fq-code-num output { width: 34px; height: 26px; }
+  .fq-code-tools button { width: 26px; height: 26px; }
+  .fq-code-palette { gap: 6px; }
+  .fq-code-chip { padding: 6px 10px; font-size: 0.9rem; }
+  .fq-code-prediction { gap: 4px; margin: 6px 0; }
+  .fq-code-prediction > p:not(.fq-response-sequence) { margin: 0; font-size: 0.86rem; }
+  .fq-code-python-peek { font-size: 0.85rem; }
+}
+@media (max-width: 560px) {
+  /* Predict level: the fraction boxes beside the number tiles, and no "Program" heading over blocks that are only read. */
+  .fq-code-prediction { width: 100%; }
+  .fq-code-prediction .fq-tiles { grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 12px; }
+  .fq-code-prediction .fq-tile-answer { min-height: 0; }
+  .fq-code-prediction .fq-tile-help { grid-column: 1 / -1; margin: 0; font-size: 0.8rem; }
+  .fq-code-prediction .fq-tile-tray .fq-tile { min-width: 40px; height: 40px; }
+  .fq-code-editor:has(.fq-code-prediction) .fq-code-editor-head { display: none; }
+}
+@media (max-width: 560px) {
+  .fq-code-editor .fq-response-sequence { margin: 0; }
+  .fq-code-prediction { margin: 2px 0; }
+  .fq-code-prediction .fq-tile-help { display: none; }
+  .fq-code-world { min-height: 40px; }
+  .fq-code-bar { height: 34px; }
+}
+@media (max-width: 560px) {
+  .fq-code-goal { padding: 8px 12px; }
+  .fq-code-goal h2 { font-size: 1.05rem; }
+  .fq-code-goal .fq-code-tip, .fq-code-prediction > p:not(.fq-response-sequence) { font-size: 0.82rem; line-height: 1.3; }
+}
+@media (max-width: 560px) {
+  /* The lane's name and "Question 3 of 10" share one line. */
+  .fq-race-app .fq-race-lane { grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; }
+  .fq-race-app .fq-race-lane > :not(.fq-race-lane-name):not(.fq-response-sequence) { grid-column: 1 / -1; }
+  .fq-race-app .fq-race.duo .fq-race-q { font-size: 0.92rem; line-height: 1.25; }
+}
+@media (max-width: 560px) {
+  .fq-race-app .fq-race.duo .fq-race-lane-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .fq-race-app .fq-race.duo .fq-race-choices button { min-height: 40px; }
+  .fq-race-app .fq-race.duo .fq-race-road { height: 26px; }
+  .fq-race-app .fq-race.duo .fq-race-car { top: 1px; width: 24px; height: 24px; }
+  .fq-race-app .fq-race.duo .fq-race-flag { top: 4px; }
+}
