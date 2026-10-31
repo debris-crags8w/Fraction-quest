@@ -20,8 +20,8 @@ import { sentences, spokenText } from './lib/voice';
 import { speakerVoice } from './lib/cast-voices';
 import { holdAfterTypingMs, TYPE_STEP_CHARS, TYPE_STEP_MS, VOICED_PAUSE_MS } from './lib/film-pace';
 import { ChapterEndPicture, hasChapterEndPicture, LessonProp, lessonPropFor, PROP_FRIEND } from './film-props';
-import { OpenerBars, OpenerCake } from './film-food';
-import { CHAPTERS, CHAPTER_SCENES, CHARACTERS, propTheme, withName, type Panel, type PropTheme, type StoryChoice, type StoryScene } from './story';
+import { OpenerBars, OpenerCake, OpenerPie } from './film-food';
+import { CHAPTERS, CHAPTER_SCENES, CHARACTERS, filmLine, propTheme, withName, type Panel, type PropTheme, type StoryChoice, type StoryScene } from './story';
 import { TaskBar } from './TaskBar';
 import './story-cinema.css';
 import './film-props.css';
@@ -81,7 +81,8 @@ const shot = (transform: string, origin = '50% 50%'): Shot => [transform, origin
    from which the colours go cold (after something goes wrong). The last shot is also the still after the story. */
 const FILMING: Record<StoryScene, { shots: Shot[]; impact?: number; coldFrom?: number; warmFrom?: number; end?: string }> = {
   prologue: {
-    shots: [shot('scale(1.15)', '50% 42%'), shot('scale(1.06) translateY(1%)', '50% 42%'), shot('scale(2) translateY(4%)', '50% 38%'),
+    // The push in on the glass case stops at 1.7 times, where the whole case (200px) still fits the phone's picture.
+    shots: [shot('scale(1.15)', '50% 42%'), shot('scale(1.06) translateY(1%)', '50% 42%'), shot('scale(1.7) translateY(4%)', '50% 38%'),
       shot('scale(1.28)', '50% 42%'), shot('scale(1)', '50% 60%')],
     impact: 2, coldFrom: 2, end: 'To be continued…',
   },
@@ -134,7 +135,7 @@ function PrologueArt({ beat }: { beat: number }) {
         <path d="M0 120 V70 h30 v-20 h26 v20 h20 V40 l18 -14 l18 14 v30 h24 v-26 h30 v26 h40 V54 l22 -18 l22 18 v16 h26 v-24 h30 v24 h40 v50 Z" fill="#14102A" />
         <rect x="40" y="80" width="6" height="8" fill="#FFC800" opacity=".7" /><rect x="92" y="60" width="6" height="8" fill="#FFC800" opacity=".7" /><rect x="250" y="70" width="6" height="8" fill="#FFC800" opacity=".7" />
       </svg>
-      <div className={`fq-cine-case ${beat === 1 ? 'is-glowing' : ''}`} role="img"
+      <div className={`fq-cine-case ${beat === 1 ? 'is-glowing' : ''}`} role="img" data-story-thing={beat >= 1 ? 'the glass case' : undefined}
         aria-label={cracked ? 'The Whole Stone has broken into 15 equal pieces' : 'The Whole Stone in its glass case'}>
         <div className="fq-cine-stone">
           {Array.from({ length: 15 }, (_, i) => {
@@ -194,7 +195,7 @@ function PondArt({ beat, theme = 'everyday' }: ArtProps) {
       <span className="fq-cine-pond" />
       <span className="fq-cine-pad" style={pos(2, 44)} />
       <span className="fq-cine-actor" style={pos(8, 22)}><StoryCharacter id="pip" size={88} happy={compared} worried={beat === 0} /></span>
-      <span className="fq-cine-bowl" style={pos(50, 22)} />
+      <span className="fq-cine-bowl" style={pos(50, 22)} data-story-thing={beat === 0 ? 'the snack bowl' : undefined} />
       {beat === 0 && <><span className="fq-cine-falling" style={pos(74, 0)} /><span className="fq-cine-splash" style={pos(58, 18)} /></>}
       {cut && (
         <OpenerBars theme={theme} compared={compared} style={pos(30, 36)}>
@@ -264,7 +265,7 @@ function BridgeArt({ beat }: { beat: number }) {
 /** Chapter 5: Chomp guards a wobbly tower of treats; it is stacked again with the biggest treat at the bottom. */
 function TowerArt({ beat }: { beat: number }) {
   const sorted = beat >= 1;
-  const widths = [34, 52, 26, 44]; // bottom to top, as Chomp stacked them
+  const widths = [65, 100, 50, 85]; // bottom to top, as Chomp stacked them (the widest fills the tower's box)
   const order = sorted ? [...widths].sort((a, b) => b - a) : widths;
   return (
     <>
@@ -273,7 +274,7 @@ function TowerArt({ beat }: { beat: number }) {
       <span className={`fq-cine-actor ${beat === 0 ? 'is-guarding' : ''}`} style={pos(16, 28)}>
         <StoryCharacter id="chomp" size={112} worried={beat === 1} happy={beat === 2} />
       </span>
-      <div className={`fq-cine-tower ${beat === 0 ? 'is-wobbling' : ''}`} role="img"
+      <div className={`fq-cine-tower ${beat === 0 ? 'is-wobbling' : ''}`} role="img" data-story-thing="the tower of treats"
         aria-label={sorted ? 'A steady tower with the biggest treat at the bottom' : 'A wobbly tower of treats'}>
         {widths.map((width, i) => (
           <span key={i} className={`fq-cine-treat is-${i} ${beat >= 2 ? 'is-cut' : ''}`} style={{ width: `${width}%`, bottom: `${order.indexOf(width) * 24}%` }} />
@@ -300,7 +301,7 @@ function HoneyArt({ beat }: ArtProps) {
       <span className={`fq-cine-actor ${beat === 0 ? 'is-buzzing' : ''}`} style={pos(40, 14)}>
         <StoryCharacter id="bea" size={64} happy={beat === 2} />
       </span>
-      <span className={`fq-cine-map ${beat === 0 ? 'is-falling' : ''}`} aria-hidden="true" />
+      <span className={`fq-cine-map ${beat === 0 ? 'is-falling' : ''}`} aria-hidden="true" data-story-thing={beat === 0 ? 'the map' : undefined} />
       <span className="fq-cine-sr" role="img" aria-label="Three honey jars filled to the same height, labelled 1 over 2, 2 over 4 and 4 over 8" />
     </>
   );
@@ -319,10 +320,10 @@ function WorkshopArt({ beat }: { beat: number }) {
   const joined = beat >= 1;
   return (
     <>
-      <span className="fq-cine-workshop-window" /><span className="fq-cine-workbench" />
-      <span className={`fq-cine-workshop-box fq-cine-move ${beat === 0 ? 'is-rattling' : ''} ${beat >= 2 ? 'is-open' : ''}`}><i /><i /><i /></span>
+      <span className="fq-cine-workshop-window" /><span className="fq-cine-workbench is-opener" />
+      <span className={`fq-cine-workshop-box fq-cine-move ${beat === 0 ? 'is-rattling' : ''} ${beat >= 2 ? 'is-open' : ''}`} data-story-thing={beat <= 1 ? 'the box' : undefined}><i /><i /><i /></span>
       {beat >= 2 && <span className="fq-cine-workshop-heel fq-cine-move" aria-hidden="true" />}
-      <span className={`fq-cine-gear ${beat >= 2 ? 'is-turning' : ''}`} style={pos(66, 30)} />
+      <span className={`fq-cine-gear ${beat >= 2 ? 'is-turning' : ''}`} style={pos(42, 12)} />
       <span className={`fq-cine-wheel fq-cine-move ${joined ? 'is-joined' : 'is-apart'} ${beat >= 2 ? 'is-rolling' : ''}`} role="img"
         aria-label={joined ? 'Three thirds join to make one whole wheel' : 'Three third-pieces of a wheel lie apart on the bench'}>
         {THIRDS.map((clip) => <i key={clip} style={{ clipPath: clip }} />)}
@@ -340,7 +341,7 @@ function DenArt({ beat }: { beat: number }) {
       <span className="fq-cine-den-cave" /><span className="fq-cine-den-floor" />
       <span className="fq-cine-lantern fq-cine-move" aria-hidden="true"><i /></span>
       <span className={`fq-cine-boot-shadow fq-cine-move ${beat >= 1 ? 'is-tall' : ''}`} aria-hidden="true"><i /><i /></span>
-      <span className={`fq-cine-boots ${beat >= 1 ? 'is-lit' : ''}`}><i /><i /></span>
+      <span className={`fq-cine-boots ${beat >= 1 ? 'is-lit' : ''}`} data-story-thing={beat <= 1 ? 'the boots' : undefined}><i /><i /></span>
       <span className={`fq-cine-den-stone ${beat >= 2 ? 'is-found' : ''}`} />
       <span className={`fq-cine-actor ${beat < 2 ? 'is-guarding' : ''}`} style={beat < 2 ? pos(24, 27) : pos(8, 30)}>
         <StoryCharacter id="chomp" size={108} worried={beat < 2} />
@@ -370,17 +371,18 @@ function RaceArt({ beat }: { beat: number }) {
   );
 }
 
-/** Chapter 10: a half sandwich is cut into two fourths, which slide up to a fourth: three fourths together. Bolt's
-    empty plate waits, and he edges in. */
-function PicnicArt({ beat }: { beat: number }) {
+/** Chapter 10: Chomp's picnic pie (the theme's pie, as his line says) sits on the blanket; a half sandwich is cut into
+    two fourths, which slide up to a fourth: three fourths together. Bolt's empty plate waits, and he edges in. */
+function PicnicArt({ beat, theme = 'everyday' }: ArtProps) {
   const cut = beat >= 2;
   return (
     <>
       <span className="fq-cine-picnic-sky" /><span className="fq-cine-picnic-grass" />
       <span className="fq-cine-picnic-blanket" />
       <span className="fq-cine-picnic-plate" style={pos(62, 66)} />
+      <OpenerPie theme={theme} style={pos(46, 40)} storyThing={beat === 0 ? 'the pie' : undefined} />
       {/* The other basket, 2/3 full (Numi names it on the second line). */}
-      <span className="fq-cine-picnic-basket" style={pos(74, 34)} role="img" aria-label="A basket two thirds full">
+      <span className="fq-cine-picnic-basket" style={pos(74, 34)} role="img" aria-label="A basket two thirds full" data-story-thing={beat === 1 ? 'the 2/3 basket' : undefined}>
         <i className="fq-cine-basket-fill" />
         {beat >= 1 && <span className="fq-cine-basket-label fq-cine-rise"><Frac n={2} d={3} /></span>}
       </span>
@@ -408,11 +410,12 @@ function MachineArt({ beat }: { beat: number }) {
       <span className="fq-cine-machine-river" />
       <span className={`fq-cine-machine ${beat >= 1 ? 'is-on' : ''}`}><i /><i /><b>× 2</b></span>
       <span className={`fq-cine-machine-in fq-cine-move ${built ? 'is-fed' : ''}`} aria-hidden="true" />
-      <span className={`fq-cine-machine-plank fq-cine-move ${built ? 'is-built' : ''}`} role="img"
+      <span className={`fq-cine-machine-plank fq-cine-move ${built ? 'is-built' : ''}`} role="img" data-story-thing={built ? 'the long plank' : undefined}
         aria-label={built ? 'A short plank went into the machine and came out 2 times as long, across the river' : 'A short plank waits by the machine'} />
-      {beat === 0 && <span className="fq-cine-cracked-boot" style={pos(30, 62)} aria-hidden="true" />}
+      {/* The boot, the short plank and Pip stay clear of the caption and the right edge while the camera is close (the first line). */}
+      {beat === 0 && <span className="fq-cine-cracked-boot" style={pos(36, 47)} aria-hidden="true" data-story-thing="the cracked boot" />}
       <span className="fq-cine-actor" style={pos(8, 29)}><StoryCharacter id="bolt" size={94} worried={beat === 0} happy={beat >= 2} /></span>
-      <span className={`fq-cine-actor fq-cine-move ${built ? 'is-crossing' : ''}`} style={built ? pos(78, 46) : pos(66, 46)}>
+      <span className={`fq-cine-actor fq-cine-move ${built ? 'is-crossing' : ''}`} style={built ? pos(78, 46) : pos(58, 44)}>
         <StoryCharacter id="pip" size={56} happy={built} />
       </span>
     </>
@@ -444,11 +447,11 @@ function GardenArt({ beat }: { beat: number }) {
     <>
       <span className="fq-cine-garden-sky" /><span className="fq-cine-garden-bed" />
       {[0, 1, 2, 3].map((i) => <span key={i} className={`fq-cine-garden-plot fq-cine-move is-${i} ${beat >= 1 ? 'is-grown' : ''}`} />)}
-      <span className="fq-cine-seed-bag" style={pos(20, 58)} role="img"
+      <span className="fq-cine-seed-bag" style={pos(11, 46)} role="img" data-story-thing="the seed bag"
         aria-label={beat >= 2 ? 'One sunflower seed out of 4 seeds rises from the bag' : 'A seed bag with 1 sunflower seed and 3 tulip seeds'}>
         <i className={`fq-cine-move ${beat >= 2 ? 'is-picked' : ''}`} /><i /><i /><i />
       </span>
-      {beat >= 2 && <span className="fq-cine-chance fq-cine-rise" style={pos(36, 44)}><Frac n={1} d={4} /></span>}
+      {beat >= 2 && <span className="fq-cine-chance fq-cine-rise" style={pos(24, 46)}><Frac n={1} d={4} /></span>}
       <span className="fq-cine-actor is-buzzing" style={pos(20, 18)}><StoryCharacter id="bea" size={80} happy={beat >= 2} /></span>
       {beat >= 2 && <span className="fq-cine-glint is-found" style={pos(64, 70)} aria-hidden="true" />}
     </>
@@ -461,7 +464,7 @@ function LockArt({ beat }: { beat: number }) {
   const matched = beat >= 2;
   return (
     <>
-      <span className="fq-cine-lock-room" /><span className="fq-cine-lock-case is-opening">
+      <span className="fq-cine-lock-room" /><span className="fq-cine-lock-case is-opening" data-story-thing={beat === 0 ? 'the glass case' : undefined}>
         <span className="fq-cine-lock-seat" />
         <span className={`fq-cine-lock-dials fq-cine-move ${beat === 1 ? 'is-spinning' : ''} ${matched ? 'is-matched' : ''}`} role="img"
           aria-label={matched ? 'The dials show one half, 50 hundredths and 50 percent' : 'Three lock dials, not set yet'}>
@@ -593,7 +596,7 @@ const ART: Record<StoryScene, (props: ArtProps) => ReactNode> = {
 /** What a filmed comic reads aloud, panel by panel: just the line, with "friend" instead of the child's name. The
     caption shows who is speaking, so the voice doesn't say it (plain comics read "Hoot says: ..." via storyScript). */
 export const filmedLines = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
-  panels.map((panel) => withName(panel.text, null, theme));
+  panels.map((panel) => filmLine(panel.text, null, theme));
 /** The voice for each sentence of `filmedLines`: every friend reads their own lines (Numi reads in Heart). */
 export const filmedVoices = (panels: Panel[], theme: ReturnType<typeof propTheme>) =>
   filmedLines(panels, theme).flatMap((line, index) => sentences(spokenText(line)).map(() => speakerVoice(panels[index]!.speaker)));
@@ -644,7 +647,7 @@ export function CinematicComic({ scene, title, kicker, panels, name, choice, pic
     resumeAt.current = beatRef.current + 1;
     logVoice('film voice', `${why}; it picks up again at shot ${resumeAt.current + 1}`);
   };
-  const lines = useMemo(() => panels.map((panel) => ({ ...panel, text: withName(panel.text, name, theme) })), [panels, name, theme]);
+  const lines = useMemo(() => panels.map((panel) => ({ ...panel, text: filmLine(panel.text, name, theme) })), [panels, name, theme]);
   // What is read aloud says "friend", never the child's name; each panel is one or more of its sentences.
   const spoken = useMemo(() => filmedLines(panels, theme), [panels, theme]);
   const sentenceToPanel = useMemo(() => spoken.flatMap((line, index) => sentences(spokenText(line)).map(() => index)), [spoken]);

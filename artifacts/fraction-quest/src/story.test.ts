@@ -255,3 +255,14 @@ test('no chapter title gives the mystery away: a title a child sees on the map n
   // A reached chapter shows its title (chapter 11 is reached when board 3 asks who left the sorry note); a locked one shows only its number.
   for (const chapter of CHAPTERS) assert.doesNotMatch(chapter.title, /owns? up|owned up|confess|crack|did it|blame|sorry|truth|culprit|guilty/i, `chapter ${chapter.unit}: "${chapter.title}"`);
 });
+
+/* Rescore 5: "my candy cane bowl" (December, chapter 2) read oddly. A treat word is the thing in the bowl ("my bowl of
+   candy canes"), never a word stuck in front of "bowl", in every theme. */
+test('a themed treat word never sits in front of "bowl"', () => {
+  const odd: string[] = [];
+  for (const theme of Object.keys(PROPS) as PropTheme[]) for (const line of everyStoryLine()) {
+    const filled = withName(line, 'Sam', theme);
+    for (const word of new Set([PROPS[theme].snack!, PROPS[theme].snacks!])) if (word !== 'snack' && filled.includes(`${word} bowl`)) odd.push(`${theme}: ${filled}`);
+  }
+  assert.deepEqual([...new Set(odd)], []);
+});
