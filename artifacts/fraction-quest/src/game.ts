@@ -175,6 +175,8 @@ export type Progress = {
   challengeBest?: Record<string, number>;
   /** How many times each unit's challenge has been finished; it picks which version of each puzzle the next attempt shows. */
   challengeAttempts?: Record<string, number>;
+  /** When each unit's challenge was last finished or scored, so a unit reset on another device keeps a newer score. */
+  challengeAt?: Record<string, number>;
   dailyPractice?: DailyPracticeSession;
   adaptiveStandards?: Record<string, AdaptiveStandardState>;
   /** When each finished lesson was last revisited, and how well (see review-schedule.ts). */
@@ -2768,6 +2770,7 @@ export function loadProgress(): Progress {
 
 /** Saved progress (from this device or the server) with anything malformed or out of date dropped. */
 /** Unit reset times from saved data: known units, real times. */
+/** A unit → time map (unit resets, challenge times); anything odd is dropped. */
 function cleanUnitResets(value: unknown): Record<string, number> | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const out: Record<string, number> = {};
@@ -2815,6 +2818,7 @@ export function cleanProgress(parsed: unknown): Progress {
         challengeAttempts[String(unit)] = Math.max(0, Math.min(1_000_000, Math.floor(rawCount)));
       }
     }
+    const challengeAt = cleanUnitResets(value.challengeAt);
     const reviewQueue: SkillReview[] = [];
     const queuedMissionIds = new Set<string>();
     if (Array.isArray(value.reviewQueue)) {
@@ -2898,6 +2902,7 @@ export function cleanProgress(parsed: unknown): Progress {
           // A passed Build check waiting for its Next button survives a reload (only if that check really passed).
           ...(typeof raw.pendingBuildCheckId === 'string' && checks[raw.pendingBuildCheckId]?.passed ? { pendingBuildCheckId: raw.pendingBuildCheckId } : {}),
           ...readRedo(raw),
+          ...(typeof raw.changedAt === 'number' && Number.isFinite(raw.changedAt) && raw.changedAt > 0 ? { changedAt: raw.changedAt } : {}),
         };
       }
     }
@@ -3021,6 +3026,7 @@ export function cleanProgress(parsed: unknown): Progress {
       ...(Object.keys(learning).length ? { learning } : {}),
       ...(Object.keys(challengeBest).length ? { challengeBest } : {}),
       ...(Object.keys(challengeAttempts).length ? { challengeAttempts } : {}),
+      ...(challengeAt ? { challengeAt } : {}),
       ...(Object.keys(adaptiveStandards).length ? { adaptiveStandards } : {}),
       ...(adaptationLog.length ? { adaptationLog } : {}),
       ...(Object.keys(lessonSeen).length ? { lessonSeen } : {}),

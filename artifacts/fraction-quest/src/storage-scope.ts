@@ -1,5 +1,7 @@
 const LEGACY_PROGRESS_KEY = 'fraction-quest-progress-v1';
 const LEGACY_FUN_KEY = 'fraction-quest-fun-v1';
+/** The code that tells this learner's devices apart (lib/fun.ts deviceId), kept per learner scope like their progress. */
+export const DEVICE_KEY = 'fraction-quest-device';
 let currentScope = 'legacy';
 
 export function scopedStorageKey(baseKey: string) {
@@ -33,6 +35,7 @@ export function clearScopedLearnerStorage(scope: string) {
     window.localStorage.removeItem(`${LEGACY_PROGRESS_KEY}:${scope}`);
     window.localStorage.removeItem(`${LEGACY_FUN_KEY}:${scope}`);
     window.localStorage.removeItem(`fraction-quest-save-queue:${scope}`);
+    window.localStorage.removeItem(`${DEVICE_KEY}:${scope}`);
   } catch {
     // Keep the explicit account-side delete even if device storage is unavailable.
   }

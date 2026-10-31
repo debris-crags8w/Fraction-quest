@@ -5,7 +5,7 @@
 import { postHaptic } from './native-shell';
 import { CODE_LEVEL_COUNT } from '../code-quest';
 import { PART_FINDER_SCORE_MAX } from '../part-finder';
-import { scopedStorageKey } from '../storage-scope';
+import { DEVICE_KEY, scopedStorageKey } from '../storage-scope';
 
 const FUN_KEY = 'fraction-quest-fun-v1';
 export const DAILY_GOAL = 10;
@@ -88,20 +88,38 @@ const SUSPECT_IDS = ['chomp', 'pip', 'tilly', 'bolt', 'bea'];
 export type DayActivity = { minutes: number; answered: number; devices?: Record<string, DayCount> };
 export type DayCount = { minutes: number; answered: number };
 export type SettingsAt = { timeLimit?: number; breaks?: number; display?: number };
-const DEVICE_KEY = 'fraction-quest-device';
 const DEVICE_RE = /^[a-z0-9-]{1,40}$/;
 const MAX_DEVICES = 12;
-let thisDevice: string | null = null;
-/** This device's id (made once and kept on the device, the same for every learner on it). */
+/** Where the parts of the oldest devices go once there are more than MAX_DEVICES (not a real device id: those start "d-"). */
+const OTHER_DEVICES = 'other';
+/** At most MAX_DEVICES parts: past that, the oldest (first saved) are added into one "other" part, so nothing is dropped. */
+function capDevices<T>(parts: [string, T][], add: (a: T, b: T) => T): Record<string, T> {
+  if (parts.length <= MAX_DEVICES) return Object.fromEntries(parts);
+  const own = parts.filter(([id]) => id !== OTHER_DEVICES);
+  const keep = own.slice(-(MAX_DEVICES - 1));
+  const folded = [...parts.filter(([id]) => id === OTHER_DEVICES), ...own.slice(0, own.length - keep.length)].map(([, part]) => part);
+  return { [OTHER_DEVICES]: folded.reduce(add), ...Object.fromEntries(keep) };
+}
+/** Codes made while storage could not be written, for this tab only. */
+const unsavedDeviceIds = new Map<string, string>();
+/** This device's code for the current learner: a random code kept with the learner's own saved data (one per account
+    profile, and one for the guest), so two families on one iPad never share it. Signing out or deleting the account
+    removes it (storage-scope.ts). It only tells this learner's devices apart, so minutes, answers and XP add up. */
 export function deviceId(): string {
-  if (thisDevice) return thisDevice;
+  const key = scopedStorageKey(DEVICE_KEY);
   let id: string | null = null;
-  try { id = window.localStorage.getItem(DEVICE_KEY); } catch { /* no storage */ }
-  if (!id || !DEVICE_RE.test(id)) {
-    id = `d-${Math.random().toString(36).slice(2, 12) || 'here'}`;
-    try { window.localStorage.setItem(DEVICE_KEY, id); } catch { /* this tab only */ }
-  }
-  thisDevice = id;
+  try {
+    id = window.localStorage.getItem(key);
+    // The code from before it was kept per learner was shared by every account on the device.
+    if (key !== DEVICE_KEY) window.localStorage.removeItem(DEVICE_KEY);
+  } catch { /* no storage */ }
+  if (id && DEVICE_RE.test(id)) return id;
+  id = unsavedDeviceIds.get(key) ?? `d-${Math.random().toString(36).slice(2, 12) || 'here'}`;
+  try {
+    window.localStorage.setItem(key, id);
+    if (window.localStorage.getItem(key) === id) { unsavedDeviceIds.delete(key); return id; }
+  } catch { /* this tab only */ }
+  unsavedDeviceIds.set(key, id);
   return id;
 }
 const KEEP_DAYS = 35;
@@ -177,11 +195,12 @@ function cleanActivity(value: unknown, now = new Date()): Record<string, DayActi
     const count = (n: unknown) => (typeof n === 'number' && Number.isFinite(n) ? Math.max(0, Math.min(1440, Math.floor(n))) : 0);
     const entry: DayActivity = { minutes: count(minutes), answered: count(answered) };
     if (devices && typeof devices === 'object') {
-      const kept: Record<string, DayCount> = {};
-      for (const [id, part] of Object.entries(devices).slice(0, MAX_DEVICES)) {
+      const parts: [string, DayCount][] = [];
+      for (const [id, part] of Object.entries(devices)) {
         if (!DEVICE_RE.test(id) || !part || typeof part !== 'object') continue;
-        kept[id] = { minutes: count((part as Partial<DayCount>).minutes), answered: count((part as Partial<DayCount>).answered) };
+        parts.push([id, { minutes: count((part as Partial<DayCount>).minutes), answered: count((part as Partial<DayCount>).answered) }]);
       }
+      const kept = capDevices(parts, (a, b) => ({ minutes: Math.min(1440, a.minutes + b.minutes), answered: Math.min(1440, a.answered + b.answered) }));
       if (Object.keys(kept).length) {
         entry.devices = kept;
         // A total is never less than its devices' parts.
@@ -203,11 +222,11 @@ const bump = (state: FunState, key: keyof DayCount): Record<string, DayActivity>
 };
 function cleanXpByDevice(value: unknown): Record<string, number> | undefined {
   if (!value || typeof value !== 'object') return undefined;
-  const out: Record<string, number> = {};
-  for (const [id, n] of Object.entries(value as Record<string, unknown>).slice(0, MAX_DEVICES)) {
-    if (DEVICE_RE.test(id) && typeof n === 'number' && Number.isFinite(n) && n > 0) out[id] = Math.floor(n);
+  const parts: [string, number][] = [];
+  for (const [id, n] of Object.entries(value as Record<string, unknown>)) {
+    if (DEVICE_RE.test(id) && typeof n === 'number' && Number.isFinite(n) && n > 0) parts.push([id, Math.floor(n)]);
   }
-  return Object.keys(out).length ? out : undefined;
+  return parts.length ? capDevices(parts, (a, b) => a + b) : undefined;
 }
 function cleanSettingsAt(value: unknown): SettingsAt | undefined {
   if (!value || typeof value !== 'object') return undefined;
@@ -528,10 +547,18 @@ export function setLearningVoicePreference(state: FunState, preferredLearningVoi
   return preference ? saveFun({ ...state, preferredLearningVoiceId: preference }) : state;
 }
 
-/** Clear points, streaks and activity. A grown-up's settings (time limit, breaks, display, read-aloud voice) and this
-    device's sound switch stay: resetting progress is not a way around the time limit. */
+/** Clear points, streaks and activity. A grown-up's settings (time limit, breaks, display, read-aloud voice), this
+    device's sound switch and, with a time limit, today's minutes stay: resetting progress is not a way around the time
+    limit. */
 export function resetFun(current: FunState = loadFun()): FunState {
+  const day = today();
+  const todayNow = cleanActivity(current.activity)[day];
+  const minutesToday: Record<string, DayActivity> | undefined = current.timeLimit && todayNow?.minutes ? { [day]: {
+    minutes: todayNow.minutes, answered: 0,
+    ...(todayNow.devices ? { devices: Object.fromEntries(Object.entries(todayNow.devices).map(([id, part]) => [id, { minutes: part.minutes, answered: 0 }])) } : {}),
+  } } : undefined;
   const kept: Partial<FunState> = {
+    activity: minutesToday,
     sound: current.sound,
     timeLimit: current.timeLimit ? cleanTimeLimit(current.timeLimit) : undefined,
     breakPreferences: cleanBreakPreferences(current.breakPreferences),

@@ -163,7 +163,7 @@ export default function ParentView({ progress, fun, unitTitles, childName, onBac
               <DisplaySettings preferences={display} onChange={onDisplayPreferencesChange} />
             </SettingsRow>
             <SettingsRow title="Voice" value="Who reads aloud"><LearningVoicePicker /></SettingsRow>
-            <SettingsRow title="Family and profiles" value="Learners, backup, sign-in"><FamilyControls unitTitles={unitTitles} /></SettingsRow>
+            <SettingsRow title="Family and privacy settings" value="Learners, backup, sign-in"><FamilyControls unitTitles={unitTitles} /></SettingsRow>
             <SettingsRow title="Answer keys" value="Print any lesson">
               <section className="fq-parent-section fq-parent-answer-keys" data-testid="parent-answer-keys">
                 <h2>Answer keys for grown-ups</h2>
