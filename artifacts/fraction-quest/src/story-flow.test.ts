@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MISSIONS, type Mission } from './game';
 import { LESSON_IDEAS } from './lesson-ideas';
-import { SECRETS, dailySecret, lanternCard, mysteryAnswer, mysteryOfTheWeek } from './riddles';
-import { BOARD_CASES, CHAPTERS, EPILOGUE, STORY_PROBLEMS, STONE_PIECES, chapterEnd, chapterFor, endingAfterChapter, lessonCliff, lessonComic, stoneQuestion, storyLessonTitle, thanksFor, withName, type Chapter, type CharacterId } from './story';
+import { SECRETS, dailySecret, lanternCard, mysteryAnswer, mysteryOfTheWeek, riddleSetup } from './riddles';
+import { BOARD_CASES, CHAPTERS, EPILOGUE, PROP_THEMES, STORY_PROBLEMS, STONE_PIECES, chapterEnd, chapterFor, endingAfterChapter, lessonCliff, lessonComic, stoneQuestion, storyLessonTitle, thanksFor, withName, type Chapter, type CharacterId } from './story';
 
 const lessonsIn = (unit: number) => MISSIONS.filter((mission) => mission.unit === unit);
 const plain = (text: string) => withName(text, null, 'everyday');
@@ -400,6 +400,10 @@ test('a friend never names themself in the third person (the friend\'s own face 
     ];
     for (const [speaker, text] of said) assert.ok(!ownName(speaker, text), `chapter ${chapter.unit}: ${speaker} says "${text}"`);
   }
+  // The riddle screen is Chomp's too ("Chomp: ..."): his set-ups, secrets and each mystery of the week and its ending.
+  const weeks = Array.from({ length: 12 }, (_, week) => new Date(Date.UTC(2026, 10, 2 + week * 7)).toISOString().slice(0, 10));
+  const riddleLines = [...[0, 1, 2, 3, 4].map((index) => riddleSetup(index, 5)), ...SECRETS, ...weeks.flatMap((day) => [mysteryOfTheWeek(day), mysteryAnswer(day)])];
+  for (const text of riddleLines) assert.ok(!ownName('chomp', text), `riddles: chomp says "${text}"`);
 });
 
 test('the story matches its lessons: one missing number, one last line, a strap then a different part, pie on the picnic, one loaf', () => {
@@ -563,4 +567,75 @@ test('every mystery of the week asks a question it can answer, and no secret nam
     assert.doesNotMatch(ask, /has clues/i, `${ask}: no clues are shown`);
   }
   for (const secret of SECRETS) assert.doesNotMatch(secret, /festival race/i, secret);
+});
+
+/** Everything a child reads around one lesson in story mode: the comic panels, the setup, the thanks (or the chapter's
+    last words) and the cliffhanger. */
+function lessonLines(mission: Mission) {
+  const chapter = chapterFor(mission.unit)!;
+  const index = lessonsIn(mission.unit).indexOf(mission);
+  const last = index === lessonsIn(mission.unit).length - 1;
+  return { chapter, index, last, comic: lessonComic(chapter, mission, index).map((panel) => panel.text), setup: STORY_PROBLEMS[mission.id]!.setup,
+    thanks: last ? chapter.done : thanksFor(chapter, index), cliff: lessonCliff(chapter, index, lessonsIn(mission.unit).length) };
+}
+
+test('no line opener is said more than twice in one lesson\'s scene, setup and thanks ("Okay, okay" three times is a tic)', () => {
+  const repeats: string[] = [];
+  MISSIONS.forEach((mission, n) => {
+    const { index, comic, setup, thanks } = lessonLines(mission);
+    const lines = [...(index === 0 ? [] : [comic[0]!]), setup, thanks].map(plain);
+    const counts = new Map<string, number>();
+    for (const line of lines) {
+      const openers = new Set(line.split(/(?<=[.!?…])\s+/).map((sentence) => sentence.split(/[,.!?…:]/)[0]!.trim().toLowerCase()).filter(Boolean));
+      for (const opener of openers) counts.set(opener, (counts.get(opener) ?? 0) + 1);
+    }
+    for (const [opener, count] of counts) if (count > 2) repeats.push(`L${n + 1} ${mission.id}: "${opener}" ${count} times`);
+  });
+  assert.deepEqual(repeats, []);
+});
+
+test('no lesson-panel line runs over 22 words, in any theme (comic panels, setup, thanks, cliffhanger)', () => {
+  const long = new Map<string, number>();
+  MISSIONS.forEach((mission, n) => {
+    const { comic, setup, thanks, cliff } = lessonLines(mission);
+    for (const theme of PROP_THEMES) for (const line of [...comic, setup, thanks, cliff]) {
+      const words = withName(line, null, theme).split(/\s+/).filter(Boolean).length;
+      const key = `L${n + 1} ${mission.id}: ${line}`;
+      if (words > 22) long.set(key, Math.max(words, long.get(key) ?? 0));
+    }
+  });
+  assert.deepEqual([...long].map(([line, words]) => `${line} (${words} words)`), []);
+});
+
+test('chapter 14\'s last box says the case opens once, and Hoot credits the story dial too', () => {
+  const chapter = chapterFor(14)!;
+  const mission = lessonsIn(14)[lessonsIn(14).length - 1]!;
+  const box = [chapter.done, STORY_PROBLEMS[mission.id]!.result, chapter.clue, chapter.won, chapter.cliff].map(plain);
+  assert.equal(box.filter((line) => /case opens|opened the case|case is open/i.test(line)).length, 1, box.join(' | '));
+  assert.match(chapter.won, /story|step/i, 'the last dial was a two-step story problem');
+  // No four-word run is said in three lines of any chapter's last box.
+  for (const ch of CHAPTERS) {
+    const lastMission = lessonsIn(ch.unit)[lessonsIn(ch.unit).length - 1]!;
+    const lines = [ch.done, STORY_PROBLEMS[lastMission.id]!.result, ch.clue, ch.won, ch.cliff].map((line) => plain(line).toLowerCase().replace(/[^a-z0-9/ ]/g, ' ').split(/\s+/).filter(Boolean));
+    const seen = new Map<string, number>();
+    for (const words of lines) for (const run of new Set(words.slice(0, -3).map((_, i) => words.slice(i, i + 4).join(' ')))) seen.set(run, (seen.get(run) ?? 0) + 1);
+    for (const [run, count] of seen) assert.ok(count <= 2, `ch${ch.unit}: "${run}" in ${count} lines`);
+  }
+});
+
+test('story continuity: Bolt\'s gone sandwich, Pip\'s stage, and the wet-paint footprints paid off in chapter 13', () => {
+  // N3: Bolt's saved sandwich is gone (L49), so the picnic's later result saves him another one, not "a sandwich".
+  assert.match(chapterFor(10)!.cliffs[1]!, /sandwich is gone/);
+  assert.doesNotMatch(plain(STORY_PROBLEMS['mixed-unlike-operations']!.result), /\ba sandwich left for Bolt/i);
+  assert.match(plain(STORY_PROBLEMS['mixed-unlike-operations']!.result), /another|new|one more/i);
+  // N3: the stage is Pip's problem in chapter 12, so chapter 11 neither gives it to Bea nor solves it first.
+  const stageLines = [...chapterFor(11)!.cliffs, chapterFor(11)!.cliff].filter((line) => /stage/i.test(line));
+  for (const line of stageLines) {
+    assert.doesNotMatch(line, /\bBea\b/, line);
+    assert.doesNotMatch(line, /just right|sizes the parts/i, line);
+  }
+  // N6: the board 4 footprints (chapter 12's wet paint) are explained in chapter 13's story for a child who skips the board.
+  const ch13 = chapterFor(13)!;
+  const told = [...ch13.intro.map((panel) => panel.text), ...ch13.scenes, ...ch13.cliffs, ch13.cliff, ch13.done].join(' ');
+  assert.match(told, /Pip[^.!?]*paint|paint[^.!?]*Pip/, 'chapter 13 says the wet-paint prints were Pip\'s');
 });
