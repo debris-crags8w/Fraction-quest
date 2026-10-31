@@ -317,6 +317,12 @@ function found(prompt: string, right: Amount | null, answerText?: string): Found
     const [x, y] = m.slice(1).filter(Boolean).map((t) => amount(t)!);
     return x[1] === y[1] ? leftOver(x, y) : null;
   }
+  // "A jug has 7/8 liter. Sam drinks 3/8 liter, then adds 2/8 liter. How much is in the jug now?": the first step only,
+  // the first step skipped, both added, both taken away, the start.
+  if ((m = /^A jug has (\d+)\/(\d+) liter\. \w+ drinks (\d+)\/\2 liter, then adds (\d+)\/\2 liter\. How much is in the jug now\?$/.exec(p))) {
+    const [a, d, x, y] = m.slice(1).map(N);
+    return { right: (a - x + y) / d, slips: [['firstStepOnly', [a - x, d]], ['skippedFirst', [a + y, d]], ['otherOpTake', [a + x + y, d]], ['secondAdds', [a - x - y, d]], ['startAmount', [a, d]], ['takenAmount', [x, d]]] };
+  }
   // "Fill the blank: 3/4 + ? = 1": the same part again, both added, upside down, or one more piece.
   if ((m = /^Fill the blank: (\d+)\/(\d+) \+ \? = 1$/.exec(p))) {
     const [a, b] = [N(m[1]), N(m[2])];

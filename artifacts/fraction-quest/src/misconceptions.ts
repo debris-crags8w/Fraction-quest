@@ -19,6 +19,12 @@ function slips(prompt: string): [number, [Why, number][]] | null {
   let m: RegExpExecArray | null;
   // "Is that near 0, 1/2 or 1 meter?" is about benchmarks (fraction-slips.ts), not a fraction of a length.
   if (/Is that near 0, 1\/2 or 1 \w+\?$/.test(p)) return null;
+  // "3 children share 1/4 of a pan. How many shares that size would fill the whole pan?": the parts and the children
+  // added, the big parts only, the shares in one part only.
+  if ((m = /^(\d+) children share 1\/(\d+) of a pan\. How many shares that size would fill the whole pan\?$/.exec(p))) {
+    const [n, b] = [N(m[1]), N(m[2])];
+    return [n * b, [['addedForShare', n + b], ['partsNotShares', b], ['sharesInOnePart', n]]];
+  }
   // Fair shares (lesson 2): "4 friends share 12 equal pieces fairly. How many pieces does each friend get?": the
   // friends counted, the whole pile, or what the other friends get.
   if ((m = /(\d+) friends share (\d+) equal pieces fairly\. How many pieces does each friend get\?|into (\d+) equal pieces\. (\d+) friends share them fairly\. How many pieces does each friend get\?/.exec(p))) {
