@@ -182,17 +182,15 @@ export function buildAssessmentItems(definition: AssessmentDefinition, seed: num
     if (numbers) askedNumbers.add(numbers);
     selected.push({ ...candidate, id: `${definition.id}:${seed}:${selected.length + 1}` });
   };
-  // Round-robin by standard so a check samples the whole scope instead of one lesson. Each turn takes the standard's next fresh
-  // question, so a standard whose first picks repeat an earlier question (in another lesson's words) still gets its turn.
-  const next = new Map<StandardId, number>();
+  // Round-robin by standard so a check samples the whole scope instead of one lesson. A standard the form has not asked yet whose
+  // pick repeats an earlier question (in another lesson's words) takes its next fresh question instead, so it still gets asked.
   for (let round = 0; selected.length < count && round < candidates.length; round++) {
     for (const standard of definition.standards) {
       const list = byStandard.get(standard) ?? [];
-      let at = next.get(standard) ?? 0;
-      while (at < list.length && !fresh(list[at])) at++;
-      next.set(standard, at + 1);
-      if (at >= list.length) continue;
-      take(list[at]);
+      let candidate: AssessmentItem | undefined = list[round];
+      if (candidate && !fresh(candidate) && !selected.some((item) => item.standards.includes(standard))) candidate = list.slice(round + 1).find(fresh);
+      if (!candidate || !fresh(candidate)) continue;
+      take(candidate);
       if (selected.length >= count) break;
     }
   }
