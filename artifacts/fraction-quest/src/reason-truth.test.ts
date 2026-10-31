@@ -13,7 +13,7 @@ import { WHY } from './slip-reasons';
 import { generateQuestions } from './practice-bank';
 import { getWorksheet } from './learning-content';
 import { lessonCheckpoint } from './checkpoint';
-import { ideaPracticeQuestions } from './lesson-ideas';
+import { ideaPracticeQuestions, ideaQuestion, isRound, lessonIdeas } from './lesson-ideas';
 
 const why = (prompt: string, right: string, pick: string) => wrongChoiceReason(prompt, [right, pick], 0, 1);
 const mission = (id: string) => MISSIONS.find((m) => m.id === id)!;
@@ -175,5 +175,16 @@ describe('e. idea picks and worksheet slips are named', () => {
       for (const p of picks) { all++; if (worksheetWrongReason(r.prompt, r.answer, p)) hit++; }
     }
     assert.ok(hit / all > 0.7, `${(100 * hit / all).toFixed(1)}%`);
+  });
+});
+
+describe('f. hints vary inside an idea', () => {
+  it('no idea gives the same hint on all three practices', () => {
+    const same: string[] = [];
+    for (const m of MISSIONS) (lessonIdeas(m.id) ?? []).forEach((idea, i) => {
+      const hints = idea.practice.filter((p) => !isRound(p)).map((p) => ideaQuestion(m, (p as { question: string }).question)?.hint.trim());
+      if (hints.length >= 3 && new Set(hints).size === 1) same.push(`${m.id} idea ${i + 1}: ${hints[0]}`);
+    });
+    assert.deepEqual(same, []);
   });
 });

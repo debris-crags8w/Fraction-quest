@@ -468,12 +468,42 @@ const onlyTaughtParts = (question: PracticeQuestion, missionId: string): Practic
   return withTaughtParts(question, (d) => partTaught(d, COURSE_IDS, missionId, idea)) ?? question;
 };
 
+/** The second and third practices of an idea whose questions all shared one hint: each gets its own hint, about its
+    own numbers, so the help is not the same sentence three times. None says the answer. */
+const VARIED_HINTS: Record<string, string> = {
+  'fraction-of-area-q3': 'How many equal parts is the square cut into? That number goes on the bottom.',
+  'fraction-of-area-q4': 'Count the equal slices of the circle. Then count the colored ones.',
+  'fraction-of-area-p4': 'Count the equal pieces of the hexagon, then the colored ones. Write colored over all.',
+  'fraction-of-area-p5': 'Count all the equal pieces. Which number goes on the bottom?',
+  'build-line-plots-q3': 'Find 4/4 on the line plot. Count the Xs stacked there.',
+  'build-line-plots-q4': 'Find 3/4 on the line plot. How many Xs stack above it?',
+  'add-tenths-hundredths-p4': 'Both are hundredths. Add 20 and 35. The bottom stays 100.',
+  'add-tenths-hundredths-p5': 'The pieces are the same size, so only the numerators change. Add 60 and 12.',
+  'simplify-fractions-q2': 'Which number divides both 4 and 12? Try the biggest one.',
+  'simplify-fractions-q1': 'Find a number that divides both 4 and 6. Divide both by it.',
+  'read-line-plots-p4': 'Find the farthest-right X and the farthest-left X. Take the short length from the long one.',
+  'read-line-plots-p5': 'Longest take away shortest tells how much longer. Find both Xs first.',
+  'fraction-times-fraction-p2': 'Find the denominator of each fraction. The first one makes the rows.',
+  'fraction-times-fraction-p3': 'Which fraction makes the columns? Use its bottom number.',
+  'multiplication-scaling-q2': 'Compare 4/4 with 1. Is it less, the same, or more?',
+  'multiplication-scaling-q4': 'Compare 3/4 with 1 first. Then think about what that does to 20.',
+  'line-plot-totals-p2': 'Add all the 3/4 cups. Add all the 1/4 cups. Then find the difference.',
+  'line-plot-totals-p3': 'Find the total of each stack first. Then take the smaller total away.',
+  'fraction-probability-q2': 'How many marbles are green? How many marbles are in the bag?',
+  'fraction-probability-q3': 'Green marbles go in the numerator. All the marbles go in the denominator.',
+  'fractional-side-area-q3': 'Shade 1 unit one way and 1/4 unit the other way. Count where both are shaded.',
+  'fractional-side-area-q4': 'Count the squares in the overlap. Then count every square in the grid.',
+  'multiply-mixed-numbers-q2': 'Cut each side at the whole meter. That makes four parts to add.',
+  'multiply-mixed-numbers-q3': 'Find the whole-meter part first. Then add the three parts that use a fraction.',
+};
+
 function mission({ ideaQuestions: ideaSeeds, ...seed }: MissionSeed & { unit: number }): Mission {
   const standards = standardsForMission(seed.id);
   const questions = seed.questions.map((question, index) => onlyTaughtParts(noBeforeYes(spreadAnswer({
     ...question,
     choices: withUnits(question.prompt, withoutOverOne(question.prompt, question.choices, question.correctChoice)),
     id: `${seed.id}-q${index + 1}`,
+    hint: VARIED_HINTS[`${seed.id}-q${index + 1}`] ?? question.hint,
     isMastery: index === seed.questions.length - 1,
     standards: [...standards],
   }, `${seed.id}-q${index + 1}`)), seed.id));
@@ -481,6 +511,7 @@ function mission({ ideaQuestions: ideaSeeds, ...seed }: MissionSeed & { unit: nu
     ...question,
     choices: withUnits(question.prompt, withoutOverOne(question.prompt, question.choices, question.correctChoice)),
     id: `${seed.id}-p${index + 1}`,
+    hint: VARIED_HINTS[`${seed.id}-p${index + 1}`] ?? question.hint,
     isMastery: false,
     standards: [...standards],
   }, `${seed.id}-p${index + 1}`)), seed.id));
