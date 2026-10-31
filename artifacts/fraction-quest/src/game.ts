@@ -836,7 +836,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'compare-same-numerator', title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'Wholes are the same size. Same numerator? We count the same number of parts. Larger denominator? More equal parts, so each part is smaller.',
+    id: 'compare-same-numerator', title: 'Same count, different sizes', shortTitle: 'Same numerators', skill: 'Wholes are the same size. Same numerator? Count the same number of parts. Larger denominator? More equal parts: each part is smaller.',
     explainPrompt: 'Use the bars for 3/4 and 3/8. What does the denominator change in the same-size whole? Why is 3/8 smaller even though both fractions count 3 parts? Then draw same-length bars for 2/3 and 2/4 and explain why 2/3 is larger without repeating the example.',
     description: 'Compare fractions with the same numerator.', example: {
       prompt: 'Which is bigger, 3/4 or 3/8?',
@@ -1027,7 +1027,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'mixed-improper', title: 'Two ways to write it', shortTitle: 'Two ways to name it', skill: 'A mixed number, like 1 and 3/4, has a whole number and a fraction. You can also write it as one fraction: 1 and 3/4 is 7/4.',
+    id: 'mixed-improper', title: 'Two ways to write it', shortTitle: 'Two ways to name it', skill: 'A mixed number, like 1 and 3/4, has a whole number and a fraction. As one fraction, 1 and 3/4 is 7/4.',
     description: 'Change a mixed number to one fraction, and back again.', example: {
       prompt: 'What is 1 and 3/8 as eighths?',
       answer: '11/8.',
@@ -1071,7 +1071,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'subtract-like-denominators', title: 'Take parts away', shortTitle: 'Subtract fractions', skill: 'When the parts are the same size, take away the parts, then count how many parts remain. Keep the denominator because the part size stays the same.',
+    id: 'subtract-like-denominators', title: 'Take parts away', shortTitle: 'Subtract fractions', skill: 'Same-size parts? Take some away, then count what is left. Keep the denominator: the part size stays the same.',
     description: 'Take away same-size parts.', example: {
       prompt: 'What is 6/8 − 2/8?',
       answer: '4/8.',
@@ -1120,7 +1120,7 @@ const curriculum: MissionSeed[] = [
     ],
   },
   {
-    id: 'tenths-decimals', title: 'Tenths as decimals', shortTitle: 'Fractions and decimals', skill: 'One tenth is 0.1. The dot in a decimal is called the decimal point. Write tenths as one digit to the right of the decimal point.',
+    id: 'tenths-decimals', title: 'Tenths as decimals', shortTitle: 'Fractions and decimals', skill: 'One tenth is 0.1. The dot is called the decimal point. Write tenths as one digit to the right of it.',
     description: 'Match tenths to decimals.', example: {
       prompt: 'How do you write 7/10 as a decimal?',
       answer: '0.7',
@@ -1481,7 +1481,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('Each sixth of a bar is cut in half. What fraction of the whole bar is one small part?', ['1/12', '1/8', '1/6', '1/3'], 0, bars({ numerator: 1, denominator: 6 }), 'Each of the 6 parts becomes 2 small parts. How many small parts make the whole bar?', '6 × 2 = 12 small parts make the whole bar, so one small part is 1/12.', bars({ numerator: 1, denominator: 6 }), { authoredChoices: true }),
     ] },
   { id: 'fraction-times-fraction', title: 'Fraction times fraction', shortTitle: 'Multiply on a grid', description: 'Find a/b × c/d where rows and columns overlap.',
-    skill: 'Cut one square into rows for one fraction and columns for the other. The overlap is the answer: multiply the tops, multiply the bottoms.',
+    skill: 'Cut a square: rows for one fraction, columns for the other. The overlap is the answer: multiply the tops, multiply the bottoms.',
     example: { prompt: '2/3 × 4/5 = ?', answer: '8/15', explanation: '2 of 3 rows and 4 of 5 columns overlap on 8 of 15 small squares. So 2/3 × 4/5 = 8/15 (2 × 4 = 8, and 3 × 5 = 15).',
       model: timesGrid(3, 5, 2, 4) },
     mode: 'times-grid', n: 8, d: 15, context: 'square grid', gradeBand: 5, standards: ['5.NF.4a'],
@@ -1542,7 +1542,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('How many 1/2-cup scoops fill 3 cups? 3 ÷ 1/2 = ?', ['6', '5', '2', '3'], 0, bars({ numerator: 1, denominator: 2 }),
         'How many 1/2 parts make one whole cup? Then think about 3 cups.', 'Two 1/2s fill each cup. 3 cups: 3 × 2 = 6, so 3 ÷ 1/2 = 6.', emptyWholes(3, 2), { authoredChoices: true }),
     ] },
-  { id: 'multiplication-scaling', title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'Multiplying by less than 1 takes part of an amount, so it gets smaller. Multiplying by more than 1 makes more than one copy, so it gets bigger.', example: { prompt: 'What is 3/4 of 12? Is the answer less or more than 12?', answer: '9, less than 12', explanation: 'Make 4 equal groups of 3. Three of the groups is 9. Multiplying 12 by 3/4, which is less than one whole, makes a smaller amount.', model: setModel(9, 12, 4) }, mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'],
+  { id: 'multiplication-scaling', title: 'Scaling with fractions', shortTitle: 'Scale an amount', description: 'See how a factor below or above one changes an amount.', skill: 'Multiplying by less than 1 takes part of an amount: smaller. Multiplying by more than 1 makes more than one copy: bigger.', example: { prompt: 'What is 3/4 of 12? Is the answer less or more than 12?', answer: '9, less than 12', explanation: 'Make 4 equal groups of 3. Three of the groups is 9. Multiplying 12 by 3/4, which is less than one whole, makes a smaller amount.', model: setModel(9, 12, 4) }, mode: 'scaling', n: 3, d: 4, context: 'collections', gradeBand: 5, standards: ['5.NF.5'],
     ideaQuestions: [
       practice('Which fraction is more than 1?', ['5/4', '3/4', '4/4', '1/2'], 0, bars({ numerator: 3, denominator: 4 }, { numerator: 5, denominator: 4 }, { numerator: 4, denominator: 4 }, { numerator: 1, denominator: 2 }), 'Compare the top number with the bottom number. Which top number is larger?', '5/4 has more parts than 4/4, which is 1. So 5/4 is more than 1.', bars({ numerator: 4, denominator: 4 }, { numerator: 5, denominator: 4 })),
       practice('Which fraction is the same as 1?', ['6/6', '5/6', '7/6', '1/6'], 0, bars({ numerator: 5, denominator: 6 }, { numerator: 6, denominator: 6 }, { numerator: 7, denominator: 6 }, { numerator: 1, denominator: 6 }), 'Which one has the same top number and bottom number?', '6/6 is all 6 parts of the whole, so 6/6 is the same as 1.', bars({ numerator: 6, denominator: 6 })),
@@ -1552,7 +1552,7 @@ const extensionTopics: ExtensionTopic[] = [
       practice('Without multiplying, compare 2/5 × 15 with 15: __ 15.', ['<', '=', '>'], 0, bars({ numerator: 2, denominator: 5 }), 'Is the factor 2/5 less than 1? Then you get only part of 15.', '2/5 is less than 1, so 2/5 × 15 is only part of 15: 2/5 × 15 < 15.', bars({ numerator: 2, denominator: 5 }, { numerator: 5, denominator: 5 })),
     ] },
   { id: 'bigger-or-smaller', title: 'Bigger or smaller?', shortTitle: 'Bigger or smaller', description: 'Tell how a fraction factor changes an amount.',
-    skill: 'Multiply by a fraction less than 1: you get less. More than 1: you get more. Equal to 1: it stays the same.',
+    skill: 'Multiply by a fraction less than 1: you get less. More than 1: you get more. Equal to 1: no change.',
     example: { prompt: 'Is 3/4 × 2 1/2 more or less than 2 1/2?', answer: 'Less than 2 1/2', explanation: 'Less. Three fourths of an amount is only part of it. The top bar is the whole amount; the bottom bar is three fourths of it.',
       model: bars({ numerator: 5, denominator: 2, named: true }, { numerator: 15, denominator: 8 }) },
     mode: 'bigger-smaller', n: 5, d: 4, context: 'scaling machine', gradeBand: 5, standards: ['5.NF.5'],
@@ -1591,7 +1591,7 @@ const extensionTopics: ExtensionTopic[] = [
         bars({ numerator: 1, denominator: 2 }, { numerator: 7, denominator: 8 }), 'Look at the factor 1/2. Is it more than 1?',
         '1/2 is less than 1, so 1/2 × 7/8 is only part of 7/8. No, it is less.', bars({ numerator: 1, denominator: 2 }, { numerator: 2, denominator: 2 }), { authoredChoices: true }),
     ] },
-  { id: 'multiply-mixed-numbers', title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Use the side lengths as rows and columns in a rectangle. The number of square units is the product of the side lengths.', example: { prompt: 'A garden is 1 1/2 meters by 1 1/3 meters. What is its area?', answer: '2 square meters', explanation: 'Split the garden at the whole meters into 4 parts. 1 × 1 = 1. 1/2 × 1 = 1/2. 1 × 1/3 = 1/3. 1/2 × 1/3 = 1/6. Add the parts: 6/6 + 3/6 + 2/6 + 1/6 = 12/6, or 2 square meters.', model: gardenModel({ whole: 1, numerator: 1, denominator: 2 }, { whole: 1, numerator: 1, denominator: 3 }, true) }, mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.4b', '5.NF.6'],
+  { id: 'multiply-mixed-numbers', title: 'Multiply mixed numbers', shortTitle: 'Mixed number multiplication', description: 'Use a rectangle to find the area of a mixed-number garden.', skill: 'Use the side lengths as rows and columns in a rectangle. The number of square units is the product of the sides.', example: { prompt: 'A garden is 1 1/2 meters by 1 1/3 meters. What is its area?', answer: '2 square meters', explanation: 'Split the garden at the whole meters into 4 parts. 1 × 1 = 1. 1/2 × 1 = 1/2. 1 × 1/3 = 1/3. 1/2 × 1/3 = 1/6. Add the parts: 6/6 + 3/6 + 2/6 + 1/6 = 12/6, or 2 square meters.', model: gardenModel({ whole: 1, numerator: 1, denominator: 2 }, { whole: 1, numerator: 1, denominator: 3 }, true) }, mode: 'mixed-multiply', n: 2, d: 1, context: 'garden plot', gradeBand: 5, standards: ['5.NF.4b', '5.NF.6'],
     // Idea 1: split at the whole meters and find one part's area (adding them all comes in idea 2).
     ideaQuestions: [
       practice('A garden is 2 1/3 meters by 1 1/4 meters. Split it at the whole meters. How big is its biggest part?', ['2 meters by 1 meter', '2 1/3 meters by 1 1/4 meters', '1/3 meter by 1/4 meter', '2 meters by 1/4 meter'], 0,
@@ -2078,7 +2078,7 @@ const extensionTopics: ExtensionTopic[] = [
   },
   // Second lessons for standards that had one (approved mockups, November 2026).
   { id: 'dimes-and-pennies', title: 'Dimes and pennies', shortTitle: 'Dimes and pennies', description: 'Write dimes and pennies as hundredths of a dollar.',
-    skill: 'A dime is 1/10 of a dollar, which is 10 hundredths. A penny is 1/100. Write dimes as hundredths, then add the pennies.',
+    skill: 'A dime is 1/10 of a dollar, or 10 hundredths. A penny is 1/100. Write dimes as hundredths, then add the pennies.',
     example: { prompt: '3 dimes and 4 pennies. What part of a dollar is that?', answer: '34/100',
       explanation: '3 dimes fill 3 columns: 30/100. 4 pennies fill 4 more squares: 4/100. Together: 34/100 of a dollar.',
       model: grids(hundredthsGrid(34, '3 dimes and 4 pennies')) },
@@ -2152,7 +2152,7 @@ const extensionTopics: ExtensionTopic[] = [
     ],
   },
   { id: 'party-portions', title: 'Party portions', shortTitle: 'Party portions', description: 'Equal portions for every guest: a fraction times a whole number.',
-    skill: 'Equal groups of the same fraction: count the parts and keep the part size. Then find which two whole numbers the total is between.',
+    skill: 'Equal groups of one fraction: count the parts, keep the part size. Then find which two whole numbers the total is between.',
     example: { prompt: 'Each guest eats 3/8 pound. 5 guests come. How much in all?', answer: '15/8 pounds',
       explanation: '5 groups of 3 eighths is 15 eighths: 15/8 pounds. 15/8 is 1 and 7/8, so it is between 1 and 2 pounds.',
       model: line(15, 8, 2) },

@@ -413,7 +413,7 @@ export const LESSONS_D: Record<string, string> = {
   'unit-fraction-divided-whole': 'd-cake',        // ch 12: the crew shares one small part of the cake
   'divide-whole-by-unit-fraction': 'd-paint',     // ch 12: scoops of paint for the stage
   'share-or-fit': 'd-clay',                       // ch 12: bag the clay for the props
-  'fractional-side-area': 'd-plot',               // ch 13: "A bee lands on one plot"
+  'fractional-side-area': 'd-plot',               // ch 13: "Every plot in the garden is a different size"
   'multiply-mixed-numbers': 'd-flowers',          // ch 13: Bea's flower bed
   'percent-to-fraction': 'd-dial',                // ch 14: a dial on the lock
   'multi-step-fraction-stories': 'd-chest',       // ch 14: "One dial is left. It hides a puzzle"
