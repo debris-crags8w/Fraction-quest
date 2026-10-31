@@ -205,8 +205,13 @@ const RULES: Rule[] = [
   { name: 'unit parts in a fraction', re: /^How many 1\/(\d+) parts make (\d+)\/\1\?$/, solve: (m) => ({ value: N(m[2]) }) },
   { name: 'garden area', re: /^(?:A rectangular garden is|Build|A rectangle is) (\d+) (\d+\/\d+)(?: meters by | × | units by )(\d+) (\d+\/\d+)(?: meters\. What is its area\?| square units\.| units\. Build its area\.)$/,
     solve: (m) => ({ value: (N(m[1]) + frac(m[2])) * (N(m[3]) + frac(m[4])) }) },
-  { name: 'grid overlap area', re: /^A rectangular [\w ]+ is (1|\d\/3) unit by (\d)\/4 unit\. Color the overlapping area on the 3-by-4 grid\. What is its area in square units\?$/,
-    solve: (m) => ({ value: (m[1] === '1' ? 1 : frac(m[1])) * N(m[2]) / 4, denominator: 12 }) },
+  { name: 'grid overlap area', re: /^A rectangular [\w ]+ is (1|\d+\/(\d+)) unit by (\d+)\/(\d+) unit\. Color the overlapping area on the (\d+)-by-(\d+) grid\. What is its area in square units\?$/,
+    solve: (m) => {
+      // The grid has one column for each part of the first side and one row for each part of the second (1 unit fills its sides).
+      const cols = N(m[5]); const rows = N(m[6]);
+      if ((m[2] && N(m[2]) !== cols) || N(m[4]) !== rows) return 'the grid does not match the sides';
+      return { value: (m[1] === '1' ? 1 : frac(m[1])) * N(m[3]) / rows, denominator: cols * rows };
+    } },
   { name: 'share a unit fraction', re: /^(\d+) children share 1\/(\d+) of a pan equally\. What fraction of the whole pan does each child get\?$/,
     solve: (m) => ({ value: 1 / N(m[2]) / N(m[1]) }) },
 

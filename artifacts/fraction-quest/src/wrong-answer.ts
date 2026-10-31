@@ -263,7 +263,7 @@ function meaningReason(p: string, pick: string, right: string): string | null {
   if (/\b(?:equal (?:parts|slices)|the same size)\?$/.test(p) && /^(?:yes|no), (?:there (?:are|must be)|it needs|\d+ equal)/i.test(pick)) return WHY.countNotSize;
   // "A line has 8 equal spaces. Where is 3/8?": the bottom number used, the jumps left to one, jumps back from one.
   const where = /^a line has \d+ equal spaces\. where is (\d+)\/(\d+)\?$/.exec(p);
-  if (where && /^\d+ jumps/.test(pick)) {
+  if (where && /^\d+ jumps?\b/.test(pick)) {
     const n = leadNumber(pick);
     return /\bback from 1\b/.test(pick) ? WHY.jumpsForward : n === Number(where[2]) ? WHY.askedTop : n === Number(where[2]) - Number(where[1]) ? WHY.jumpsToOne : null;
   }
@@ -275,6 +275,12 @@ function meaningReason(p: string, pick: string, right: string): string | null {
     return /^(?:a little )?(?:more|less)\b/i.test(pick) ? WHY.halfOfBottom : null;
   }
   if (/^which fraction is exactly one half\?$/.test(p) && FRACTION.test(pick)) return WHY.halfOfBottom;
+  // "4/6 is near 1/2. Is it a little more or a little less?" (and near 0 or 1).
+  const nearOf = /^\d+\/\d+ is near (1\/2|0|1)\. is it a little more or a little less\?$/.exec(p);
+  if (nearOf && /^(?:exactly|a little (?:more|less))\b/i.test(pick)) {
+    if (nearOf[1] === '1/2') return /^exactly\b/i.test(pick) ? WHY.notExactHalf : WHY.halfOfBottom;
+    return nearOf[1] === '1' ? WHY.topVsBottom : WHY.moreThanZero;
+  }
   // "Is 5/8 nearer 1/2 or 1?", "Is that near 0, 1/2 or 1 meter?"
   if (/\bnearer \S+ or \S+\?$/.test(p)) return /^exactly\b/i.test(pick) ? WHY.notExactNear : /^nearer\b/i.test(pick) ? WHY.farther : null;
   if (/\b(?:near|closest to) 0, 1\/2 or 1\b/.test(p) && /^\d/.test(pick)) return WHY.farther;
@@ -384,7 +390,7 @@ function comparisonReason(prompt: string, pick: string, right: string): string |
   // "Which is closer to 1/2: 5/6 or 4/6?", "Which is farther from one whole: 1/2 or 1/6?"
   const near = /(closest|closer|nearest|farther|farthest) (?:to|from) ([^:?]+?)(?::[^?]*)?\?$/.exec(p);
   if (near) return Number.isFinite(amount(near[2].replace(/^(?:one whole|the whole bar)$/, '1'))) ? (/^far/.test(near[1]) ? WHY.nearer : WHY.farther) : null;
-  const side = /(more|less) than (.+?)\?$/.exec(p);
+  const side = /(more|less) than ([^,:?]+?)(?:[,:][^?]*)?\?$/.exec(p);
   if (side) {
     const target = amount(side[2]);
     if (!Number.isFinite(target)) return null;
@@ -791,11 +797,34 @@ function stepReason(fullPrompt: string, pick: string, right: string): string | n
   if (/ ran \d+\/(\d+) \w+ and then \d+\/\1 \w+\. \w+ ran \d+\/\1 \w+\. how much farther/.test(p)) return WHY.totalThenCompare;
   // Equivalent fractions: the same factor top and bottom.
   if (/with a denominator of \d+ is at the same spot\?$|^this bar shows \d+\/\d+\. fill the missing numerator|^fill the missing (?:numerator|denominator)/.test(p)) return WHY.sameFactor;
+  // "Fill the blank: 1/6 = 2/?", "1/2 = ?/8", "4/12 = ?/3": the same factor top and bottom, or divide both by the same number.
+  if ((m = /^fill the blank: (\d+)\/(\d+) = (\?|\d+)\/(\?|\d+)$/.exec(p))) {
+    const known = m[3] === '?' ? Number(m[4]) / Number(m[2]) : Number(m[3]) / Number(m[1]);
+    return known < 1 ? WHY.divideSame : m[4] === '?' ? WHY.findFactor : WHY.sameFactor;
+  }
+  if ((m = /^(multiply|divide) the numerator and denominator of \d+\/\d+ by \d+\. what do you get\?$/.exec(p)) && pf && rf) {
+    return m[1] === 'divide' ? WHY.divideSame : pf[0] === rf[0] ? WHY.findFactor : WHY.sameFactor;
+  }
+  // "Thirds and ninths are different sizes. Rename 2/3 as ninths.": the size the question names, then the same factor.
+  if (/\brename \d+\/\d+ as [a-z]+\.$/.test(p) && pf && rf) return pf[1] !== rf[1] ? WHY.askedDenominator : WHY.renameCheck;
+  // "Each jump is 1/8. How many jumps from 0 to 5/8?": the jumps left to one whole, or count again from zero.
+  if ((m = /^each jump is 1\/(\d+)\. how many jumps from 0 to (\d+)\/\1\?$/.exec(p))) return pv === Number(m[1]) - Number(m[2]) ? WHY.jumpsToOne : WHY.countJumps;
+  if ((m = /^each jump is 1\/(\d+)\. what is \d+ jumps? from 0\?$/.exec(p)) && pf && pf[1] !== Number(m[1])) return WHY.askedDenominator;
+  // "Max says 3/5 − 1/5 = 2/10. What is the right answer?" answered with one of the two amounts.
+  if ((m = /says (\d+\/\d+) ([+−]) (\d+\/\d+) = \d+\/\d+\. what is the right answer\?$/.exec(p))) {
+    if (pick === m[3]) return m[2] === '+' ? WHY.oneAmount : WHY.takenAmount;
+    if (pick === m[1]) return m[2] === '+' ? WHY.oneAmount : WHY.startAmount;
+  }
+  // "How long are the two shortest together?": one of them alone, or the two added again.
+  if (/how long are the two shortest together\?$/.test(p) && pf) {
+    const lengths = nums.filter(([, b]) => b === pf[1]).map(([t]) => t).sort((a, b) => a - b);
+    return lengths.slice(0, 2).includes(pf[0]) ? WHY.oneAmount : WHY.addTopsAgain;
+  }
   // Groups of a fraction, and a fraction of a fraction.
   if (/^(?:write )?\d+ × \d+\/\d+(?: = \?| as one fraction\.)$|^a recipe uses \d+\/\d+ cup of \w+\. you make \d+ batches/.test(p)) return otherSize ? WHY.sameBottom : WHY.timesTopCheck;
   if (/^(?:what is )?\d+\/\d+ (?:×|of) \d+\/\d+(?: = \?|\?)$/.test(p)) return WHY.timesAcross;
   if (/how long is \d+\/\d+ of it\?$|how many \w+ are in \d+\/\d+ of the \w+\?$|^what is \d+\/\d+ of \d+ \w+\?$|^\d+\/\d+ × \d+ = \?$/.test(p)) return WHY.groupsCheck;
-  if (/gives \d+\/\d+ of them .*of the rest/.test(p)) return WHY.twoStepsLeft;
+  if (/gives (?:away )?\d+\/\d+ of them\b.*of the rest/.test(p)) return WHY.twoStepsLeft;
   if (/(?:are|is) \d+\/\d+ of [a-z']+ \w+\. how many|it is \d+\/\d+ of the whole \w+\. how many|that is \d+\/\d+ of (?:his|her) \w+\. how many/.test(p)) return WHY.onePartThenWhole;
   // Sharing and fitting.
   if (/how many 1\/\d+-cup scoops fill \d+ cups?\?/.test(p)) return WHY.piecesEveryWhole;

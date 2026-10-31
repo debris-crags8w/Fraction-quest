@@ -1084,6 +1084,28 @@ const WIDER_ROWS: Record<string, (r: Rng) => WorksheetProblem> = {
   'add-unlike-fractions': (r) => fresh(r, unlikeSum),
   'mixed-unlike-operations': (r) => fresh(r, mixedUnlike),
   'measurement-word-problems': (r) => unitRow(r, [HOUR, DAY, DOLLAR, LITER, KILOGRAM]),
+  // The worksheet's 3-by-4 grid gives only 9 sizes: halves to sixths on their own grids, at most 12 squares to color.
+  'fractional-side-area': (r) => {
+    const [cols, rows] = r.pick([[2, 3], [3, 2], [2, 4], [4, 2], [3, 3], [3, 4], [4, 3], [4, 4], [2, 5], [5, 2], [2, 6], [6, 2], [3, 6], [6, 3]] as const);
+    const a = r.int(1, cols); const c = r.int(1, rows - 1); const product = a * c;
+    const surface = r.pick(['garden bed', 'quilt patch', 'poster', 'table top', 'rug', 'wall panel', 'mosaic', 'sandbox', 'floor tile', 'window panel', 'stage', 'notice board']);
+    return { id: 'wider', prompt: `A rectangular ${surface} is ${a === cols ? '1' : f(a, cols)} unit by ${f(c, rows)} unit. Color the overlapping area on the ${cols}-by-${rows} grid. What is its area in square units?`,
+      answer: f(product, cols * rows), area: { cut: gridCut(cols, rows) }, areaTask: { n: product, d: cols * rows },
+      hint: 'Shade the columns for one side and the rows for the other. Count the squares shaded both ways, then count all the squares.',
+      why: `${a} × ${c} = ${product} small ${product === 1 ? 'square is' : 'squares are'} shaded both ways. The grid has ${cols * rows} small squares.` };
+  },
+  // The worksheet's 12 data sets, and more: three amounts up to 2 liters in fourths, never all the same, whose total splits into whole fourths.
+  'line-plot-leveling': (r) => {
+    const sets = range(1, 8).flatMap((x) => range(x, 8).flatMap((y) => range(y, 8).map((z) => [x, y, z])))
+      .filter(([x, y, z]) => (x + y + z) % 3 === 0 && !(x === y && y === z));
+    const values = r.pick(sets); const total = values[0] + values[1] + values[2];
+    const factor = gcd(total, 12); const answer = factor === 12 ? String(total / 12) : f(total / factor, 12 / factor);
+    const context = r.pick(['small cups', 'jars', 'beakers', 'bottles', 'pitchers', 'tubs', 'bowls', 'flasks', 'cans', 'pots', 'glasses', 'pails']);
+    return { id: 'wider', prompt: `Three ${context} hold ${values.map((value) => f(value, 4)).join(', ')} liter. Plot them, then share the total equally. How many liters go in each?`,
+      answer, linePlotTask: { denominator: 4, wholes: 2, values },
+      hint: `Add the amounts in the ${context}, then split that total into 3 equal shares.`,
+      why: `${values.map((value) => f(value, 4)).join(' + ')} = ${f(total, 4)}. Each share is ${f(total / 3, 4)} liter${answer === f(total / 3, 4) ? '' : `, the same as ${answer} liter`}.` };
+  },
   'fractional-unit-conversions': (r) => unitRow(r, [HOUR, DAY, LITER, KILOGRAM, FOOT, POUND, METER]),
   'whole-numbers-as-fractions': (r) => {
     if (r.int(0, 4) === 0) {
@@ -1343,7 +1365,11 @@ export function generateQuestions(missionId: string, baseQuestionIds: string[], 
   for (let i = 0; fresh.length < count && i < count * 30; i++) {
     const rng = makeRng(hash(`${missionId}:${seed}:${i}`));
     const item = recipe(rng);
-    const key = `${item.prompt}|${item.right}`;
+    // One calculation in other words is one question: the same numbers in any order and the same answer ("2/3 or 2/4" and "2/4 or
+    // 2/3"; "1 unit by 2/4 unit" for a rug and for a tile).
+    const numbers = item.prompt.match(/\d+ \d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?/g) ?? [];
+    const answer = item.right.replace(/[a-z ]+$/i, '');
+    const key = numbers.length < 2 ? `${item.prompt}|${answer}` : `${[...numbers].sort().join(',')}|${answer}`;
     const placed = {
       prompt: oneIsSingular(item.prompt),
       ...noBeforeYes(signedOrder(item.prompt, slipChoicesFor(missionId, item.prompt, withFourth(item, place(balanceChoices(item, rng), rng.int(0, 2)), rng.int(0, 3))))),

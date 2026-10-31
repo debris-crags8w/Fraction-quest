@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { assessmentItemCount, buildAssessmentItems, getAssessmentDefinitions } from './assessments';
 import { getWorksheet } from './learning-content';
+import { placementItems } from './placement';
 import { standardsForMission } from './standard-catalog';
 
 const rowsOf = (id: string) => Array.from({ length: 25 }, (_, variant) => getWorksheet(id, variant)).flat();
@@ -162,5 +163,27 @@ describe('Check-ins', () => {
       if (item.missionId === 'spot-the-mistake' && item.standards.includes('4.NF.3a') && !/\d+\/\d+ [+−] \d+\/\d+ =/.test(item.prompt)) wrong.push(`${definition.id}: ${item.prompt}`);
     }
     assert.deepEqual(wrong.slice(0, 5), [], `${wrong.length} credits`);
+  });
+
+  it('benchmarks-zero-one: "How much is missing from 4/6 to make one whole?" composes one whole, so it claims no comparing standard', () => {
+    let missing = 0;
+    for (const row of rowsOf('benchmarks-zero-one')) {
+      if (!/to make one whole\?$/.test(row.prompt)) { assert.ok(has(row, '3.NF.3d') || has(row, '4.NF.2'), row.prompt); continue; }
+      missing++;
+      assert.ok(!has(row, '3.NF.3d') && !has(row, '4.NF.2'), `${row.prompt} claims ${row.standards}`);
+    }
+    assert.ok(missing > 0);
+  });
+
+  it('Find my level and Check-ins never credit 5.NF.4a for a sharing row with no fraction in it ("12 beads are shared into 3 equal groups")', () => {
+    for (const id of ['sets-unit-fractions', 'sets-nonunit']) for (const row of rowsOf(id)) {
+      assert.equal(has(row, '5.NF.4a'), /\d+\/\d+/.test(row.prompt), row.prompt);
+    }
+    const wrong: string[] = [];
+    for (let seed = 1; seed <= 300; seed++) for (let unit = 1; unit <= 12; unit++) for (const item of placementItems(unit, seed)) {
+      const standards = item.problem.standards ?? standardsForMission(item.missionId);
+      if (standards.includes('5.NF.4a') && !/\d+\/\d+/.test(item.problem.prompt)) wrong.push(item.problem.prompt);
+    }
+    assert.deepEqual(wrong.slice(0, 3), [], `${wrong.length} placement items credit 5.NF.4a with no fraction`);
   });
 });

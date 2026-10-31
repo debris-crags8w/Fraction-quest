@@ -186,7 +186,7 @@ function progressAt(mission: Mission, record: object, extra: object = {}) {
 }
 
 /** Open the app as the same guest with this saved progress (and the usual fun settings), on the map. */
-async function openWith(page: Page, progress: object) {
+async function openWith(page: Page, progress: object, fun: object = FUN) {
   await page.setViewportSize({ width: 390, height: VISIBLE });
   if (!page.url().startsWith('http')) { await signedOut(page); await page.goto('/'); }
   await page.evaluate(({ p, fun }) => {
@@ -194,7 +194,7 @@ async function openWith(page: Page, progress: object) {
     localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(p));
     localStorage.setItem('fraction-quest-progress-v1:guest', JSON.stringify(p));
     localStorage.setItem('fraction-quest-fun-v1', JSON.stringify(fun));
-  }, { p: progress, fun: FUN });
+  }, { p: progress, fun });
   await page.goto('/');
   const guest = page.getByTestId('button-play-guest');
   await expect(guest.or(page.getByTestId('button-app-menu')).first()).toBeVisible();
@@ -461,5 +461,118 @@ test('the worksheet page fits an iPhone Safari screen question by question: each
     });
   }
   expect(lessons.length).toBeGreaterThanOrEqual(6);
+  expect(misfits, misfits.join('\n')).toEqual([]);
+});
+
+/* The games (rescore 5): the Fraction Race against the robot and with two players, Fraction War and the Code challenge. In a timed
+   race the answers must be in reach without scrolling. Each race uses a fixed seed (Math.random is pinned while the race starts),
+   chosen so its first nine questions hold the lesson's longest question; the walk answers each one right and measures it. */
+const RACE_LESSONS = (process.env.RACE_LESSONS ?? 'fraction-of-area,compare-decimals-grid,read-line-plots,multi-step-fraction-stories,line-plot-leveling').split(',');
+const raceSeed = (missionId: string) => {
+  const ids = MISSIONS.find((mission) => mission.id === missionId)!.questions.map((question) => question.id);
+  const weight = (question: PracticeQuestion) => question.prompt.length + question.choices.join('').length + 4 * modelSize(question.model);
+  let best = { seed: 1, score: -1, questions: [] as PracticeQuestion[] };
+  for (let seed = 1; seed <= 120; seed++) {
+    const questions = generateQuestions(missionId, ids, seed, 40);
+    const score = Math.max(...questions.slice(0, 9).map(weight));
+    if (score > best.score) best = { seed, score, questions };
+  }
+  return best;
+};
+async function startRace(page: Page, missionId: string, seed: number, mode: string) {
+  await page.evaluate((value) => { (window as unknown as { __random: () => number }).__random = Math.random; Math.random = () => value; }, (seed - 1 + 0.5) / 1_000_000_000);
+  await page.getByTestId(mode).click();
+  await page.evaluate(() => { Math.random = (window as unknown as { __random: () => number }).__random; });
+  await expect(page.getByTestId('race-live')).toBeVisible();
+  await expect(page.getByTestId('race-countdown')).toBeHidden({ timeout: 6_000 });
+}
+const raceFit = (page: Page, lanes: string[]) => page.evaluate((names) => {
+  window.scrollTo(0, 0);
+  return { bottoms: names.map((name) => Math.max(...[...document.querySelectorAll(`[data-testid^="race-${name}-choice-"]`)].map((element) => element.getBoundingClientRect().bottom))),
+    width: document.documentElement.scrollWidth };
+}, lanes);
+
+test('the Fraction Race fits an iPhone Safari screen: racing the robot and two players, every answer in reach without scrolling', async ({ page }) => {
+  test.setTimeout(600_000);
+  const misfits: string[] = [];
+  const all = MISSIONS[MISSIONS.length - 1]!;
+  for (const missionId of RACE_LESSONS) {
+    await test.step(missionId, async () => {
+      const { seed, questions } = raceSeed(missionId);
+      await openWith(page, { ...progressAt(all, { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {} }), completedMissionIds: MISSIONS.map((mission) => mission.id) });
+      const node = page.getByTestId(`button-node-${missionId}`);
+      await node.scrollIntoViewIfNeeded();
+      await node.click({ force: true });
+      if (await node.getAttribute('aria-expanded') !== 'true') await node.click({ force: true });
+      await page.getByTestId(`button-race-${missionId}`).click();
+      await startRace(page, missionId, seed, 'button-race-robot-1');
+      for (const [index, question] of questions.slice(0, 9).entries()) {
+        const at = `race ${missionId} (seed ${seed}) question ${index + 1} "${question.prompt}"`;
+        const right = page.getByTestId(`race-you-choice-${question.correctChoice}`);
+        await expect(page.locator('.fq-race-lane .fq-response-sequence')).toHaveText(`Question ${index + 1} of 10`);
+        const fit = await raceFit(page, ['you']);
+        if (fit.bottoms[0]! > VISIBLE + 1) misfits.push(`${at}: the answers end at ${Math.round(fit.bottoms[0]!)}, screen ${VISIBLE}`);
+        if (fit.width > 391) misfits.push(`${at}: the page is ${fit.width} wide`);
+        if (SHOTS && index < 3) await page.screenshot({ path: `${SHOTS}/race-${missionId}-q${index + 1}.png` });
+        await right.click();
+      }
+      // Two players, each with their own questions (both from the same seed here): both sets of answers on the first screen.
+      await page.getByTestId('button-race-stop').click();
+      await startRace(page, missionId, seed, 'button-race-duo');
+      for (const [index, question] of questions.slice(0, 5).entries()) {
+        const at = `2-player race ${missionId} (seed ${seed}) question ${index + 1} "${question.prompt}"`;
+        await expect(page.locator('.fq-race-lane .fq-response-sequence').first()).toHaveText(`Question ${index + 1} of 10`);
+        const fit = await raceFit(page, ['player1', 'player2']);
+        fit.bottoms.forEach((bottom, lane) => { if (bottom > VISIBLE + 1) misfits.push(`${at}: Player ${lane + 1}'s answers end at ${Math.round(bottom)}, screen ${VISIBLE}`); });
+        if (fit.width > 391) misfits.push(`${at}: the page is ${fit.width} wide`);
+        if (SHOTS && index < 2) await page.screenshot({ path: `${SHOTS}/race-duo-${missionId}-q${index + 1}.png` });
+        await page.getByTestId(`race-player1-choice-${question.correctChoice}`).click();
+        await page.getByTestId(`race-player2-choice-${question.correctChoice}`).click();
+      }
+    });
+  }
+  expect(misfits, misfits.join('\n')).toEqual([]);
+});
+
+test('Fraction War and the Code challenge fit an iPhone Safari screen: War\'s two bars, its choices and Check; each code level\'s goal, robot, program, blocks and Run', async ({ page }) => {
+  test.setTimeout(240_000);
+  const misfits: string[] = [];
+  const all = MISSIONS[MISSIONS.length - 1]!;
+  const progress = { ...progressAt(all, { practiceDone: true, checks: {}, worksheet: {}, helpUses: 0, misconceptions: {} }), completedMissionIds: MISSIONS.map((mission) => mission.id) };
+  await test.step('Fraction War', async () => {
+    await openWith(page, progress);
+    await page.getByTestId('button-app-menu').click();
+    await page.getByTestId('button-open-concept-games').click();
+    await page.getByTestId('link-game-war').click();
+    await expect(page.getByTestId('button-war-check')).toBeVisible();
+    const fit = await page.evaluate(() => { window.scrollTo(0, 0); return { check: document.querySelector('[data-testid="button-war-check"]')!.getBoundingClientRect().bottom, width: document.documentElement.scrollWidth }; });
+    if (fit.check > VISIBLE + 1) misfits.push(`Fraction War: Check ends at ${Math.round(fit.check)}, screen ${VISIBLE}`);
+    if (fit.width > 391) misfits.push(`Fraction War: the page is ${fit.width} wide`);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/war.png` });
+  });
+  // Every level open (5 solved), so the walkthrough starts closed; each level's working area, from its goal to Run, is one screen
+  // (opening a level scrolls its goal to the top).
+  for (const missionId of ['add-like-denominators', 'number-line-basics', 'sets-unit-fractions']) {
+    await test.step(`Code challenge ${missionId}`, async () => {
+      await openWith(page, progress, { ...FUN, codeLevels: { [missionId]: 5 } });
+      const node = page.getByTestId(`button-node-${missionId}`);
+      await node.scrollIntoViewIfNeeded();
+      await node.click({ force: true });
+      if (await node.getAttribute('aria-expanded') !== 'true') await node.click({ force: true });
+      await page.getByTestId(`button-code-${missionId}`).click();
+      await expect(page.getByTestId('code-quest')).toBeVisible();
+      for (let level = 1; level <= 6; level++) {
+        await page.getByTestId(`button-code-level-${level}`).click();
+        await page.waitForTimeout(400);
+        const fit = await page.evaluate(() => {
+          const goal = document.querySelector('.fq-code-goal')!.getBoundingClientRect().top;
+          return { span: document.querySelector('[data-testid="button-code-run"]')!.getBoundingClientRect().bottom - goal, width: document.documentElement.scrollWidth };
+        });
+        if (fit.span > VISIBLE) misfits.push(`Code challenge ${missionId} level ${level}: from the goal to Run takes ${Math.round(fit.span)}, screen ${VISIBLE}`);
+        if (fit.width > 391) misfits.push(`Code challenge ${missionId} level ${level}: the page is ${fit.width} wide`);
+        if (SHOTS) { await page.locator('.fq-code-goal').evaluate((element) => element.scrollIntoView({ block: 'start' })); await page.screenshot({ path: `${SHOTS}/code-${missionId}-level-${level}.png` }); }
+      }
+    });
+  }
   expect(misfits, misfits.join('\n')).toEqual([]);
 });

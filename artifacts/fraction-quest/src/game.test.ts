@@ -2593,6 +2593,8 @@ describe('question generator', () => {
     } else if ((m = /^(\d+) (\d+)\/(\d+) \+ (\d+)\/(\d+) = \?$/.exec(p))) expected = N(m[1]) + N(m[2]) / N(m[3]) + N(m[4]) / N(m[5]);
     else if ((m = /^(\d+) (\d+)\/(\d+) − 1 (\d+)\/(\d+) = \?$/.exec(p))) expected = N(m[1]) + N(m[2]) / N(m[3]) - 1 - N(m[4]) / N(m[5]);
     else if ((m = /^What is (\d+)\/(\d+) of (\d+) cards\?$/.exec(p))) expected = (N(m[3]) / N(m[2])) * N(m[1]);
+    else if ((m = /^A rectangular [a-z ]+ is (1|\d+\/\d+) unit by (\d+)\/(\d+) unit\. Color the overlapping area on the (\d+)-by-(\d+) grid\./.exec(p))) expected = (m[1] === '1' ? 1 : N(m[1].split('/')[0]) / N(m[1].split('/')[1])) * N(m[2]) / N(m[3]);
+    else if ((m = /^Three [a-z ]+ hold (\d+)\/4, (\d+)\/4, (\d+)\/4 liter\. Share the total equally\./.exec(p))) expected = (N(m[1]) + N(m[2]) + N(m[3])) / 12;
     else if ((m = /^(\d+) × (\d+)\/(\d+) = \?$/.exec(p))) expected = (N(m[1]) * N(m[2])) / N(m[3]);
     else if ((m = /^What is (\d+)\/(\d+) of (\d+)\/(\d+)\?$/.exec(p))) expected = (N(m[1]) / N(m[2])) * (N(m[3]) / N(m[4]));
     else if ((m = /^How many 1\/(\d+) cup scoops fill (\d+) cups?\?$/.exec(p))) expected = N(m[1]) * N(m[2]);

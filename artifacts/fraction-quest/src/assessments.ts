@@ -121,12 +121,12 @@ function promptFractions(prompt: string): { n: number; d: number; wholes: number
     with 1" and "Sam says 2/3 + 1/2 = 3/5" count as one question. A question with no sum in it is itself. */
 const calculation = (prompt: string) => /(?:\d+ )?\d+\/\d+ [+−] (?:\d+ )?\d+\/\d+/.exec(prompt)?.[0] ?? prompt;
 
-/** One question in other words: the same lesson, the same numbers in any order and the same answer ("Which is smaller, 3/6 or 3/4?"
-    and "... 3/4 or 3/6?"; "1/3 of 1/2" and "1/2 of 1/3"; "3/5 × 1/2" and "3/5 of 1/2"; the same numbers in a new story). A question
-    with fewer than two numbers has no such key. */
+/** One question in other words: the same numbers in any order and the same answer, from any lesson ("Which is smaller, 3/6 or 3/4?"
+    and "... 3/4 or 3/6?"; "1/3 of 1/2" and "1/2 of 1/3"; "3/5 × 1/2" and "3/5 of 1/2"; the same numbers in a new story; "What is 1/3
+    of 3/4?" in one lesson and "1/3 × 3/4 = ?" in the next). A question with fewer than two numbers has no such key. */
 const sameNumbers = (item: AssessmentItem): string | undefined => {
   const numbers = item.prompt.match(/\d+(?:\/\d+)?/g) ?? [];
-  return numbers.length < 2 ? undefined : `${item.missionId}|${[...numbers].sort().join(',')}|${item.problem.answer}`;
+  return numbers.length < 2 ? undefined : `${[...numbers].sort().join(',')}|${item.problem.answer}`;
 };
 
 /** Build a deterministic, varied 12-item form. A different seed changes both worksheet variants and selection. */
@@ -182,10 +182,13 @@ export function buildAssessmentItems(definition: AssessmentDefinition, seed: num
     if (numbers) askedNumbers.add(numbers);
     selected.push({ ...candidate, id: `${definition.id}:${seed}:${selected.length + 1}` });
   };
-  // Round-robin by standard so a check samples the whole scope instead of one lesson.
+  // Round-robin by standard so a check samples the whole scope instead of one lesson. A standard the form has not asked yet whose
+  // pick repeats an earlier question (in another lesson's words) takes its next fresh question instead, so it still gets asked.
   for (let round = 0; selected.length < count && round < candidates.length; round++) {
     for (const standard of definition.standards) {
-      const candidate = byStandard.get(standard)?.[round];
+      const list = byStandard.get(standard) ?? [];
+      let candidate: AssessmentItem | undefined = list[round];
+      if (candidate && !fresh(candidate) && !selected.some((item) => item.standards.includes(standard))) candidate = list.slice(round + 1).find(fresh);
       if (!candidate || !fresh(candidate)) continue;
       take(candidate);
       if (selected.length >= count) break;

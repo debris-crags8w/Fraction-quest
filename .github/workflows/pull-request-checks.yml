@@ -201,11 +201,56 @@ jobs:
       - name: Accessibility, grown-ups report, subscription, offline, reminder, time-limit, Check-in picture and developer-tool checks
         run: pnpm --filter @workspace/fraction-quest test:e2e:extra
 
+  smoke-extra-e2e:
+    # The course smoke tests no other job runs (about 80: the games, correcting a wrong answer in every lesson model type,
+    # daily practice resuming after a reload, the number-line and print checks, the season themes, the story quest, and more),
+    # with the Check-in copy reference and the reduced-motion phone fit. Two tests that did not pass twice locally stay out
+    # ("unit 1 model builds ... unlock lessons in order", "a wrong unit-challenge answer gives a hint"). Locally the tests took
+    # about 13 minutes with 2 workers; on CI expect 18 to 22, plus about 5 for setup: about 25 more runner minutes per run.
+    name: Course smoke extras
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        # Same capped, retried install as the all-lessons job (see the note there).
+        timeout-minutes: 13
+        run: |
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
+          for try in 1 2; do
+            timeout 330 pnpm --filter @workspace/fraction-quest exec playwright install --with-deps chromium && exit 0
+            echo "Install attempt $try did not finish; trying again."
+            sudo pkill -x apt-get || true
+            for wait in $(seq 1 30); do sudo fuser /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock >/dev/null 2>&1 || break; sleep 2; done
+            sudo dpkg --configure -a || true
+            sudo sed -i 's#http://azure.archive.ubuntu.com#http://archive.ubuntu.com#g' /etc/apt/apt-mirrors.txt /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          done
+          exit 1
+
+      - name: The other course smoke tests, the Check-in copy reference and the reduced-motion phone fit
+        run: pnpm --filter @workspace/fraction-quest test:e2e:smoke-extra
+
   phone-fit-e2e:
     # Every screen must fit a phone (390 × 664, an iPhone in Safari) with no scrolling. These walks had no job: every
     # screen of every lesson (split over four shards, which run side by side), and every Unit challenge puzzle, every
     # Find my level question, every kind of Check-in question, daily practice, a New-questions round, Build it and the
-    # worksheet page (one more shard; its seven walks took 5.9 minutes locally with 2 workers). Locally each part's tests take
+    # worksheet page, and the games (the Fraction Race with the robot and with two players, Fraction War and the Code challenge) (one more shard; its nine walks took 7.4 minutes locally with 2 workers). Locally each part's tests take
     # 4.5 to 6 minutes (on CI expect 8 to 12, plus about 5 for setup), shorter than the all-lessons job, so a pull request
     # does not wait longer; the five parts cost about 75 more runner minutes per run. (The last part keeps its name, so a
     # required check named after it still matches.)

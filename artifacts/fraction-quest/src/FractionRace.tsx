@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowLeft, Bot, Car, Code2, Flag, Lock, RotateCcw, Star, Timer, Trophy, Users, Zap } from 'lucide-react';
 import CodeSprint from './CodeSprint';
 import type { Mission, ModelSpec, PracticeQuestion } from './game';
@@ -169,6 +169,30 @@ export default function FractionRace({ mission, best, robotBeaten, sprintBest, o
     if (phase === 'race' && robot && robotProgress >= 1) end('Robot', robot.seconds, false);
   });
 
+  // On a phone the answers must be in reach without scrolling (a timed race): when the last answers end below the screen, the
+  // pictures shrink together (to no less than a third of their size; a number line's labels keep a little more).
+  const liveRef = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const live = liveRef.current;
+    if (phase !== 'race' || !live || typeof window === 'undefined') return;
+    const fit = () => {
+      const models = [...live.querySelectorAll<HTMLElement>('.fq-race-model')];
+      models.forEach((model) => model.style.removeProperty('zoom'));
+      if (window.innerWidth > 560 || !models.length) return;
+      const choices = [...live.querySelectorAll('.fq-race-choices')];
+      const over = Math.max(...choices.map((group) => group.getBoundingClientRect().bottom)) - live.getBoundingClientRect().top + 8 - window.innerHeight;
+      if (over <= 0) return;
+      const heights = models.map((model) => model.getBoundingClientRect().height);
+      const total = heights.reduce((sum, height) => sum + height, 0);
+      const floor = models.some((model) => model.querySelector('[class*="numberline"], [class*="lineplot"], .fq-svg-line')) ? 0.45 : 0.34;
+      const zoom = Math.min(1, Math.max(floor, (total - over) / total));
+      models.forEach((model) => model.style.setProperty('zoom', String(zoom)));
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [phase, racers[0].index, racers[1].index, now < racers[0].stallUntil, now < racers[1].stallUntil]);
+
   const answer = (who: 0 | 1, choice: number) => {
     if (phase !== 'race') return;
     const t = Date.now();
@@ -283,7 +307,7 @@ export default function FractionRace({ mission, best, robotBeaten, sprintBest, o
 
   return (
     <div className="fq-app fq-race-app">
-      <main className={`fq-shell fq-race ${duo ? 'duo' : ''}`} data-testid="race-live">
+      <main ref={liveRef} className={`fq-shell fq-race ${duo ? 'duo' : ''}`} data-testid="race-live">
         <div className="fq-race-top">
           <button className="fq-icon-button" onClick={() => setPhase('pick')} aria-label="Stop the race" data-testid="button-race-stop"><ArrowLeft size={20} /></button>
           <span className="fq-race-clock" data-testid="text-race-clock"><Timer size={16} /> {elapsed.toFixed(1)} s</span>

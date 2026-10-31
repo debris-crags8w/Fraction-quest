@@ -66,9 +66,26 @@ const named = (id: string) => {
 const ask = (prompt: string, choices: string[], right: number, pick: number) => wrongChoiceReason(prompt, choices, right, pick);
 
 describe('c. Practice-more wrong picks are named', () => {
-  for (const id of ['equal-parts', 'equivalent-models', 'compose-to-one', 'unit-fraction-divided-whole', 'party-portions', 'multi-step-fraction-stories']) {
-    it(`${id}: at least 95% of wrong picks have a reason`, () => assert.ok(named(id) >= 0.95, `${(100 * named(id)).toFixed(1)}%`));
-  }
+  it('every lesson: at least 95% of wrong picks have a reason', () => {
+    const low = MISSIONS.map((m) => [m.id, named(m.id)] as const).filter(([, share]) => share < 0.95).map(([id, share]) => `${id} ${(100 * share).toFixed(1)}%`);
+    assert.deepEqual(low, []);
+  });
+  it('the picks that had no reason get a true one (rescore 5): near a benchmark, the other side of half, the jumps left to one, one of the two amounts', () => {
+    const near = (prompt: string, right: string, pick: string) => ask(prompt, [right, pick], 0, 1);
+    assert.equal(near('4/6 is near 1/2. Is it a little more or a little less?', 'A little more than 1/2', 'A little less than 1/2'), WHY.halfOfBottom);
+    assert.equal(near('4/6 is near 1/2. Is it a little more or a little less?', 'A little more than 1/2', 'Exactly 1/2'), WHY.notExactHalf);
+    assert.equal(near('7/8 is near 1. Is it a little more or a little less?', 'A little less than 1', 'A little more than 1'), WHY.topVsBottom);
+    assert.equal(near('1/6 is near 0. Is it a little more or a little less?', 'A little more than 0', 'A little less than 0'), WHY.moreThanZero);
+    assert.equal(why('Which is less than 1/2, 5/6 or 2/6?', '2/6', '5/6'), WHY.halfOfBottom);
+    assert.equal(why('Each jump is 1/8. How many jumps from 0 to 5/8?', '5', '3'), WHY.jumpsToOne);
+    assert.equal(why('A line has 3 equal spaces. Where is 2/3?', '2 jumps from 0', '1 jump from 0'), WHY.jumpsToOne);
+    assert.equal(why('Max says 3/5 − 1/5 = 2/10. What is the right answer?', '2/5', '1/5'), WHY.takenAmount);
+    assert.equal(why('Ana says 1/5 + 1/5 = 2/10. What is the right answer?', '2/5', '1/5'), WHY.oneAmount);
+    assert.equal(why('Fill the blank: 4/12 = ?/3', '1', '0'), WHY.divideSame);
+    assert.equal(why('Halves and eighths are different sizes. Rename 1/2 as eighths.', '4/8', '4/12'), WHY.askedDenominator);
+    assert.equal(why('6 beads are shared into 3 equal groups. How many beads are in one group?', '2', '3'), WHY.groupsNotEach);
+    assert.equal(why('Ana has 6 stickers. She gives away 1/2 of them. Then she gives away 1/3 of the rest. How many are left?', '2', '4'), WHY.skippedFirst);
+  });
   it('equal-parts yes/no picks get their own reasons', () => {
     const fair = ['No, some parts are bigger', 'No, the shapes are different', 'Yes, same-size parts', 'Yes, it is cut into parts'];
     assert.equal(ask('Is this hexagon cut into equal parts?', fair, 2, 0), WHY.onlyLooksBigger); // a fair cut called unfair: the parts only look different
