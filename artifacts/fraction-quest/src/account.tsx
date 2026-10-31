@@ -36,7 +36,7 @@ type AccountValue = {
   selectProfile: (profileId: number) => Promise<void>;
   refreshProfiles: (preferProfileId?: number) => Promise<void>;
   /** Clears this learner's saved copy on the server (its reset version moves, so no device merges old work back).
-      `keepSettings`: the grown-up's time limit, breaks and display settings stay. */
+      `keepSettings`: the grown-up's time limit, breaks and display settings stay (and, with a limit, today's minutes). */
   clearActiveProfileProgress: (options?: { keepSettings?: boolean }) => Promise<void>;
   /** Permanently delete the account and everything saved with it (asks for the password again). */
   deleteAccount: (password: string) => Promise<void>;

@@ -181,7 +181,7 @@ export default function PaperCheck({ missionId, progress, onChange, onBack, onLa
         onScore={(score) => {
           const key = String(mission.unit);
           const old = ref.current.challengeBest?.[key];
-          if (old == null || score > old) { const next = { ...ref.current, challengeBest: { ...ref.current.challengeBest, [key]: score } }; ref.current = next; onChange(next); }
+          if (old == null || score > old) { const next = { ...ref.current, challengeBest: { ...ref.current.challengeBest, [key]: score }, challengeAt: { ...ref.current.challengeAt, [key]: Date.now() } }; ref.current = next; onChange(next); }
         }} />}
 
       <div className="fq-paper-foot">
