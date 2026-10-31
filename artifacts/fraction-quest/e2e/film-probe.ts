@@ -15,7 +15,7 @@ export type FilmSnap = {
   friend: Box | null;        // the set-only film's chapter friend (when someone else speaks)
   actors: { who: string; box: Box }[];   // every character in the picture (a buzzing one: everywhere its buzz takes it)
   fractions: { text: string; box: Box }[]; // every written fraction or number in the picture (fractions, number flags) that shows
-  things: { what: string; box: Box }[];  // story things a line talks about (Bea's map)
+  things: { what: string; box: Box }[];  // story things a line talks about (data-story-thing: Bea's map, the seed bag, the cracked boot...)
   bunting: Box | null;
   ribbon: Box | null;        // a chapter ending's "N of 15 pieces" label (once it shows)
   prop: Box | null;          // the drawn part of the lesson or chapter-ending prop
@@ -122,7 +122,7 @@ export async function watchFilm(page: Page) {
         friend: document.querySelector('[data-testid=story-set-speaker]') ? box(friend?.firstElementChild) : null,
         actors: actorsOf.map((actor) => ({ who: actor.firstElementChild?.getAttribute('data-character') ?? (actor.firstElementChild?.classList.contains('fq-mascot') ? 'numi' : actor.firstElementChild?.classList.contains('fq-hoot') ? 'hoot' : actor.firstElementChild?.getAttribute('class')) ?? 'actor', box: actorBox(actor) })),
         fractions: [...document.querySelectorAll('.fq-cine-set .fq-cine-frac, .fq-cine-set .fq-cine-flag')].filter(shows).map((frac) => ({ text: frac.getAttribute('aria-label') ?? frac.textContent ?? '', box: box(frac)! })),
-        things: [...document.querySelectorAll('.fq-cine-set .fq-cine-map')].filter(shows).map((thing) => ({ what: thing.className, box: box(thing)! })),
+        things: [...document.querySelectorAll('.fq-cine-set [data-story-thing]')].filter(shows).map((thing) => ({ what: thing.getAttribute('data-story-thing')!, box: box(thing)! })),
         bunting: box(document.querySelector('.fq-cine-set .fq-cine-bunting')),
         ribbon: box(document.querySelector('.fq-cine-end-ribbon.is-visible')),
         prop: drawn(document.querySelector('.fq-cine-set [data-testid=film-prop] svg')),

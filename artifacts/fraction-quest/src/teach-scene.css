@@ -144,6 +144,9 @@
 /* Phones: a little less room around the Learn picture, so the picture and its buttons fit a short screen. */
 @media (max-width: 430px) {
   .fq-ts-card .fq-ts-stage { min-height: 0; padding: 16px 12px 12px; gap: 12px; }
+  /* A word card's picture keeps its small frame on a phone too (the rule above would give each one 28px more), so two
+     pictured cards (ruler-measurement: inch and quarter) fit with the lesson header still on screen. */
+  .fq-ts-card .fq-ts-words .fq-ts-stage { padding: 6px 10px 4px; gap: 6px; }
   .fq-ts-card .fq-ts-step { min-height: 0; font-size: 1.1rem; }
   .fq-ts-card .fq-ts-nav .fq-button { min-height: 48px; }
 }

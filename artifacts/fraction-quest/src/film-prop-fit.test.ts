@@ -4,7 +4,7 @@ import * as React from 'react';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ChapterEndPicture, LESSON_PROPS, LessonProp, PROP_DEFS } from './film-props';
-import { OpenerBars, OpenerCake } from './film-food';
+import { OpenerBars, OpenerCake, OpenerPie } from './film-food';
 import { MISSIONS } from './game';
 import { seasonOn } from './seasons';
 import { CHAPTERS, PROP_THEMES, PROPS, chapterEnd, chapterFor, lessonComic, propTheme, withName, type PropTheme } from './story';
@@ -143,4 +143,26 @@ test('the props that disagreed with their lines now show what the friend talks a
   assert.match(label('compare-decimals-grid'), /grid/);
   assert.match(label('multi-step-fraction-stories'), /dial/);
   for (const prop of [...Object.keys(PROP_WORDS), ...Object.keys(NAMES_NO_OBJECT)]) assert.ok(PROP_DEFS[prop], `${prop} is still drawn (drop its words if it goes)`);
+});
+
+/* Rescore 5: "Two same-size cakes, cut two ways. Three pieces from each" showed two whole cakes. Each cake now shows its
+   cuts (one in fourths, one in eighths), in every theme, and the label says so. The chapter 10 opener's line "I packed
+   {pie} and sandwiches" now has the theme's pie in the picture. */
+test('the two same-size cakes are drawn cut two ways, in every theme', () => {
+  for (const theme of THEMES) {
+    const html = lessonProp('compare-same-numerator', theme);
+    const cuts = [...html.matchAll(/class="fq-fp-a-cuts" d="([^"]*)"/g)].map(([, d]) => (d!.match(/M/g) ?? []).length);
+    assert.deepEqual(cuts, [4, 8], `${theme}: one cake is cut into 4 pieces and the other into 8 (${cuts})`);
+    assert.match(lessonLabel('compare-same-numerator', theme), /cut into fourths.*eighths/, theme);
+  }
+});
+
+test('the chapter 10 opener draws the pie its line names, in every theme', () => {
+  const ch10 = CHAPTERS[9]!;
+  for (const theme of THEMES) {
+    const pie = labelOf(renderToStaticMarkup(createElement(OpenerPie, { theme })));
+    const words = ch10.intro.flatMap((panel) => themedWords(panel.text, theme, ['pie']));
+    assert.ok(words.length > 0, 'the opener names a pie');
+    for (const word of words) assert.ok(says(pie, word), `${theme} ch 10 opener: "${word}" over "${pie}"`);
+  }
 });

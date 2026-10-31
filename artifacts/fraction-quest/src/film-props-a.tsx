@@ -144,17 +144,28 @@ function BakeryEndArt(theme: PropTheme = 'everyday') {
 
 /* ---------- Chapter 2 · Pip's pond party ---------- */
 
-/** compare-same-numerator: "Two cakes the same size." Two identical round cakes, one with strawberries and one with blueberries.
-    In a theme, two of that theme's cakes (or pies) with its topping. */
+/** Lines from the middle of a cake's (or pie's) top to its rim: the cuts of `n` equal pieces, as one path. */
+const topCuts = (cx: number, cy: number, rx: number, ry: number, n: number) => Array.from({ length: n }, (_, k) => {
+  const a = -Math.PI / 2 + (k * 2 * Math.PI) / n;
+  return `M${cx} ${cy} L${(cx + rx * Math.cos(a)).toFixed(1)} ${(cy + ry * Math.sin(a)).toFixed(1)}`;
+}).join(' ');
+
+/** compare-same-numerator: "Two same-size cakes, cut two ways." Two identical round cakes, one with strawberries and one
+    with blueberries, one cut into fourths and one into eighths. In a theme, two of that theme's cakes (or pies) with its topping. */
 function TwoCakesArt(theme: PropTheme = 'everyday') {
   const look = cakeLook(theme);
-  const cake = (cx: number, berry: string, dots: [number, number][], i: number) => (
+  const cut = { stroke: INK, strokeWidth: 2, strokeLinecap: 'round', fill: 'none' } as const;
+  const cake = (cx: number, berry: string, dots: [number, number][], i: number, pieces: number) => (
     <g key={cx} className="fq-fp-a-hop" style={delay(i)}>
       <ellipse cx={cx} cy="104" rx="42" ry="7" fill="#fff" {...thin} />
-      {look.pie ? <SidePie cx={cx} cy={78} s={.74} filling={look.frosting} topping={look.topping} toppingFill={look.toppingFill} /> : <>
+      {look.pie ? <>
+        <SidePie cx={cx} cy={78} s={.74} filling={look.frosting} topping={look.topping} toppingFill={look.toppingFill} />
+        <path className="fq-fp-a-cuts" d={topCuts(cx, 78, 34, 11.8, pieces)} {...cut} />
+      </> : <>
         <path d={`M${cx - 34} 66 v28 q0 9 34 9 q34 0 34 -9 v-28 Z`} fill={look.plain ? '#F2C879' : look.sponge} {...outline} />
         <path d={`M${cx - 30} 82 q30 8 60 0`} stroke={look.plain ? '#C98B4E' : look.edge} strokeWidth="2.5" fill="none" strokeLinecap="round" />
         <ellipse cx={cx} cy="66" rx="34" ry="10" fill={look.plain ? CREAM : look.frosting} {...outline} />
+        <path className="fq-fp-a-cuts" d={topCuts(cx, 66, 34, 10, pieces)} {...cut} />
         {look.plain
           ? dots.map(([dx, dy]) => <circle key={`${dx}-${dy}`} cx={cx + dx} cy={66 + dy} r="5" fill={berry} {...thin} strokeWidth={2} />)
           : <ToppingArt kind={look.topping} x={cx} y={62} r={7} fill={look.toppingFill} />}
@@ -162,13 +173,13 @@ function TwoCakesArt(theme: PropTheme = 'everyday') {
     </g>
   );
   return <>
-    {cake(52, '#E63946', [[-14, -2], [0, -5], [14, -1], [-4, 3]], 0)}
-    {cake(148, '#5B6CFF', [[-13, 0], [2, -4], [14, 1], [4, 4]], 1)}
+    {cake(52, '#E63946', [[-14, -2], [0, -5], [14, -1], [-4, 3]], 0, 4)}
+    {cake(148, '#5B6CFF', [[-13, 0], [2, -4], [14, 1], [4, 4]], 1, 8)}
   </>;
 }
 const twoCakesLabel = (theme: PropTheme) => cakeLook(theme).plain
-  ? 'Two round cakes of the same size, one with strawberries and one with blueberries'
-  : `Two round ${foodWord(theme, 'cakes')} of the same size`;
+  ? 'Two round cakes of the same size, one with strawberries and one with blueberries, one cut into fourths and one into eighths'
+  : `Two round ${foodWord(theme, 'cakes')} of the same size, one cut into fourths and one into eighths`;
 
 /** Chapter 2 ending: Pip's snack bowl with two snack bars in it, and the stone piece beside it. */
 function PondEndArt() {

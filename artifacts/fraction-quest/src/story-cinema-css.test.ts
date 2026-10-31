@@ -26,3 +26,19 @@ test('a finished film pauses every looping animation in the cinema css', () => {
   }
   assert.deepEqual(missing, [], 'every loop is paused once the film is done');
 });
+
+/* Rescore 5: in December the chapter 2 bars are red-and-white peppermint stripes, and the white 1/3 and 1/8 on them
+   could not be read. The labels sit on their own dark backing, so they read on every theme's bars. */
+test('the chapter 2 bar labels read on every theme\'s bars', async () => {
+  const { BARS } = await import('./film-food');
+  const hex = (text: string) => [...text.matchAll(/#([0-9a-f]{6})\b/gi)].map(([, h]) => [0, 2, 4].map((i) => parseInt(h!.slice(i, i + 2), 16)));
+  const lum = ([r, g, b]: number[]) => [r!, g!, b!].map((c) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+    .reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i]!, 0);
+  const contrast = (a: number[], b: number[]) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x! + 0.05) / (y! + 0.05); };
+  const label = rules.find((rule) => rule.selector === '.fq-cine-cutbar-label')!;
+  const ink = hex(label.body.replace(/text-shadow:[^;]*;/, '').replace(/#fff\b/i, '#ffffff'))[0]!;
+  const backing = rules.find((rule) => rule.selector === '.fq-cine-cutbar-label .fq-cine-frac' && /background:/.test(rule.body));
+  const behind = backing ? hex(backing.body.match(/background:[^;]*/)![0]) : Object.values(BARS).flatMap((look) => hex(look.fill));
+  assert.ok(behind.length > 0);
+  for (const colour of behind) assert.ok(contrast(ink, colour) >= 4.5, `the label (rgb ${ink}) on rgb ${colour}: ${contrast(ink, colour).toFixed(2)}:1`);
+});

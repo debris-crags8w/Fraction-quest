@@ -7,7 +7,11 @@ import { coveredShare, fakeVoice, countMusicNotes, snaps, snapStill, visibleShar
    a lesson film from every chapter with the sound, the music and a (fake) voice clip on, and checks that no speaker's face is
    under the caption; a third checks that the characters and written fractions of every chapter opening stay in the picture. */
 
-async function openStorybook(page: Page, reducedMotion: boolean, sound = false) {
+/** The seasonal theme the films are also checked in (its props, words and colours): December, the busiest one. The films
+    are checked with seasonal themes off as well. */
+const THEMED_DAY = '2026-12-15T10:00:00';
+
+async function openStorybook(page: Page, reducedMotion: boolean, sound = false, themedDay?: string) {
   const { MISSIONS } = await import('../src/game');
   const { getBuildChecks, getWorksheet } = await import('../src/learning-content');
   // Every lesson finished, so every chapter ending and the finale can be watched.
@@ -16,7 +20,16 @@ async function openStorybook(page: Page, reducedMotion: boolean, sound = false) 
     worksheet: Object.fromEntries(getWorksheet(mission.id).map((row) => [row.id, { draft: row.answer, checkedValue: row.answer }])) }]));
   const progress = { completedMissionIds: MISSIONS.map((mission) => mission.id), starsByMission: {}, reviewQueue: [], assessments: [], learning };
   const fun = { xp: 0, day: '2026-10-20', answeredToday: 0, dayStreak: 0, lastActiveDay: null, sound, story: { prologueSeen: true, choices: {} },
-    displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion, seasonalThemes: false, storyMode: true } };
+    displayPreferences: { textSize: 'standard', highContrast: false, reducedMotion, seasonalThemes: !!themedDay, storyMode: true } };
+  // A themed run moves the clock to that day (Date only: the film's timers keep their real pace).
+  if (themedDay) await page.addInitScript((iso) => {
+    const Real = Date; const offset = Real.parse(iso) - Real.now();
+    class Shifted extends Real {
+      constructor(...args: unknown[]) { if (args.length === 0) super(Real.now() + offset); else super(...(args as [string])); }
+      static now() { return Real.now() + offset; }
+    }
+    (globalThis as unknown as { Date: DateConstructor }).Date = Shifted as unknown as DateConstructor;
+  }, themedDay);
   await page.addInitScript(({ savedProgress, savedFun }) => {
     localStorage.setItem('fraction-quest-progress-v1', JSON.stringify(savedProgress));
     localStorage.setItem('fraction-quest-fun-v1', JSON.stringify(savedFun));
@@ -26,10 +39,10 @@ async function openStorybook(page: Page, reducedMotion: boolean, sound = false) 
   return MISSIONS;
 }
 
-for (const reducedMotion of [false, true]) {
-  test(`every film fits a phone, keeps Skip and Next in reach and never jumps${reducedMotion ? ', and stays still with Reduce motion' : ''}`, async ({ page }) => {
+for (const [reducedMotion, themedDay] of [[false, undefined], [true, undefined], [false, THEMED_DAY]] as const) {
+  test(`every film fits a phone, keeps Skip and Next in reach and never jumps${reducedMotion ? ', and stays still with Reduce motion' : ''}${themedDay ? ', in the December theme' : ''}`, async ({ page }) => {
     test.setTimeout(6 * 60_000);
-    const MISSIONS = await openStorybook(page, reducedMotion);
+    const MISSIONS = await openStorybook(page, reducedMotion, false, themedDay);
     const { CHAPTERS } = await import('../src/story');
     const book = async () => {
       await page.goto('/');
@@ -158,9 +171,9 @@ test('a lesson film from every chapter plays on a phone with sound, music and a 
 /** In a chapter opening, how much of a character may sit under the caption: a foot or a tail, never the face. */
 const OPENING_CAPTION_TOLERANCE = 0.2;
 
-test('every chapter opening keeps its characters, written numbers and story things inside the picture and clear of the caption, on every line and in the still, and the set never shows a gap at the edge', async ({ page }) => {
+for (const themedDay of [undefined, THEMED_DAY]) test(`every chapter opening keeps its characters, written numbers and story things inside the picture and clear of the caption, on every line and in the still, and the set never shows a gap at the edge${themedDay ? ', in the December theme' : ''}`, async ({ page }) => {
   test.setTimeout(9 * 60_000);
-  const MISSIONS = await openStorybook(page, false, true);
+  const MISSIONS = await openStorybook(page, false, true, themedDay);
   const { CHAPTERS } = await import('../src/story');
   await fakeVoice(page);
   const films: { name: string; open: () => Promise<void> }[] = [{ name: 'prologue', open: async () => {

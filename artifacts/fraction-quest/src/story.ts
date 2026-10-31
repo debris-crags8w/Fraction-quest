@@ -5,6 +5,7 @@
 
 import { MONTH_THEMES, type MonthThemeId } from './month-themes';
 import type { HolidaySeasonId } from './seasons';
+import { seasonalWords } from './seasonal-words';
 
 export type CharacterId = 'chomp' | 'pip' | 'tilly' | 'bolt' | 'bea';
 export type Speaker = CharacterId | 'numi' | 'hoot';
@@ -65,6 +66,13 @@ export function withName(text: string, name: string | null | undefined, theme: P
     .split('{name}').join(name?.trim() || 'friend');
   // Without a name, a line that opens with it still starts with a capital: "Friend, we need you!"
   return filled.startsWith('friend') ? `F${filled.slice(1)}` : filled;
+}
+/** A film line as the caption shows it and the voice reads it: the name and props filled in (see withName), then the
+    season's lesson words (seasonalWords, which the caption's LearningText also applies: "the loaves" is "the pumpkin
+    loaves" at Halloween), so the voice says exactly what the caption shows. A theme is its season's id. */
+export function filmLine(text: string, name: string | null | undefined, theme: PropTheme = 'everyday'): string {
+  const line = withName(text, name, theme);
+  return theme === 'everyday' ? line : seasonalWords(line, theme);
 }
 
 export const CHARACTERS: Record<Speaker, { name: string; kind: string }> = {
@@ -149,7 +157,7 @@ export const CHAPTERS: Chapter[] = [
     thanks: ['Okay, okay. Now I can name my slice!', 'Okay, okay. Equal parts are fair!', 'Okay, okay. One slice is plenty. For now!'], done: 'I dug the stone piece out of the crumbs. But I did not crack that stone!',
     card: { title: 'Chomp the sneaky sharer', blurb: 'Loves the biggest piece. Now he knows fair shares are equal parts.' } },
   { unit: 2, title: 'Pip’s pond party', character: 'pip',
-    intro: [say('pip', 'Ribbit! A stone piece fell into my {snack} bowl. It’s stuck under one of the {bars}!'), say('numi', 'Two same-size {bars}: one cut in thirds, one in eighths. It’s under the bigger piece.'), say('hoot', 'More equal parts means smaller parts.')],
+    intro: [say('pip', 'Ribbit! A stone piece fell into my bowl of {snacks}. It’s stuck under one of the {bars}!'), say('numi', 'Two same-size {bars}: one cut in thirds, one in eighths. It’s under the bigger piece.'), say('hoot', 'More equal parts means smaller parts.')],
     choice: [pick('Cut the {bars}', 'Make equal pieces', 'numi', 'Equal pieces coming up!'), pick('Ask the guests', 'Who saw the splash?', 'pip', 'My guests saw a big green tail by the water. Hmm.')],
     scenes: ['Two same-size {cakes}, cut two ways. Three pieces from each. Which plate has more?'],
     cliffs: ['Thirds are bigger! The stone piece glows under a third. Then a big green tail flicks in the pond… and swims away.'],

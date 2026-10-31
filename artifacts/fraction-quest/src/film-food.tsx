@@ -186,6 +186,23 @@ export function OpenerCake({ theme, fair, beat, style }: { theme: PropTheme; fai
   );
 }
 
+/** Chapter 10's picnic pie ("I packed {pie} and sandwiches"), from the side in its tin: a lattice berry pie, or the
+    theme's pie (an orange pumpkin pie with cream, a cherry pie). */
+export function OpenerPie({ theme, style, storyThing }: { theme: PropTheme; style?: CSSProperties; storyThing?: string }) {
+  const look = pieLook(theme);
+  const name = foodWord(theme, 'pie');
+  return (
+    <svg className="fq-cine-picnic-pie" style={style} viewBox="0 0 100 44" role="img" data-food={name} data-story-thing={storyThing} aria-label={`${aFood(name)} in its tin`}>
+      <path d="M6 22 l8 16 h72 l8 -16 Z" fill="#B8C2CC" {...outline} />
+      <ellipse cx="50" cy="22" rx="44" ry="13" fill="#E0A458" {...outline} />
+      <ellipse cx="50" cy="22" rx="34" ry="9" fill={look.filling} stroke={INK} strokeWidth="2" />
+      {look.lattice
+        ? <path d="M30 16 l14 12 M44 14 l16 14 M58 14 l14 12 M32 28 l14 -14 M48 30 l16 -16 M62 29 l12 -12" stroke="#F7C873" strokeWidth="3" strokeLinecap="round" />
+        : <ToppingArt kind={look.topping} x={50} y={20} r={6} fill={look.toppingFill} />}
+    </svg>
+  );
+}
+
 /** Chapter 2's two same-size bars, cut into thirds and eighths: the theme's bars (snack, chocolate candy or striped
     peppermint), coloured through two CSS variables the bar pieces read. */
 export function OpenerBars({ theme, compared, style, children }: { theme: PropTheme; compared: boolean; style?: CSSProperties; children?: ReactNode }) {

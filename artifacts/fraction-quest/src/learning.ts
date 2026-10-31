@@ -163,11 +163,13 @@ export function requiredBuildChecks(progress: Progress, id: string): BuildCheck[
 }
 export function hasLearningGate(progress: Progress, id: string): boolean {
   const record = getLearningRecord(progress, id);
-  // A finished lesson stays finished: later misses can offer reteach practice, but never re-lock it.
+  // A finished lesson stays finished: later misses can offer reteach practice, but never re-lock it. Its worksheet was
+  // all right when it was finished (completedAt is only set then), so saved answers that no longer match a revised
+  // worksheet never re-lock it either; the build checks have their own rule (requiredBuildChecks).
   const finished = progress.completedMissionIds.includes(id) && typeof record.completedAt === 'number';
   const reteach = targetedPracticeCount(id, record);
   return !!record.practiceDone && requiredBuildChecks(progress, id).every(check => record.checks[check.id]?.passed)
-    && requiredWorksheetDone(record, id) && (finished || reteach.done === reteach.total);
+    && (finished || (requiredWorksheetDone(record, id) && reteach.done === reteach.total));
 }
 /** A lesson's steps as a fraction, for its badge on the map: each build check, then the worksheet. */
 export function lessonSteps(progress: Progress, id: string): { done: number; total: number } {
